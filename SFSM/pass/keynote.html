@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Keynote</title>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet" href="https://webfontworld.github.io/kopub/KoPubWorldDotum.css">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+  <script src="https://unpkg.com/quill-image-resize@3.0.9/image-resize.min.js"></script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+  <style>
+    :root {
+      --bg-body: #F9FAFB;
+      --bg-surface: #FFFFFF;
+      --bg-sidebar: #F3F4F6;
+      --border-light: #F3F4F6;
+      --border-base: #E5E7EB;
+      --border-dark: #D1D5DB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --primary: #111827;
+      --primary-hover: #374151;
+      --secondary: #FFFFFF;
+      --secondary-hover: #F9FAFB;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --editor-font-size: 16px; 
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg-body); color: var(--text-main); margin: 0; padding: 0;
+      -webkit-font-smoothing: antialiased; height: 100vh; display: flex; overflow: hidden;
+    }
+
+    /* 사이드바 */
+    .sidebar { width: 300px; background: var(--bg-surface); border-right: 1px solid var(--border-base); display: flex; flex-direction: column; z-index: 10; transition: transform 0.3s ease, width 0.3s ease; }
+    
+    /* 사이드바 헤더 */
+    .sidebar-header { 
+      height: 64px; 
+      min-height: 64px;
+      padding: 0 20px; 
+      border-bottom: 1px solid var(--border-base); 
+      display: flex; 
+      align-items: center; 
+    }
+    .app-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; width: 100%; }
+    
+    /* ✅ 완료 통계 뱃지 스타일 추가 */
+    .completion-stats {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: #ECFDF5;
+      color: #059669;
+      border: 1px solid #A7F3D0;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-left: auto; /* 우측으로 밀기 */
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    /* 검색창 영역 */
+    .sidebar-search { padding: 12px 20px; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
+    .search-box { width: 100%; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-base); font-size: 13px; background: var(--bg-body); outline: none; }
+    .search-box:focus { border-color: var(--primary); }
+    
+    .note-list { flex: 1; overflow-y: auto; padding: 10px; margin: 0; list-style: none; }
+    .note-item { padding: 10px 14px; border-radius: var(--radius-md); cursor: pointer; margin-bottom: 4px; transition: background 0.2s; display: flex; flex-direction: column; gap: 4px; }
+    .note-item:hover { background: var(--bg-sidebar); }
+    .note-item.active { background: var(--primary); color: white; }
+    .note-item.active .note-date { color: #D1D5DB; }
+    .note-title { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .note-date { font-size: 12px; color: var(--text-muted); }
+
+    /* 메인 콘텐츠 */
+    .main-content { 
+      flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); position: relative; 
+      overflow-anchor: none; 
+      scroll-behavior: smooth; /* 부드러운 스크롤 */
+    }
+    
+    /* 탑바 */
+    .top-bar { 
+      position: sticky; top: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); 
+      height: 64px; 
+      min-height: 64px;
+      padding: 0 30px; border-bottom: 1px solid var(--border-base); 
+      display: flex; justify-content: space-between; align-items: center; z-index: 5; 
+      transition: transform 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+    }
+    .title-input { font-size: 20px; font-weight: 700; border: none; background: transparent; outline: none; width: 400px; color: var(--text-main); }
+    .title-input::placeholder { color: var(--border-dark); }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    .divider { width: 1px; height: 20px; background: var(--border-dark); margin: 0 4px; }
+
+    /* 버튼 스타일 */
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+    .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-outline { background: var(--secondary); color: var(--text-main); border-color: var(--border-base); }
+    .btn-outline:hover { background: var(--secondary-hover); border-color: #D1D5DB; }
+
+    /* 폼 영역 */
+    .form-wrapper { padding: 30px 40px; max-width: 1000px; margin: 0 auto; width: 100%; transition: padding 0.3s ease; }
+    .keynote-card { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-md); transition: box-shadow 0.3s; }
+    
+    .edit-ui .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .edit-ui .badge-number { background: var(--primary); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; font-weight: 700; }
+    .edit-ui .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    
+    .edit-ui .form-group label { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .edit-ui .form-group label i { font-size: 18px; } 
+
+    .edit-ui .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* 심플 에디터 */
+    .simple-editor.ql-container.ql-snow { border: 1px solid var(--border-base) !important; border-radius: var(--radius-md) !important; background: var(--bg-body); transition: background 0.2s, border-color 0.2s; }
+    .simple-editor.ql-container.ql-snow:focus-within { border-color: var(--primary) !important; background: var(--bg-surface); }
+    .simple-editor .ql-editor { min-height: 80px; padding: 14px; font-size: var(--editor-font-size) !important; font-family: inherit; line-height: 1.6; }
+
+    /* 풀이용 에디터 */
+    .ql-toolbar.ql-snow { border: 1px solid var(--border-base) !important; border-radius: var(--radius-md) var(--radius-md) 0 0 !important; background: var(--bg-body); }
+    .ql-container.ql-snow { border: 1px solid var(--border-base) !important; border-top: none !important; border-radius: 0 0 var(--radius-md) var(--radius-md) !important; font-family: inherit !important; background: var(--bg-surface); }
+    .ql-editor { font-size: var(--editor-font-size) !important; line-height: 1.6; overflow-anchor: none !important; }
+    .solution-editor .ql-editor { min-height: 150px; }
+    
+    /* 강력해진 이미지 커서 및 형광펜 스타일 */
+    .ql-editor img { cursor: pointer; transition: opacity 0.2s, outline 0.1s; } 
+    .ql-editor img:hover { opacity: 0.85; outline: 2px solid var(--primary); outline-offset: 2px; }
+    .ql-editor img.img-highlight { outline: 4px solid #FDBA74 !important; outline-offset: 2px !important; border-radius: 4px !important; }
+
+    /* ✅ 붙여넣기 한 표(Table) 원본 유지용 래퍼 스타일 (Keynote 테마 맞춤) */
+    .quill-raw-table {
+        margin: 1rem 0;
+        width: 100%;
+        overflow-x: auto;
+        border-radius: var(--radius-md);
+        box-shadow: 0 0 0 1px var(--border-base);
+        background: var(--bg-surface);
+    }
+    .quill-raw-table table {
+        border-collapse: collapse !important;
+        width: 100%;
+        margin: 0;
+        font-size: 14px;
+        color: var(--text-main);
+        text-align: left;
+    }
+    .quill-raw-table th, .quill-raw-table td {
+        border: 1px solid var(--border-base);
+        padding: 8px 12px;
+    }
+    .quill-raw-table thead th, .quill-raw-table th {
+        background-color: var(--bg-sidebar);
+        font-weight: 600;
+    }
+
+    /* 환경설정 및 모달 공통 */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.4); backdrop-filter: blur(2px); display: none; justify-content: center; align-items: center; z-index: 50; }
+    .modal-content { background: var(--bg-surface); width: 400px; padding: 24px; border-radius: var(--radius-lg); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border: 1px solid var(--border-base); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    
+    /* 🔥 토픽 리스트 모달 전용 스타일 */
+    .topic-modal-item {
+      padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: background 0.2s;
+    }
+    .topic-modal-item:hover { background: var(--bg-sidebar); }
+    .topic-modal-num {
+      background: var(--primary); color: white; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;
+    }
+    .topic-modal-text {
+      font-size: 14px; color: var(--text-main); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-top: 2px;
+    }
+
+    /* 이미지 뷰어 모달 */
+    .image-viewer-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(4px); display: none; justify-content: center; align-items: center; z-index: 100; opacity: 0; transition: opacity 0.2s ease-in-out; }
+    .image-viewer-overlay.show { display: flex; opacity: 1; }
+    .image-viewer-content { position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+    .image-viewer-content img { max-width: 100%; max-height: 80vh; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); object-fit: contain; background: white; }
+    .image-viewer-close { position: absolute; top: -40px; right: 0; background: none; border: none; color: white; font-size: 32px; cursor: pointer; padding: 8px; transition: color 0.2s; }
+    .image-viewer-close:hover { color: #D1D5DB; }
+    .image-viewer-actions { display: flex; gap: 12px; }
+
+    .print-ui { display: none; }
+
+    /* 몰입 모드 (Immersion Mode) */
+    body.immersion-mode .sidebar { display: none !important; }
+    body.immersion-mode .top-bar { display: none !important; }
+    body.immersion-mode .form-wrapper { padding-top: 50px; } 
+
+    /* 토스트 알림 */
+    .toast {
+      visibility: hidden;
+      background-color: #111827; 
+      color: #fff;
+      text-align: center;
+      border-radius: var(--radius-md);
+      padding: 12px 24px;
+      position: fixed;
+      z-index: 1000;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      font-size: 14px;
+      opacity: 0;
+      transition: opacity 0.3s, bottom 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: var(--shadow-md);
+    }
+    .toast.show {
+      visibility: visible;
+      opacity: 1;
+      bottom: 40px;
+    }
+
+    /* PDF 출력용 스타일 */
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      @page { size: A4; margin: 20mm 15mm; }
+      body { display: block; overflow: visible; background: white; height: auto; font-family: 'KoPubWorldDotum', sans-serif !important; color: #000; }
+      .sidebar, .top-bar, .modal-overlay, .image-viewer-overlay, .toast { display: none !important; }
+      .main-content { overflow: visible; background: white; padding: 0; display: block; }
+      .form-wrapper { padding: 0; max-width: 100%; margin: 0; }
+      .edit-ui { display: none !important; }
+      .print-ui { display: block !important; }
+      .keynote-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 45px !important; break-inside: avoid; page-break-inside: avoid; }
+
+      .print-lead { font-size: 11.5pt; color: #4B5563; background-color: #F9FAFB !important; border-left: 3px solid #9CA3AF; padding: 10px 14px; margin-bottom: 14px; line-height: 1.4; word-break: keep-all; border-radius: 0 4px 4px 0; }
+      .print-prob { font-size: 16pt; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3; letter-spacing: -0.03em; word-break: keep-all; display: flex; align-items: flex-start; gap: 8px; }
+      .print-conc { font-size: 12pt; color: #374151; margin-bottom: 16px; line-height: 1.5; word-break: keep-all; padding-left: 4px; }
+      
+      .print-divider { border: 0; border-top: 2px solid #111827; margin-bottom: 16px; margin-top: 8px; }
+      
+      /* 출력 시 이미지 정렬(float, margin 등)이 유지되도록 강제 속성 제거 */
+      .print-ui img { max-width: 100% !important; page-break-inside: avoid; }
+      
+      .print-ui p { margin-top: 0; margin-bottom: 0.3em; display: block; }
+      .print-ui p:last-child { margin-bottom: 0; }
+      .print-sol ul, .print-sol ol { padding-left: 20px; margin-bottom: 0.8em; margin-top: 0.4em; }
+      .print-sol li { margin-bottom: 0.2em; }
+      .ql-editor.print-sol { padding: 0 !important; overflow: visible !important; min-height: auto !important; white-space: normal !important; }
+      .ql-editor img.img-highlight { outline: 3px solid #FDBA74 !important; outline-offset: 1px !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="app-title">
+        <i class="ph-fill ph-notebook"></i> Keynote
+        <div id="completionStats" class="completion-stats"></div>
+      </div>
+    </div>
+    <div class="sidebar-search">
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="searchInput" class="search-box" placeholder="제목 또는 내용 검색..." spellcheck="false" onkeyup="handleSearchInput(event)">
+        <button class="btn btn-outline" style="padding: 0 12px; flex-shrink: 0;" onclick="searchInContent()" onmousedown="event.preventDefault()" title="현재 본문 내 검색">
+          <i class="ph-bold ph-magnifying-glass"></i>
+        </button>
+      </div>
+    </div>
+    
+    <ul class="note-list" id="noteList"></ul>
+    <div style="padding: 20px; border-top: 1px solid var(--border-base);">
+      <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="createNewNote()">
+        <i class="ph ph-plus"></i> 새 키노트 작성
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content" id="mainContent">
+    <div class="top-bar">
+      <input type="text" id="docTitle" class="title-input" placeholder="제목을 입력하세요" spellcheck="false">
+      <div class="actions">
+        <button class="btn btn-outline" onclick="openTopicListModal()" title="전체 문항 리스트 보기"><i class="ph ph-list-dashes"></i></button>
+        <button class="btn btn-outline" onclick="openSettings()" title="환경설정"><i class="ph ph-gear"></i></button>
+        <div class="divider"></div>
+        <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importJSON(event)">
+        <button class="btn btn-outline" onclick="document.getElementById('importInput').click()"><i class="ph ph-upload-simple"></i> 복원</button>
+        <button class="btn btn-outline" onclick="exportJSON()"><i class="ph ph-download-simple"></i> 백업</button>
+        <div class="divider"></div>
+        <button class="btn btn-primary" onclick="saveCurrentNote()"><i class="ph ph-floppy-disk"></i> 저장</button>
+        <button class="btn btn-outline" onclick="prepareAndPrint()"><i class="ph ph-printer"></i> PDF</button>
+        <button class="btn btn-outline" onclick="deleteCurrentNote()" style="color: #DC2626; border-color: #FCA5A5;"><i class="ph ph-trash"></i></button>
+      </div>
+    </div>
+
+    <div class="form-wrapper">
+      <div id="formContainer"></div>
+    </div>
+
+    <div id="topicListModal" class="modal-overlay" onclick="if(event.target===this) closeTopicListModal()">
+      <div class="modal-content" style="width: 600px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; padding: 0;">
+        <div class="modal-header" style="padding: 20px 24px; margin-bottom: 0;">
+          <div class="modal-title"><i class="ph ph-list-dashes" style="font-size: 20px;"></i> 전체 문항 리스트</div>
+          <button class="btn" style="padding: 4px; border: none; background: transparent;" onclick="closeTopicListModal()"><i class="ph ph-x" style="font-size: 18px;"></i></button>
+        </div>
+        <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-base); background: var(--bg-body); display: flex; gap: 8px;">
+          <select id="modalSearchType" class="search-box" style="width: auto; background: var(--bg-surface);" onchange="filterTopicList()">
+            <option value="all">전체 검색</option>
+            <option value="title">제목(문제)</option>
+            <option value="content">내용(풀이/개념)</option>
+          </select>
+          <input type="text" id="modalSearchInput" class="search-box" style="background: var(--bg-surface);" placeholder="검색어를 입력하세요..." oninput="filterTopicList()">
+        </div>
+        <div id="topicListContainer" style="flex: 1; overflow-y: auto; padding: 0;">
+            </div>
+      </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title"><i class="ph ph-gear"></i> 환경설정 및 단축키 안내</div>
+          <button class="btn" style="padding: 4px; border: none; background: transparent;" onclick="closeSettings()"><i class="ph ph-x" style="font-size: 18px;"></i></button>
+        </div>
+        <div style="margin-bottom: 24px;">
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;">생성할 문항 수(1~100)</label>
+          <input type="number" id="itemCount" value="19" min="1" max="100" class="search-box" style="font-size: 15px; font-weight: bold; text-align: center;">
+          <div style="margin-top: 12px; padding: 10px; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 6px; color: #DC2626; font-size: 12px; line-height: 1.5;">
+            <i class="ph-fill ph-warning-circle"></i> <b>초기화 주의</b><br>
+            폼을 재생성하면 현재 화면에서 입력 중이던 내용이 모두 사라지고 빈 폼으로 변경됩니다.
+          </div>
+        </div>
+        <div style="margin-bottom: 24px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+          <label style="display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px;"><i class="ph-fill ph-keyboard"></i> 유용한 단축키 & 팁</label>
+          <ul style="font-size: 12px; color: var(--text-muted); padding-left: 20px; line-height: 1.7; margin: 0;">
+            <li><b>새 문서:</b> Ctrl + Alt + N</li>
+            <li><b>저장하기:</b> Ctrl + S</li>
+            <li><b>문서 검색:</b> Ctrl + E</li>
+            <li><b>몰입 모드(UI 숨기기):</b> Ctrl + H</li>
+            <li><b>화면 스크롤:</b> 화살표 위/아래 (입력 중이 아닐 때)</li>
+            <li><b>글자 확대/축소:</b> Ctrl + ➕ / ➖</li>
+            <li><b>두음 강조(남색+흰글씨):</b> Ctrl + Alt + M</li>
+            <li><b>이미지 정렬 및 크기:</b> 이미지를 클릭하면 사이즈 조절 및 정렬 툴바가 표시됩니다.</li>
+            <li><b>이미지 크게 보기:</b> 에디터 내 이미지 <b>더블클릭</b></li>
+            <li><b>에디터 서식:</b> 취소선(Ctrl+0) | 빨강(Ctrl+Alt+R) | 파랑(Ctrl+Alt+B)</li>
+            <li><b>컬러 형광펜:</b> 주황(Ctrl+1) | 파랑(Ctrl+2) | 노랑(Ctrl+3) | 녹색(Ctrl+4) | 분홍(Ctrl+5) | 갈색(Ctrl+6) | 회색(Ctrl+7)</li>
+            <li><b>이미지 강조(테두리):</b> 이미지 클릭 후 <b>정렬 툴바 우측 형광펜(적용) / 지우개(원복) 버튼</b> 클릭</li>
+            <li><b>표(Table) 지우기:</b> 표의 맨 앞이나 뒤 클릭 후 <b>백스페이스(지우기)</b></li>
+            <li><b>서식 지우기:</b> Ctrl + Shift + X</li>
+          </ul>
+        </div>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="btn btn-outline" onclick="closeSettings()">닫기</button>
+          <button class="btn btn-primary" onclick="confirmRegenerate()">적용 및 재생성</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="imageViewerModal" class="image-viewer-overlay" onclick="closeImageViewer()">
+      <div class="image-viewer-content" onclick="event.stopPropagation()">
+        <button class="image-viewer-close" onclick="closeImageViewer()"><i class="ph ph-x"></i></button>
+        <img id="imageViewerImg" src="" alt="확대된 이미지">
+        
+        <div class="image-viewer-actions">
+          <button class="btn btn-outline" style="background: rgba(255,255,255,0.9);" onclick="copyImageToClipboard()">
+            <i class="ph ph-copy"></i> 복사
+          </button>
+          <button class="btn btn-outline" style="background: rgba(255,255,255,0.9);" onclick="downloadImageView()">
+            <i class="ph ph-download-simple"></i> 저장
+          </button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="saveToast" class="toast"><i class="ph-bold ph-check"></i> 저장되었습니다</div>
+
+  <script>
+    // ✅ 표(Table) 붙여넣기 원본 보호를 위한 커스텀 모듈 등록
+    const BlockEmbed = Quill.import('blots/block/embed');
+    class RawTableBlot extends BlockEmbed {
+        static create(value) {
+            const node = super.create();
+            node.innerHTML = value;
+            node.setAttribute('contenteditable', 'false'); // 에디터 내부에서 표 구조 깨짐 방지
+            return node;
+        }
+        static value(node) {
+            return node.innerHTML;
+        }
+    }
+    RawTableBlot.blotName = 'rawTable';
+    RawTableBlot.tagName = 'div';
+    RawTableBlot.className = 'quill-raw-table';
+    Quill.register(RawTableBlot, true);
+
+    // ✅ 정렬 및 리사이징 속성 유지를 위해 Custom Image Format 확장
+    const BaseImageFormat = Quill.import('formats/image');
+    class ImageFormat extends BaseImageFormat {
+      static formats(domNode) {
+        return {
+          width: domNode.getAttribute('width') || domNode.style.width,
+          height: domNode.getAttribute('height') || domNode.style.height,
+          imghighlight: domNode.classList.contains('img-highlight'),
+          float: domNode.style.float,
+          margin: domNode.style.margin,
+          display: domNode.style.display
+        };
+      }
+      format(name, value) {
+        if (['width', 'height', 'float', 'margin', 'display'].includes(name)) {
+          if (value) {
+            this.domNode.style[name] = value;
+            if (name === 'width' || name === 'height') {
+              this.domNode.setAttribute(name, value);
+            }
+          } else {
+            this.domNode.style[name] = '';
+            if (name === 'width' || name === 'height') {
+              this.domNode.removeAttribute(name);
+            }
+          }
+        } else if (name === 'imghighlight') {
+          if (value) {
+            this.domNode.classList.add('img-highlight');
+          } else {
+            this.domNode.classList.remove('img-highlight');
+          }
+        } else {
+          super.format(name, value);
+        }
+      }
+    }
+    Quill.register(ImageFormat, true);
+
+    let db;
+    let currentNoteId = null;
+    let probEditors = [];
+    let leadEditors = [];
+    let concEditors = [];
+    let editors = [];
+    let currentEditorFontSize = 16;
+    let activeTargetImage = null;
+
+    // 🌟 스크롤 맨 위로 올리는 함수 추가
+    function scrollToTop() {
+      const mainContent = document.getElementById('mainContent');
+      if (mainContent) {
+        mainContent.scrollTo({ top: 0, behavior: 'auto' });
+      }
+    }
+
+    // 🌟 테두리 적용 및 해제 버튼 추가 로직 (이미지 리사이즈 툴바 연동)
+    function injectImageHighlightButton() {
+      let attempts = 0;
+      const interval = setInterval(() => {
+        attempts++;
+        if (attempts > 20) {
+          clearInterval(interval);
+          return;
+        }
+
+        const containers = document.querySelectorAll('.ql-container');
+        containers.forEach(container => {
+          const overlays = Array.from(container.children).filter(el => !el.classList.length);
+          
+          overlays.forEach(overlay => {
+            const svgs = overlay.querySelectorAll('svg');
+            if (svgs.length > 0) {
+              const toolbar = svgs[0].parentElement.parentElement;
+              
+              if (toolbar && !toolbar.querySelector('.custom-btn-group')) {
+                clearInterval(interval); 
+
+                toolbar.style.display = 'flex';
+                toolbar.style.alignItems = 'center';
+
+                // 구분선과 버튼들을 담을 그룹 컨테이너 생성
+                const group = document.createElement('div');
+                group.className = 'custom-btn-group';
+                group.style.cssText = 'display: flex; align-items: center; gap: 4px; border-left: 1px solid #D1D5DB; padding-left: 8px; margin-left: 8px; height: 100%;';
+
+                // 1. 테두리 적용 버튼
+                const btnHighlight = document.createElement('div');
+                btnHighlight.title = '테두리 형광펜 적용';
+                btnHighlight.innerHTML = '<i class="ph-bold ph-highlighter"></i>';
+                btnHighlight.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; cursor: pointer; font-size: 16px; border-radius: 4px; transition: 0.1s;';
+
+                // 2. 테두리 지우기 (원복) 버튼
+                const btnClear = document.createElement('div');
+                btnClear.title = '테두리 지우기 (원복)';
+                btnClear.innerHTML = '<i class="ph-bold ph-eraser"></i>';
+                btnClear.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; cursor: pointer; font-size: 16px; border-radius: 4px; transition: 0.1s; color: #4B5563;';
+
+                // 상태 업데이트 함수 (현재 활성화된 이미지의 highlight 여부에 따라 버튼 색상 변경)
+                const updateBtnStates = () => {
+                  const isHighlighted = activeTargetImage && activeTargetImage.classList.contains('img-highlight');
+                  if (isHighlighted) {
+                    btnHighlight.style.color = '#EA580C';
+                    btnHighlight.style.background = '#FFEDD5';
+                  } else {
+                    btnHighlight.style.color = '#4B5563';
+                    btnHighlight.style.background = 'transparent';
+                  }
+                };
+
+                updateBtnStates();
+
+                // 호버 효과
+                btnHighlight.onmouseenter = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = '#F3F4F6'; };
+                btnHighlight.onmouseleave = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = 'transparent'; };
+                
+                btnClear.onmouseenter = () => { btnClear.style.background = '#FEE2E2'; btnClear.style.color = '#DC2626'; };
+                btnClear.onmouseleave = () => { btnClear.style.background = 'transparent'; btnClear.style.color = '#4B5563'; };
+
+                // 툴바 닫힘 방지
+                [btnHighlight, btnClear].forEach(btn => {
+                  btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  });
+                });
+
+                // 테두리 적용 이벤트
+                btnHighlight.addEventListener('click', (e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  if (activeTargetImage) {
+                    const q = Quill.find(activeTargetImage.closest('.ql-container'));
+                    const blot = Quill.find(activeTargetImage);
+                    if (q && blot) {
+                      q.formatText(q.getIndex(blot), 1, 'imghighlight', true);
+                      updateBtnStates();
+                    }
+                  }
+                });
+
+                // 테두리 해제(원복) 이벤트
+                btnClear.addEventListener('click', (e) => {
+                  e.preventDefault(); e.stopPropagation();
+                  if (activeTargetImage) {
+                    const q = Quill.find(activeTargetImage.closest('.ql-container'));
+                    const blot = Quill.find(activeTargetImage);
+                    if (q && blot) {
+                      q.formatText(q.getIndex(blot), 1, 'imghighlight', false);
+                      updateBtnStates();
+                    }
+                  }
+                });
+
+                group.appendChild(btnHighlight);
+                group.appendChild(btnClear);
+                toolbar.appendChild(group);
+              }
+            }
+          });
+        });
+      }, 50);
+    }
+
+    // 이미지를 클릭할 때마다 툴바 삽입 함수 실행
+    document.addEventListener('mousedown', function(e) {
+      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
+        activeTargetImage = e.target;
+        injectImageHighlightButton();
+      }
+    }, true);
+
+    ['paste', 'drop'].forEach(evt => {
+      document.addEventListener(evt, (e) => {
+        const activeElement = document.activeElement;
+        if (!activeElement || !activeElement.closest('.ql-editor')) return;
+        const mainContent = document.getElementById('mainContent');
+        if (!mainContent) return;
+        const currentScroll = mainContent.scrollTop;
+        const lockScroll = () => { mainContent.scrollTop = currentScroll; };
+        requestAnimationFrame(lockScroll);
+        setTimeout(lockScroll, 10);
+        setTimeout(lockScroll, 50);
+        setTimeout(lockScroll, 150);
+        setTimeout(lockScroll, 300); 
+      }, true);
+    });
+
+    // ✅ 단축키 처리를 최상위 이벤트로 이관하여 Quill.js API를 직접 호출
+    document.addEventListener('keydown', function(e) {
+      const isCtrl = e.ctrlKey || e.metaKey;
+      const isAlt = e.altKey;
+
+      // 1. 저장 (Ctrl + S)
+      if (isCtrl && !isAlt && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault(); saveCurrentNote();
+        return;
+      }
+      // 2. 새 문서 (Ctrl + Alt + N)
+      if (isCtrl && isAlt && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault(); createNewNote();
+        return;
+      }
+      // 3. 몰입 모드 (Ctrl + H)
+      if (isCtrl && !isAlt && (e.key === 'h' || e.key === 'H')) {
+        e.preventDefault(); 
+        document.body.classList.toggle('immersion-mode');
+        return;
+      }
+      // 4. 글자 크기 변경 (Ctrl + / - / =)
+      if (isCtrl && !isAlt && (e.key === '+' || e.key === '=' || e.key === '-')) {
+        e.preventDefault(); 
+        if (e.key === '+' || e.key === '=') currentEditorFontSize = Math.min(currentEditorFontSize + 1, 32); 
+        else if (e.key === '-') currentEditorFontSize = Math.max(currentEditorFontSize - 1, 10); 
+        document.documentElement.style.setProperty('--editor-font-size', currentEditorFontSize + 'px');
+        return;
+      }
+
+      // 5. 두음 강조 (Ctrl + Alt + M) - 에디터 포맷 강제 적용
+      if (isCtrl && isAlt && e.key.toLowerCase() === 'm') {
+        e.preventDefault(); 
+        
+        // 현재 포커스된 에디터 찾기
+        let activeQuill = null;
+        const allEditors = [...probEditors, ...leadEditors, ...concEditors, ...editors];
+        for (const q of allEditors) {
+          if (q && q.hasFocus()) { 
+              activeQuill = q; 
+              break; 
+          }
+        }
+
+        if(activeQuill) {
+          const range = activeQuill.getSelection();
+          if(range && range.length > 0) {
+            const currentFormats = activeQuill.getFormat(range);
+            // 배경색이 현재 파란색인지 확인하여 토글
+            const isActive = currentFormats.background === '#0d3a9e';
+            
+            // 포맷 적용 (배경색, 글자색, 굵기)
+            activeQuill.formatText(range.index, range.length, 'background', isActive ? false : '#0d3a9e');
+            activeQuill.formatText(range.index, range.length, 'color', isActive ? false : '#ffffff');
+            activeQuill.formatText(range.index, range.length, 'bold', isActive ? false : true);
+          }
+        }
+        return;
+      }
+
+      // 6. 문서 검색창 포커스 (Ctrl + E)
+      if (isCtrl && !isAlt && (e.key === 'e' || e.key === 'E')) {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+          searchInput.focus();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        closeSettings();
+        closeImageViewer();
+        closeTopicListModal();
+      }
+      
+      // 7. 방향키 스크롤 (편집 모드가 아닐 때)
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const activeEl = document.activeElement;
+        const isEditing = activeEl && (
+          activeEl.tagName === 'INPUT' || 
+          activeEl.tagName === 'TEXTAREA' || 
+          activeEl.isContentEditable || 
+          activeEl.closest('.ql-editor')
+        );
+
+        if (!isEditing) {
+          e.preventDefault(); 
+          const mainContent = document.getElementById('mainContent');
+          const scrollAmount = 150; 
+          
+          if (e.key === 'ArrowUp') {
+            mainContent.scrollTop -= scrollAmount;
+          } else {
+            mainContent.scrollTop += scrollAmount;
+          }
+        }
+      }
+    });
+
+    document.addEventListener('dblclick', function(e) {
+      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
+        openImageViewer(e.target.src);
+        window.getSelection().removeAllRanges();
+        return;
+      }
+      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const img = elements.find(el => el.tagName === 'IMG');
+      if (img && img.closest('.ql-editor')) {
+        openImageViewer(img.src);
+        window.getSelection().removeAllRanges();
+      }
+    }, true);
+
+    // ✅ 검색창 엔터 & 타이핑 이벤트 핸들러
+    function handleSearchInput(event) {
+      renderNoteList();
+      if (event.key === 'Enter') {
+        searchInContent();
+      }
+    }
+
+    // ✅ 현재 본문에서 텍스트 찾기 (브라우저 기본 검색 + 강제 스크롤)
+    function searchInContent() {
+      const searchTerm = document.getElementById('searchInput').value;
+      if (!searchTerm) return;
+
+      const selection = window.getSelection();
+
+      // 브라우저 내장 검색 실행 (대소문자 무시, 감싸기 허용)
+      let found = window.find(searchTerm, false, false, true, false, false, false);
+      
+      if (!found) {
+        // 끝까지 검색했으면 커서를 초기화하고 처음부터 다시 검색 시도
+        selection.removeAllRanges();
+        found = window.find(searchTerm, false, false, true, false, false, false);
+        
+        if (!found) {
+          alert("현재 열려있는 문서에서 해당 검색어를 찾을 수 없습니다.");
+          return;
+        }
+      }
+
+      // 🌟 핵심: overflow: auto 상태인 메인 영역에서도 화면 중앙으로 강제 스크롤
+      if (found && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        let element = range.startContainer;
+        
+        // 텍스트 노드인 경우 부모 엘리먼트를 선택
+        if (element.nodeType === 3) {
+          element = element.parentElement;
+        }
+        
+        // 해당 엘리먼트 위치로 부드럽게 스크롤
+        if (element && element.scrollIntoView) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+
+    /* 🔥 전체 문항 리스트 모달 제어 및 렌더링 함수 */
+    function openTopicListModal() {
+      document.getElementById('modalSearchInput').value = '';
+      document.getElementById('modalSearchType').value = 'all';
+      filterTopicList();
+      document.getElementById('topicListModal').style.display = 'flex';
+    }
+
+    function closeTopicListModal() {
+      document.getElementById('topicListModal').style.display = 'none';
+    }
+
+    function filterTopicList() {
+      const container = document.getElementById('topicListContainer');
+      container.innerHTML = '';
+      
+      const searchType = document.getElementById('modalSearchType').value;
+      const keyword = document.getElementById('modalSearchInput').value.toLowerCase().trim();
+      const num = parseInt(document.getElementById('itemCount').value) || 0;
+      
+      let hasResult = false;
+
+      for (let i = 1; i <= num; i++) {
+        if (!probEditors[i-1]) continue;
+        
+        // 각 에디터 영역에서 텍스트만 추출
+        const probText = probEditors[i-1].getText().toLowerCase();
+        const leadText = leadEditors[i-1].getText().toLowerCase();
+        const concText = concEditors[i-1].getText().toLowerCase();
+        const solText = editors[i-1].getText().toLowerCase();
+        
+        const titleMatch = probText.includes(keyword);
+        const contentMatch = leadText.includes(keyword) || concText.includes(keyword) || solText.includes(keyword);
+        
+        let isMatch = false;
+        if (searchType === 'all') isMatch = titleMatch || contentMatch;
+        else if (searchType === 'title') isMatch = titleMatch;
+        else if (searchType === 'content') isMatch = contentMatch;
+        
+        if (!keyword) isMatch = true; // 검색어가 없으면 모두 표시
+
+        if (isMatch) {
+          hasResult = true;
+          // 리스트에 보여줄 제목 텍스트 (문제 영역 텍스트 기준)
+          let displayTitle = probEditors[i-1].getText().trim();
+          if (!displayTitle) displayTitle = '(문제 내용 없음)';
+          
+          const div = document.createElement('div');
+          div.className = 'topic-modal-item';
+          
+          // 항목 클릭 시 해당 카드로 스크롤
+          div.onclick = () => {
+            closeTopicListModal();
+            const targetCard = document.getElementById(`prob-${i}`).closest('.keynote-card');
+            if (targetCard) {
+              targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              
+              // 시각적 피드백 효과 (반짝임)
+              targetCard.style.transition = 'box-shadow 0.3s ease';
+              targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
+              setTimeout(() => {
+                targetCard.style.boxShadow = 'var(--shadow-md)';
+              }, 1200);
+            }
+          };
+          
+          div.innerHTML = `
+            <div class="topic-modal-num">${i}</div>
+            <div class="topic-modal-text">${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+          `;
+          container.appendChild(div);
+        }
+      }
+
+      if (!hasResult) {
+        container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">검색 결과가 없습니다.</div>';
+      }
+    }
+
+
+    function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
+    function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
+    function confirmRegenerate() {
+      if(confirm('정말 폼을 재생성하시겠습니까? 작성 중인 내용은 지워집니다.')) { generateForms(); closeSettings(); }
+    }
+
+    function openImageViewer(src) {
+      document.getElementById('imageViewerImg').src = src;
+      document.getElementById('imageViewerModal').classList.add('show');
+    }
+    
+    function closeImageViewer() {
+      const modal = document.getElementById('imageViewerModal');
+      modal.classList.remove('show');
+      setTimeout(() => { document.getElementById('imageViewerImg').removeAttribute('src'); }, 200); 
+    }
+
+    async function copyImageToClipboard() {
+      const imgUrl = document.getElementById('imageViewerImg').src;
+      try {
+        const response = await fetch(imgUrl);
+        const blob = await response.blob();
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        alert('이미지가 클립보드에 복사되었습니다.');
+      } catch (err) {
+        console.error('복사 실패:', err);
+        alert('이미지 복사에 실패했습니다. (보안 정책 등으로 제한될 수 있습니다.)');
+      }
+    }
+
+    function downloadImageView() {
+      const imgUrl = document.getElementById('imageViewerImg').src;
+      const a = document.createElement('a');
+      a.href = imgUrl;
+      a.download = 'keynote_image_' + new Date().getTime() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    const initDB = () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('StudyNoteDB', 1);
+        request.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains('notes')) database.createObjectStore('notes', { keyPath: 'id' });
+        };
+        request.onsuccess = (e) => { db = e.target.result; resolve(); };
+        request.onerror = (e) => reject('DB Error');
+      });
+    };
+
+    window.onload = async () => { await initDB(); await renderNoteList(); createNewNote(); };
+
+    const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
+
+    function generateForms(count = null) {
+      const container = document.getElementById('formContainer');
+      const countInput = document.getElementById('itemCount');
+      if (count !== null) countInput.value = count;
+      let num = parseInt(countInput.value);
+      if (num < 1) num = 1; if (num > 100) num = 100;
+      countInput.value = num; 
+
+      container.innerHTML = '';
+      probEditors = []; leadEditors = []; concEditors = []; editors = [];
+
+      // 나머지 단축키 매핑 (두음 강조는 글로벌 이벤트로 이관했으므로 제외)
+      const customBindings = {
+        customStrike: { 
+          key: '0', shortKey: true, 
+          handler: function(range, context) { this.quill.format('strike', !context.format.strike); } 
+        },
+        customRed: { 
+          key: 'R', shortKey: true, altKey: true, 
+          handler: function(range, context) { this.quill.format('color', context.format.color === 'red' ? false : 'red'); } 
+        },
+        customBlue: { 
+          key: 'B', shortKey: true, altKey: true, 
+          handler: function(range, context) { this.quill.format('color', context.format.color === 'blue' ? false : 'blue'); } 
+        },
+        customClear: { 
+          key: 'X', shortKey: true, shiftKey: true, 
+          handler: function(range, context) { 
+            if (range.length > 0) this.quill.removeFormat(range.index, range.length); 
+            else { const formats = this.quill.getFormat(range); for (let f in formats) this.quill.format(f, false); }
+          } 
+        },
+        customHighlight1: { 
+          key: '1', shortKey: true, 
+          handler: function(range, context) { const color = '#ffedd5'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight2: { 
+          key: '2', shortKey: true, 
+          handler: function(range, context) { const color = '#e0f2fe'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight3: { 
+          key: '3', shortKey: true, 
+          handler: function(range, context) { const color = '#fef08a'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight4: { 
+          key: '4', shortKey: true, 
+          handler: function(range, context) { const color = '#dcfce7'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight5: { 
+          key: '5', shortKey: true, 
+          handler: function(range, context) { const color = '#fce7f3'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight6: { 
+          key: '6', shortKey: true, 
+          handler: function(range, context) { const color = '#e6d5c3'; this.quill.format('background', context.format.background === color ? false : color); } 
+        },
+        customHighlight7: { 
+          key: '7', shortKey: true, 
+          handler: function(range, context) { const color = '#e5e7eb'; this.quill.format('background', context.format.background === color ? false : color); } 
+        }
+      };
+
+      // ✅ 표(Table) 붙여넣기 이벤트 가로채기 객체 (표 내부 수식까지 렌더링)
+      const Delta = Quill.import('delta');
+      const tableMatcher = function(node, delta) {
+        // 1. 표 내부의 모든 텍스트 노드를 샅샅이 찾습니다.
+        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+        const textNodes = [];
+        while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+        // 2. 찾은 텍스트 노드 중에 $수식$ 형태가 있으면 KaTeX로 변환해서 끼워넣습니다.
+        textNodes.forEach(textNode => {
+          const text = textNode.nodeValue;
+          if (/\$([^$]+)\$/.test(text)) {
+            const span = document.createElement('span');
+            span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
+              try {
+                return katex.renderToString(formula, { throwOnError: false }); // HTML 수식으로 렌더링
+              } catch (e) {
+                return match; // 에러가 나면 원본 유지
+              }
+            });
+            textNode.parentNode.replaceChild(span, textNode); // 기존 텍스트를 수식이 적용된 span으로 교체
+          }
+        });
+
+        // 3. 수식이 모두 예쁘게 변환된 표 전체를 저장합니다.
+        return new Delta().insert({ rawTable: node.outerHTML });
+      };
+
+      // ✅ $수식$ 텍스트를 수식으로 변환하는 Matcher (일반 텍스트용)
+      const mathMatcher = function(node, delta) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = node.data;
+          const regex = /\$([^$]+)\$/g;
+          let match;
+          let lastIndex = 0;
+          const newDelta = new Delta();
+          let hasMath = false;
+          
+          while ((match = regex.exec(text)) !== null) {
+            hasMath = true;
+            if (match.index > lastIndex) {
+              newDelta.insert(text.substring(lastIndex, match.index));
+            }
+            newDelta.insert({ formula: match[1] }); // KaTeX 수식 블록으로 삽입
+            lastIndex = regex.lastIndex;
+          }
+          
+          if (hasMath) {
+            if (lastIndex < text.length) {
+              newDelta.insert(text.substring(lastIndex));
+            }
+            return newDelta;
+          }
+        }
+        return delta;
+      };
+
+      for (let i = 1; i <= num; i++) {
+        const card = document.createElement('div');
+        card.className = 'keynote-card';
+        // 고유 ID 추가하여 모달에서 스크롤 이동이 용이하도록 함
+        card.innerHTML = `
+          <div class="edit-ui">
+            <div class="card-header"><div class="badge-number">${i}</div></div>
+            <div class="form-group">
+              <label><i class="ph-fill ph-question"></i> 문제(Problem)</label>
+              <div id="prob-${i}" class="simple-editor"></div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label><i class="ph-fill ph-text-align-left"></i> 리드문(Lead)</label>
+                <div id="lead-${i}" class="simple-editor"></div>
+              </div>
+              <div class="form-group">
+                <label><i class="ph-fill ph-lightbulb"></i> 개념(Concept)</label>
+                <div id="conc-${i}" class="simple-editor"></div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top: 10px;">
+              <label><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</label>
+              <div id="editor-${i}" class="solution-editor"></div>
+            </div>
+          </div>
+          
+          <div class="print-ui">
+            <div id="print-lead-${i}" class="print-lead ql-editor"></div>
+            <div class="print-prob">
+              <div style="min-width: 28px;">${i}.</div>
+              <div id="print-prob-${i}" class="ql-editor" style="padding:0; flex:1;"></div>
+            </div>
+            <div id="print-conc-${i}" class="print-conc ql-editor"></div>
+            <hr class="print-divider">
+            <div id="print-sol-${i}" class="print-sol ql-editor"></div>
+          </div>
+        `;
+        container.appendChild(card);
+
+        // ✅ 모든 에디터 영역에 imageResize 정렬 툴바 추가
+        const qProb = new Quill(`#prob-${i}`, { 
+          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '문제를 입력하세요', 
+          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
+        });
+        qProb.root.setAttribute('spellcheck', false); 
+        qProb.clipboard.addMatcher('TABLE', tableMatcher); 
+        qProb.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
+        probEditors.push(qProb);
+
+        const qLead = new Quill(`#lead-${i}`, { 
+          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '핵심 리드문 입력', 
+          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
+        });
+        qLead.root.setAttribute('spellcheck', false); 
+        qLead.clipboard.addMatcher('TABLE', tableMatcher); 
+        qLead.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
+        leadEditors.push(qLead);
+
+        const qConc = new Quill(`#conc-${i}`, { 
+          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '관련 개념 입력', 
+          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
+        });
+        qConc.root.setAttribute('spellcheck', false); 
+        qConc.clipboard.addMatcher('TABLE', tableMatcher); 
+        qConc.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
+        concEditors.push(qConc);
+
+        const qSol = new Quill(`#editor-${i}`, {
+          theme: 'snow', 
+          scrollingContainer: '#mainContent',
+          placeholder: '상세 내용을 작성하거나 이미지를 붙여넣으세요...',
+          modules: { 
+            formula: true,
+            toolbar: [ 
+                [{ 'header': [1, 2, false] }], 
+                ['bold', 'italic', 'underline', 'strike'], 
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
+                [{ 'color': [] }, { 'background': [] }], 
+                ['formula', 'image', 'code-block'], 
+                ['clean'] 
+            ], 
+            keyboard: { bindings: customBindings },
+            imageResize: { 
+              displaySize: true,
+              modules: ['Resize', 'DisplaySize', 'Toolbar'] // ✅ 정렬 툴바가 활성화됨
+            }
+          }
+        });
+        qSol.root.setAttribute('spellcheck', false); 
+        qSol.clipboard.addMatcher('TABLE', tableMatcher); 
+        qSol.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
+        editors.push(qSol);
+      }
+    }
+
+    function getCurrentNoteData() {
+      const title = document.getElementById('docTitle').value.trim() || '제목 없는 키노트';
+      const num = parseInt(document.getElementById('itemCount').value);
+      const items = [];
+      for (let i = 1; i <= num; i++) {
+        items.push({
+          problem: probEditors[i-1].root.innerHTML,
+          lead: leadEditors[i-1].root.innerHTML,
+          concept: concEditors[i-1].root.innerHTML,
+          solution: editors[i-1].root.innerHTML
+        });
+      }
+      return { id: currentNoteId || generateId(), title: title, date: new Date().toISOString(), items: items };
+    }
+
+    // ✅ 저장 시 토스트 알림 표시 로직으로 수정
+    function saveCurrentNote() {
+      const mainContent = document.getElementById('mainContent');
+      const currentScroll = mainContent.scrollTop;
+
+      const note = getCurrentNoteData();
+      const transaction = db.transaction(['notes'], 'readwrite');
+      transaction.objectStore('notes').put(note);
+      
+      transaction.oncomplete = () => {
+        currentNoteId = note.id; 
+        
+        renderNoteList(); 
+        
+        // 🌟 토스트 알림 노출
+        const toast = document.getElementById('saveToast');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 1000);
+
+        requestAnimationFrame(() => { mainContent.scrollTop = currentScroll; });
+      };
+    }
+
+    function exportJSON() {
+      const note = getCurrentNoteData();
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(note, null, 2));
+      const now = new Date();
+      const dateString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+      const safeTitle = note.title.replace(/[^a-z0-9가-힣_\-]/gi, '_').replace(/_+/g, '_');
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `${safeTitle}_${dateString}_backup.json`);
+      document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedNote = JSON.parse(e.target.result);
+          if (!importedNote.items || !Array.isArray(importedNote.items)) { alert("유효한 키노트 백업 파일이 아닙니다."); return; }
+          importedNote.id = generateId(); importedNote.date = new Date().toISOString();
+          const transaction = db.transaction(['notes'], 'readwrite');
+          transaction.objectStore('notes').put(importedNote);
+          transaction.oncomplete = () => {
+            alert('키노트가 성공적으로 복원되었습니다.'); currentNoteId = importedNote.id;
+            renderNoteList().then(() => { loadNote(importedNote); });
+          };
+        } catch (err) { alert("파일을 읽는 중 오류가 발생했습니다: " + err.message); }
+        event.target.value = ''; 
+      }; reader.readAsText(file);
+    }
+
+    function renderNoteList() {
+      return new Promise((resolve) => {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const transaction = db.transaction(['notes'], 'readonly');
+        const store = transaction.objectStore('notes');
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+          const list = document.getElementById('noteList'); 
+          list.innerHTML = '';
+          const rawNotes = request.result;
+
+          // ✅ 완료 데이터(_COM) 통계 계산 추가
+          let comCount = 0;
+          let comProblems = 0;
+          rawNotes.forEach(note => {
+            if (note.title && note.title.endsWith('_COM')) {
+              comCount++;
+              if (note.items) comProblems += note.items.length;
+            }
+          });
+
+          // ✅ 계산된 통계 UI 업데이트
+          const statsEl = document.getElementById('completionStats');
+          if (statsEl) {
+            if (comCount > 0) {
+              statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`;
+              statsEl.style.display = 'inline-flex';
+            } else {
+              statsEl.style.display = 'none';
+            }
+          }
+
+          const notes = rawNotes.sort((a, b) => {
+            const aIsCom = a.title.endsWith('_COM'); const bIsCom = b.title.endsWith('_COM');
+            if (aIsCom && bIsCom) return a.title.localeCompare(b.title);
+            else if (!aIsCom && !bIsCom) return new Date(b.date) - new Date(a.date);
+            else return aIsCom ? -1 : 1;
+          });
+          
+          notes.forEach(note => {
+            // ✅ 검색 조건: 제목 또는 내용 포함 여부 확인
+            let isMatch = note.title.toLowerCase().includes(searchTerm);
+            
+            if (!isMatch && note.items) {
+              isMatch = note.items.some(item => {
+                // HTML 태그를 제거한 순수 텍스트로 변환하여 검색
+                const textToSearch = [item.problem, item.lead, item.concept, item.solution]
+                  .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase())
+                  .join(' ');
+                return textToSearch.includes(searchTerm);
+              });
+            }
+
+            if (isMatch) {
+              const li = document.createElement('li');
+              li.className = `note-item ${note.id === currentNoteId ? 'active' : ''}`;
+              const dateStr = new Date(note.date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+              li.innerHTML = `<span class="note-title">${note.title}</span><span class="note-date">${dateStr}</span>`;
+              li.onclick = () => loadNote(note); list.appendChild(li);
+            }
+          }); resolve();
+        };
+      });
+    }
+
+    function loadNote(note) {
+      currentNoteId = note.id; document.getElementById('docTitle').value = note.title;
+      const items = note.items || []; document.getElementById('itemCount').value = items.length || 19;
+      generateForms(items.length || 19);
+      
+      items.forEach((item, index) => {
+        // 줄바꿈 보존을 위한 HTML 문자열 가공
+        const processHtml = (html) => {
+          if (html && !html.includes('<p>') && !html.includes('<br>')) return html.replace(/\n/g, '<br>');
+          return html || '';
+        };
+
+        probEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.problem));
+        leadEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.lead));
+        concEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.concept));
+        editors[index].clipboard.dangerouslyPasteHTML(processHtml(item.solution));
+      }); 
+      renderNoteList();
+
+      // ✅ 문서 불러온 후 스크롤을 맨 위로만 이동 (포커스는 주지 않음)
+      setTimeout(() => { scrollToTop(); }, 50);
+    }
+
+    function createNewNote() { 
+      currentNoteId = null; 
+      document.getElementById('docTitle').value = ''; 
+      document.getElementById('itemCount').value = 19; 
+      generateForms(19); 
+      renderNoteList(); 
+
+      // ✅ 신규 작성 시 스크롤을 맨 위로만 이동 (포커스는 주지 않음)
+      setTimeout(() => { scrollToTop(); }, 50);
+    }
+    
+    function deleteCurrentNote() {
+      if (!currentNoteId) return alert('저장된 문서가 아닙니다.');
+      if (confirm('이 키노트를 정말 삭제하시겠습니까?')) {
+        const transaction = db.transaction(['notes'], 'readwrite'); transaction.objectStore('notes').delete(currentNoteId);
+        transaction.oncomplete = () => { createNewNote(); };
+      }
+    }
+    function prepareAndPrint() {
+      const num = parseInt(document.getElementById('itemCount').value);
+      for (let i = 1; i <= num; i++) {
+        document.getElementById(`print-prob-${i}`).innerHTML = probEditors[i-1].root.innerHTML;
+        document.getElementById(`print-lead-${i}`).innerHTML = leadEditors[i-1].root.innerHTML;
+        document.getElementById(`print-conc-${i}`).innerHTML = concEditors[i-1].root.innerHTML;
+        document.getElementById(`print-sol-${i}`).innerHTML = editors[i-1].root.innerHTML;
+      } window.print();
+    }
+  </script>
+</body>
+</html>

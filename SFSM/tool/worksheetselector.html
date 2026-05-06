@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Sheet Extractor</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+  
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <style>
+    :root {
+      --bg-body: #F9FAFB;
+      --bg-surface: #FFFFFF;
+      --border-light: #F3F4F6;
+      --border-base: #E5E7EB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --primary: #111827;       
+      --primary-hover: #374151;
+      --secondary: #FFFFFF;
+      --secondary-hover: #F9FAFB;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+      --radius-md: 8px;
+      --radius-lg: 12px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background: var(--bg-body);
+      color: var(--text-main);
+      margin: 0;
+      padding: 40px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .dashboard-header {
+      max-width: 1000px;
+      margin: 0 auto 24px auto;
+    }
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .title-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .title-area i { font-size: 28px; color: var(--text-main); }
+    h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+    
+    .actions { display: flex; gap: 10px; }
+
+    input[type="file"] { display: none; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 18px; border-radius: var(--radius-md);
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid transparent;
+    }
+    .btn-primary {
+      background: var(--primary); color: white;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-primary:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+    
+    .btn-outline {
+      background: var(--secondary); color: var(--text-main);
+      border-color: var(--border-base); box-shadow: var(--shadow-sm);
+    }
+    .btn-outline:hover { background: var(--secondary-hover); border-color: #D1D5DB; }
+
+    .instructions {
+      display: flex; gap: 20px; align-items: center;
+      font-size: 13px; color: var(--text-muted);
+      background: var(--bg-surface); padding: 12px 20px;
+      border-radius: var(--radius-md); border: 1px solid var(--border-base);
+    }
+    .instructions span { display: inline-flex; align-items: center; gap: 6px; }
+    .instructions i { font-size: 16px; }
+
+    #main-wrapper {
+      max-width: 1000px; margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-base);
+      border-radius: var(--radius-lg);
+      min-height: 400px;
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+
+    .empty-msg {
+      padding: 120px 20px; text-align: center; color: var(--text-muted);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .empty-msg i { font-size: 40px; color: #D1D5DB; }
+
+    .sheet-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      padding: 24px;
+    }
+    
+    .sheet-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--secondary);
+      border: 1px solid var(--border-base);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    
+    .sheet-card:hover {
+      border-color: var(--text-muted);
+      background: var(--bg-body);
+    }
+
+    .sheet-card.selected {
+      border-color: #10B981; 
+      background: #F0FDF4;
+    }
+
+    .sheet-card input[type="checkbox"] {
+      width: 18px; height: 18px;
+      cursor: pointer;
+      accent-color: #10B981;
+    }
+
+    .sheet-name {
+      font-size: 15px; font-weight: 500;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    #file-info {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border-base);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      display: none;
+    }
+
+    /* 로딩 오버레이 */
+    #loading-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(255, 255, 255, 0.85);
+      display: none; justify-content: center; align-items: center; flex-direction: column; gap: 12px;
+      border-radius: var(--radius-lg); z-index: 10;
+      font-weight: 600; color: var(--primary); font-size: 16px;
+    }
+
+    /* 스핀 애니메이션 추가 */
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .ph-spin {
+      animation: spin 1s linear infinite;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="dashboard-header">
+    <div class="header-top">
+      <div class="title-area">
+        <i class="ph ph-file-xls"></i>
+        <h2>Excel Sheet Extractor</h2>
+      </div>
+      
+      <div class="actions">
+        <label for="upload-excel" class="btn btn-outline">
+          <i class="ph ph-upload-simple"></i> 파일 불러오기
+        </label>
+        <input type="file" id="upload-excel" accept=".xlsx" />
+        
+        <button id="export-btn" class="btn btn-primary" onclick="exportSelectedSheets()" style="display: none;">
+          <i class="ph ph-download-simple"></i> 선택한 시트 내보내기
+        </button>
+      </div>
+    </div>
+
+    <div class="instructions">
+      <span><i class="ph ph-upload-simple"></i> 1. 엑셀 업로드 (.xlsx)</span>
+      <span style="color: #D1D5DB;">|</span>
+      <span><i class="ph ph-check-square"></i> 2. 추출할 시트 체크</span>
+      <span style="color: #D1D5DB;">|</span>
+      <span><i class="ph ph-magic-wand"></i> 3. 서식 유지하며 저장</span>
+    </div>
+  </div>
+
+  <div id="main-wrapper">
+    <div id="loading-overlay">
+      <i class="ph ph-spinner ph-spin" style="font-size: 32px; color: #10B981;"></i>
+      <span id="loading-text">처리 중... 잠시만 기다려주세요.</span>
+    </div>
+
+    <div id="file-info">
+      <div style="font-weight: 600; font-size: 15px;"><i class="ph ph-file-text"></i> <span id="display-filename">파일명</span></div>
+      <div>
+        <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="toggleAllSheets(true)">전체 선택</button>
+        <button class="btn btn-outline" style="padding: 6px 12px; font-size: 13px;" onclick="toggleAllSheets(false)">전체 해제</button>
+      </div>
+    </div>
+    
+    <div id="sheet-list-container">
+      <div class="empty-msg">
+        <i class="ph ph-folder-open"></i>
+        엑셀 파일을 업로드하면 시트 목록이 여기에 표시됩니다.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let originalFileBuffer = null; 
+    let originalFileName = "extracted_sheets.xlsx";
+    let sheetNamesList = [];
+
+    const container = document.getElementById('sheet-list-container');
+    const fileInfoBar = document.getElementById('file-info');
+    const exportBtn = document.getElementById('export-btn');
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+
+    // 1. 파일 업로드 및 분석
+    document.getElementById('upload-excel').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      originalFileName = file.name;
+      document.getElementById('display-filename').textContent = originalFileName;
+      
+      showLoading(true, "파일을 읽고 있습니다. 데이터가 크면 조금 걸릴 수 있어요!");
+
+      // UI 블로킹 방지를 위한 setTimeout
+      setTimeout(() => {
+        const reader = new FileReader();
+        reader.onload = async function(evt) {
+          try {
+            originalFileBuffer = evt.target.result;
+            const workbook = new ExcelJS.Workbook();
+            
+            await workbook.xlsx.load(originalFileBuffer);
+            
+            sheetNamesList = [];
+            workbook.eachSheet(function(worksheet, sheetId) {
+              sheetNamesList.push({ id: sheetId, name: worksheet.name });
+            });
+
+            renderSheetList();
+          } catch (error) {
+            console.error("Excel 파싱 에러:", error);
+            alert("파일을 분석하는 중 오류가 발생했습니다.\n손상되었거나 암호가 걸린 파일인지 확인해주세요.\n\n상세 에러: " + error.message);
+          } finally {
+            showLoading(false);
+            document.getElementById('upload-excel').value = ''; 
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }, 150);
+    });
+
+    // 2. 시트 목록 렌더링
+    function renderSheetList() {
+      if (sheetNamesList.length === 0) {
+        container.innerHTML = `
+          <div class="empty-msg">
+            <i class="ph ph-warning"></i>
+            시트 정보를 찾을 수 없습니다.
+          </div>`;
+        fileInfoBar.style.display = 'none';
+        exportBtn.style.display = 'none';
+        return;
+      }
+
+      let html = '<div class="sheet-grid">';
+      sheetNamesList.forEach((sheet) => {
+        html += `
+          <label class="sheet-card selected">
+            <input type="checkbox" value="${sheet.name}" data-id="${sheet.id}" checked onchange="toggleCardStyle(this)">
+            <div>
+              <div class="sheet-name">${sheet.name}</div>
+            </div>
+          </label>
+        `;
+      });
+      html += '</div>';
+      
+      container.innerHTML = html;
+      fileInfoBar.style.display = 'flex';
+      exportBtn.style.display = 'inline-flex';
+    }
+
+    // 카드 선택 시각적 토글
+    function toggleCardStyle(checkbox) {
+      const card = checkbox.closest('.sheet-card');
+      if (checkbox.checked) {
+        card.classList.add('selected');
+      } else {
+        card.classList.remove('selected');
+      }
+    }
+
+    // 전체 선택 / 해제
+    function toggleAllSheets(selectAll) {
+      const checkboxes = document.querySelectorAll('.sheet-card input[type="checkbox"]');
+      checkboxes.forEach(cb => {
+        cb.checked = selectAll;
+        toggleCardStyle(cb);
+      });
+    }
+
+    // 3. 서식을 보존하며 내보내기
+    function exportSelectedSheets() {
+      if (!originalFileBuffer) return;
+
+      const selectedCheckboxes = document.querySelectorAll('.sheet-card input[type="checkbox"]:checked');
+      if (selectedCheckboxes.length === 0) {
+        alert("내보낼 시트를 하나 이상 선택해주세요.");
+        return;
+      }
+
+      const selectedSheetNames = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+      showLoading(true, "선택한 시트를 추출하여 새 파일로 만드는 중...");
+      
+      // UI 블로킹 방지를 위한 setTimeout
+      setTimeout(async () => {
+        try {
+          const exportWorkbook = new ExcelJS.Workbook();
+          await exportWorkbook.xlsx.load(originalFileBuffer.slice(0)); // 원본 버퍼 복제본 사용
+
+          // 역순으로 지워야 시트 인덱스 꼬임 에러가 발생하지 않습니다.
+          sheetNamesList.slice().reverse().forEach(sheet => {
+            if (!selectedSheetNames.includes(sheet.name)) {
+              exportWorkbook.removeWorksheet(sheet.id);
+            }
+          });
+
+          const buffer = await exportWorkbook.xlsx.writeBuffer();
+          downloadBlob(buffer, originalFileName.replace(/\.[^/.]+$/, "") + "_extracted.xlsx");
+
+        } catch (error) {
+          console.error("내보내기 에러:", error);
+          alert("파일을 내보내는 중 문제가 발생했습니다.\n\n상세 에러: " + error.message);
+        } finally {
+          showLoading(false);
+        }
+      }, 150);
+    }
+
+    // ✅ 에러가 발생했던 부분 수정 완료 (브라우저 표준 Blob 객체 사용)
+    function downloadBlob(buffer, filename) {
+      const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    // 로딩 화면 제어
+    function showLoading(show, text = "처리 중...") {
+      if (show) {
+        loadingText.textContent = text;
+        loadingOverlay.style.display = 'flex';
+        exportBtn.disabled = true;
+      } else {
+        loadingOverlay.style.display = 'none';
+        exportBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

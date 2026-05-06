@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>타이머</title>
+<style>
+  body {
+    font-family: 'Noto Sans', Arial, sans-serif;
+    margin: 0;
+    background: #f5f5f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 15px;
+  }
+  .container {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  h2 {
+    font-size: 22px;
+    margin-bottom: 15px;
+  }
+  .mode-select {
+    margin: 10px 0;
+  }
+  .mode-select label {
+    margin: 0 10px;
+    font-weight: bold;
+  }
+  .time-inputs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 10px 0;
+    width: 100%;
+  }
+  .time-inputs select {
+    flex: 1;
+    font-size: 18px;
+    padding: 8px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+  .timer-display {
+    font-size: 48px;
+    background: #f0f0f0;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 6px;
+    min-height: 60px;
+    text-align: center;
+    color: #2b8be0;
+    width: 100%;
+  }
+  .buttons button {
+    padding: 12px;
+    margin: 5px 0;
+    font-size: 18px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    background: #2b8be0;
+    color: #fff;
+    cursor: pointer;
+  }
+  .buttons button:hover {
+    background: #1971c2;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <h2>타이머</h2>
+  <div class="mode-select">
+    <label><input type="radio" name="mode" value="1" checked> 1교시형</label>
+    <label><input type="radio" name="mode" value="2"> 2교시형</label>
+  </div>
+  <div class="time-inputs">
+    <select id="minInput"></select>
+    <select id="secInput"></select>
+  </div>
+  <div class="timer-display" id="timerDisplay">00:00</div>
+  <div class="buttons">
+    <button onclick="startTimer()">시작</button>
+    <button onclick="pauseTimer()">일시정지</button>
+    <button onclick="resetTimer()">초기화</button>
+  </div>
+
+</div>
+
+<script>
+let timer;
+let remainingTime = 0;
+let elapsedTime = 0;
+let isPaused = false;
+let showElapsed = false;
+let originalTime = 0;
+let recoveryTimeout;
+let showTimeout;
+
+const intervals = { '1': 600, '2': 1500 };
+
+function populateSelect(id, max, defaultValue = 0) {
+  const select = document.getElementById(id);
+  for (let i = 0; i <= max; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.text = i.toString().padStart(2, '0');
+    if (i === defaultValue) option.selected = true;
+    select.appendChild(option);
+  }
+}
+populateSelect('minInput', 100, 100);
+populateSelect('secInput', 59, 0);
+
+function formatTime(seconds) {
+  const min = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const sec = String(seconds % 60).padStart(2, '0');
+  return `${min}:${sec}`;
+}
+
+function startTimer() {
+  if (remainingTime <= 0) {
+    const min = parseInt(document.getElementById('minInput').value) || 0;
+    const sec = parseInt(document.getElementById('secInput').value) || 0;
+    remainingTime = min * 60 + sec;
+    originalTime = remainingTime;
+    elapsedTime = 0;
+  }
+  clearInterval(timer);
+  clearTimeout(recoveryTimeout);
+  clearTimeout(showTimeout);
+  isPaused = false;
+  showElapsed = false;
+  updateDisplay();
+  timer = setInterval(() => {
+    if (!isPaused) {
+      remainingTime--;
+      elapsedTime++;
+      if (remainingTime <= 0) {
+        clearInterval(timer);
+        showMissionClear();
+        return;
+      }
+      const mode = document.querySelector('input[name="mode"]:checked').value;
+      if (elapsedTime % intervals[mode] === 0) {
+        showElapsedTime();
+      } else if (!showElapsed) {
+        updateDisplay();
+      }
+    }
+  }, 1000);
+}
+
+function showElapsedTime() {
+  showElapsed = true;
+  const display = document.getElementById('timerDisplay');
+  display.innerText = `경과 ${formatTime(elapsedTime)}`;
+  display.style.color = '#d9480f';
+  showTimeout = setTimeout(() => {
+    showElapsed = false;
+    updateDisplay();
+  }, 3000);
+}
+
+function pauseTimer() {
+  isPaused = !isPaused;
+}
+
+function resetTimer() {
+  clearInterval(timer);
+  clearTimeout(recoveryTimeout);
+  clearTimeout(showTimeout);
+  remainingTime = 0;
+  elapsedTime = 0;
+  showElapsed = false;
+  isPaused = false;
+  updateDisplay();
+}
+
+function updateDisplay() {
+  const display = document.getElementById('timerDisplay');
+  display.innerText = formatTime(remainingTime);
+  display.style.color = '#2b8be0';
+}
+
+function showMissionClear() {
+  const display = document.getElementById('timerDisplay');
+  display.innerText = "Mission Clear";
+  display.style.color = '#d9480f';
+  recoveryTimeout = setTimeout(() => {
+    remainingTime = originalTime;
+    elapsedTime = 0;
+    updateDisplay();
+  }, 10000);
+}
+</script>
+
+</body>
+</html>

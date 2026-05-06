@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>포모도로 타이머</title>
+  <style>
+    body {
+      font-family: 'Noto Sans', Arial, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+      color: #333;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 15px;
+    }
+    .container {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
+    .timer-svg {
+      width: 200px;
+      height: 200px;
+      margin: 20px 0;
+      position: relative;
+    }
+    svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+    circle.bg {
+      fill: none;
+      stroke: #eee;
+      stroke-width: 8;
+    }
+    circle.progress {
+      fill: none;
+      stroke: #2e7d32; /* 짙은 녹색, 고급스러운 느낌 */
+      stroke-width: 8;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear;
+    }
+    .time-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: bold;
+      user-select: none;
+      /* 기본 색상 중립 처리 */
+      color: #000;
+    }
+    .time-text.focus {
+      color: #2e7d32; /* 집중 - 짙은 녹색, 고급스러운 느낌 */
+    }
+    .time-text.rest {
+      color: #d97706; /* 휴식 - 주황색 */
+    }
+    #statusText {
+      margin-bottom: 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #555;
+    }
+    .buttons button {
+      padding: 12px;
+      margin: 5px 0;
+      font-size: 18px;
+      width: 100%;
+      border: none;
+      border-radius: 6px;
+      background: #2b8be0;
+      color: #fff;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .buttons button:hover {
+      background: #1971c2;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>포모도로 타이머</h2>
+
+  <div class="timer-svg">
+    <svg viewBox="0 0 100 100">
+      <circle class="bg" cx="50" cy="50" r="45"></circle>
+      <circle class="progress" cx="50" cy="50" r="45" stroke-dasharray="282.6" stroke-dashoffset="0"></circle>
+    </svg>
+    <div class="time-text focus" id="timerDisplay">25:00</div>
+  </div>
+
+  <div id="statusText">집중 시간</div>
+
+  <div class="buttons">
+    <button onclick="startTimer()">시작</button>
+    <button onclick="pauseTimer()">일시정지</button>
+    <button onclick="resetTimer()">초기화</button>
+  </div>
+</div>
+
+<script>
+  let timer;
+  const circumference = 2 * Math.PI * 45; // 원 둘레 (r=45)
+  const progressCircle = document.querySelector('circle.progress');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const statusText = document.getElementById('statusText');
+
+  const focusTime = 25 * 60; // 25분
+  const restTime = 5 * 60;   // 5분
+
+  let totalTime = focusTime;
+  let remainingTime = totalTime;
+  let isPaused = true;
+  let isFocus = true; // 집중(true) / 휴식(false)
+
+  function updateCircle() {
+    const offset = circumference * (1 - remainingTime / totalTime);
+    progressCircle.style.strokeDashoffset = offset;
+  }
+
+  function formatTime(seconds) {
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function updateDisplay() {
+    timerDisplay.textContent = formatTime(remainingTime);
+    updateCircle();
+
+    if (isFocus) {
+      timerDisplay.classList.add('focus');
+      timerDisplay.classList.remove('rest');
+      statusText.textContent = '집중 시간';
+      statusText.style.color = '#2b8be0';
+    } else {
+      timerDisplay.classList.add('rest');
+      timerDisplay.classList.remove('focus');
+      statusText.textContent = '휴식 시간';
+      statusText.style.color = '#d97706';
+    }
+  }
+
+  function startTimer() {
+    if (!isPaused) return;
+    isPaused = false;
+
+    timer = setInterval(() => {
+      if (!isPaused) {
+        remainingTime--;
+        if (remainingTime <= 0) {
+          clearInterval(timer);
+          // 타이머 전환
+          isFocus = !isFocus;
+          totalTime = isFocus ? focusTime : restTime;
+          remainingTime = totalTime;
+          updateDisplay();
+          startTimer();
+        } else {
+          updateDisplay();
+        }
+      }
+    }, 1000);
+  }
+
+  function pauseTimer() {
+    isPaused = !isPaused;
+  }
+
+  function resetTimer() {
+    clearInterval(timer);
+    isFocus = true;
+    totalTime = focusTime;
+    remainingTime = totalTime;
+    isPaused = true;
+    updateDisplay();
+  }
+
+  window.onload = () => {
+    progressCircle.style.strokeDasharray = circumference;
+    progressCircle.style.strokeDashoffset = 0;
+    resetTimer();
+  };
+</script>
+
+</body>
+</html>

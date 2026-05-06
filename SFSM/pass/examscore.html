@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>시험 점수 기록</title>
+<style>
+:root{--bg:#f7fafc;--card:#ffffff;--ink:#1a202c;--muted:#718096;--accent:#2b6cb0;--accent2:#3182ce;--ok:#2f855a;--bad:#c53030;--warn:#b7791f}
+*{box-sizing:border-box}
+html,body{width:100%;overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,Arial,sans-serif;font-weight:400}
+
+header{position:sticky;top:0;background:var(--card);border-bottom:1px solid #e2e8f0;z-index:10}
+header .wrap{max-width:none;width:100%;margin:0;display:flex;gap:12px;align-items:center;padding:12px 16px}
+header h1{font-size:18px;margin:0;letter-spacing:.2px}
+header .btns{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{appearance:none;border:1px solid #cbd5e0;background:#fff;color:var(--ink);
+  padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:500;font-size:13px;line-height:1.2}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff}
+/* 버튼 스타일 통일: label로 구현된 ghost 버튼에도 font-weight 명시 */
+.btn.ghost, label.btn.ghost { 
+  font-weight: 500; 
+  line-height: 1.2;
+}
+
+main{max-width:none;width:100%;margin:20px 0;padding:0 16px;display:grid;grid-template-columns:minmax(360px,3.5fr) minmax(520px,6.5fr);gap:16px}
+@media (max-width:1000px){ main{grid-template-columns:1fr} }
+
+.card{background:var(--card);border:1px solid #e2e8f0;border-radius:14px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.card h2{margin:0;padding:12px;border-bottom:1px solid #edf2f7;font-size:16px}
+.card .body{padding:12px;display:flex;flex-direction:column;gap:12px}
+label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+input[type="text"],
+input[type="search"],
+input[type="number"],
+input[type="date"],
+textarea,
+select{
+  width:100%;
+  padding:8px 10px;
+  border:1px solid #cbd5e0;
+  border-radius:10px;
+  background:#fff;
+  color:#2d3748;
+  font-size:13px;
+  box-sizing:border-box;
+}
+input[type="date"]{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  padding-right:30px;
+}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:10px}
+.pill{background:#eef5fd;color:#0b57d0;border:1px solid #d9e7fb;border-radius:999px;padding:4px 8px;font-size:12px}
+.small{font-size:12px;color:#0b3d91;font-weight:700}
+.badge{background:#edf2f7;border:1px solid #e2e8f0;border-radius:999px;font-size:12px;padding:4px 8px;color:#2d3748}
+.progress{height:10px;background:#edf2f7;border-radius:999px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%}
+
+/* 표 공통 */
+.table-wrap{max-height:360px;overflow:auto;border:1px solid #edf2f7;border-radius:12px}
+table{width:100%;border-collapse:separate;border-spacing:0}
+th,td{padding:8px 10px;border-bottom:1px solid #edf2f7;font-size:13px;vertical-align:middle}
+th{background:#f7fafc;position:sticky;top:0;z-index:2;text-align:left}
+tbody tr:hover{background:#f9fbff}
+.cell-sum{font-weight:700;color:#2f855a}
+.cell-warn{font-weight:700;color:#b7791f}
+.cell-high{font-weight:700;color:var(--accent)} 
+
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab{padding:6px 10px;border:1px solid #cbd5e0;border-radius:999px;background:#fff;cursor:pointer;font-size:12px}
+.tab.active{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+
+/* Toast */
+#toast-area{position:fixed;right:16px;top:16px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{display:flex;align-items:flex-start;gap:10px;background:#fff;color:#1a202c;border:1px solid #e2e8f0;border-left:6px solid var(--accent);border-radius:12px;padding:10px 12px;min-width:240px;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.08);animation:toast-in .18s ease-out}
+.toast .t-icon{font-size:18px;line-height:1.1;margin-top:1px}
+.toast .t-body{font-size:13px;line-height:1.45}
+.toast .t-close{margin-left:auto;cursor:pointer;font-size:16px;opacity:.6}
+.toast.ok{border-left-color:var(--ok)} .toast.warn{border-left-color:var(--warn)} .toast.bad{border-left-color:var(--bad)}
+@keyframes toast-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+
+/* 상세 테이블(A형) */
+.preview-box{border:1px dashed #cbd5e0;border-radius:12px;padding:12px;background:#f9fbff}
+#previewTable th,#previewTable td{text-align:center}
+.sel{background:#e6fffa}
+.na{color:#a0aec0}
+
+/* 행 포커스 */
+tbody tr.focus{animation:rowflash .9s ease-out}
+@keyframes rowflash{from{background:#fff3bf} to{background:inherit}}
+
+/* --- Modal Styles (추가됨) --- */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0,0,0,0.4);
+  padding-top: 50px;
+}
+
+.modal-content {
+  background-color: var(--card);
+  margin: auto;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modal-open 0.3s ease-out;
+}
+
+@keyframes modal-open {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close-btn {
+  color: var(--muted);
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  position: absolute;
+  top: 10px;
+  right: 15px;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+  color: var(--ink);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  color: var(--accent);
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.modal-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 10px;
+    background: #f7fafc;
+    border-radius: 8px;
+    border: 1px solid #edf2f7;
+    color: var(--ink);
+}
+/* 모달 내 상세 항목 클릭 시 커서 모양 */
+.preview-clickable {
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+.preview-clickable:hover {
+    background-color: #f0f8ff;
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>시험 점수 기록</h1>
+    <span class="pill">Ctrl+S 저장</span>
+    <div class="btns">
+      <button class="btn" id="btn-new">새 기록</button>
+      <button class="btn" id="btn-save">저장</button>
+      <button class="btn" id="btn-export-xlsx">엑셀 내보내기</button>
+      <button class="btn" id="btn-export-questions">기출문제 내보내기</button>
+      <label class="btn ghost" for="fileImport">엑셀 불러오기</label>
+      <input type="file" id="fileImport" accept=".xlsx,.xls" style="display:none" />
+      <label class="btn ghost" for="questionFileImport">기출문제 불러오기</label>
+      <input type="file" id="questionFileImport" accept=".xlsx,.xls" style="display:none" />
+      <button class="btn ghost" id="btn-settings">설정</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <h2>입력</h2>
+    <div class="body">
+      <div class="grid">
+        <label>종목 / 회차</label>
+        <div class="row" style="gap:10px">
+          <input id="subject" type="text" placeholder="예: 정보관리기술사" style="flex:1" />
+          <input id="round" type="number" min="1" inputmode="numeric" placeholder="회차" style="width:120px" />
+        </div>
+      </div>
+      <div class="grid">
+        <label>날짜 / 메모</label>
+        <div class="row" style="gap:10px">
+          <input id="date" type="date" style="width:180px" />
+          <input id="memo" type="text" placeholder="간단 메모" style="flex:1" />
+        </div>
+      </div>
+
+      <div class="grid">
+        <label>교시</label>
+        <div class="tabs" id="tabs"></div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="score-table">
+          <thead>
+            <tr>
+              <th style="width:80px">교시</th>
+              <th style="width:80px">문제</th>
+              <th id="score-head">점수 (0~30)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="row" style="justify-content:space-between">
+        <div class="small">현재 교시 합계: <span id="session-sum">0</span> / <span id="session-max">0</span> <span class="pill" id="pick-info">선택 0/0</span></div>
+        <div class="small">합격기준: <span id="pass-score">720</span> <span id="pass-state" class="pill" style="display:none"></span></div>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <div class="small">전체 합계: <span id="total-sum">0</span> / <span id="total-max">1200</span></div>
+        <div class="small">환산점수(총점÷12): <span id="final-score">0</span></div>
+      </div>
+      <div class="progress"><div id="progress-bar"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>목록 & 상세</h2>
+    <div class="body" style="gap:14px">
+      <div class="row" style="gap:8px;align-items:center">
+        <input id="search" type="search" placeholder="종목/회차/메모로 검색…" style="flex:1" />
+        <select id="subject-filter" style="max-width:220px"></select>
+        <span id="result-badge" class="badge">0건</span>
+      </div>
+
+      <div class="table-wrap">
+        <table id="list">
+          <thead>
+            <tr>
+              <th style="width:150px">종목</th>
+              <th style="width:70px">회차</th>
+              <th style="width:100px">날짜</th>
+              <th style="width:140px">총점/환산</th>
+              <th>메모</th>
+              <th style="width:160px">동작</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="preview-box">
+        <span class="pv-label" id="pv-label" style="margin-bottom:8px">상세</span>
+        <div id="preview"></div>
+      </div>
+
+      <div class="grid">
+        <label class="pv-label">증감 그래프 (이전 시험 대비: 총점·교시별)</label>
+        <div class="tabs" id="trend-tabs" style="margin-bottom: 8px;">
+          </div>
+        <canvas id="trend-canvas" height="220" style="width:100%;background:#fff;border:1px solid #edf2f7;border-radius:12px"></canvas>
+        <div class="small" id="delta-line">최근 증감(총점/교시1·2·3·4): 0 / 0·0·0·0</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast-area" aria-live="polite" aria-atomic="true"></div>
+
+<div id="questionModal" class="modal">
+  <div class="modal-content">
+    <span class="close-btn">&times;</span>
+    <h3 id="modalTitle"></h3>
+    <pre id="modalContent"></pre>
+    <div class="small" id="modalSource"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
+
+<script>
+(function(){
+  const DB_NAME='ExamScoresDB';
+  const DB_VER=1; // 기출문제 저장소 추가
+  let db=null;
+
+  // 규칙
+  let availableCounts = {1:13, 2:6, 3:6, 4:6}; 
+  let quota = {1:10, 2:4, 3:4, 4:4};            
+  const perProblem = {1:30, 2:75, 3:75, 4:75};
+  const PASS_SCORE = 720;
+  const TOTAL_MAX = 1200;
+
+  let currentSession = 1;
+  let editingId = null;
+  let cache = [];
+
+  let scoresMap = {1:[],2:[],3:[],4:[]};
+  let selectedMap = {1:[],2:[],3:[],4:[]};
+
+  function $(s){return document.querySelector(s)}
+  function esc(s){const m={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'};return String(s??'').replace(/[&<>"']/g,ch=>m[ch])}
+  function uid(){return 'E'+Math.random().toString(36).slice(2,8).toUpperCase()}
+  function nowISO(){return new Date().toISOString()}
+
+  function toast(msg,type='info'){
+    const area=$('#toast-area'); if(!area) return;
+    const el=document.createElement('div');
+    el.className='toast '+(type||'info');
+    const iconMap={ok:'✅',warn:'⚠️',bad:'⛔',info:'ℹ️'};
+    el.innerHTML=`<div class="t-icon">${iconMap[type]||iconMap.info}</div><div class="t-body">${esc(msg)}</div><div class="t-close">×</div>`;
+    el.querySelector('.t-close').addEventListener('click',()=>area.removeChild(el));
+    area.appendChild(el);
+    setTimeout(()=>{if(el.parentNode===area) area.removeChild(el)},3000);
+  }
+
+  // DB
+  function openDB(){
+    return new Promise((res,rej)=>{
+      const rq=indexedDB.open(DB_NAME,DB_VER);
+      rq.onupgradeneeded=(e)=>{
+        const db=e.target.result;
+        try{ if(!db.objectStoreNames.contains('records')) db.createObjectStore('records',{keyPath:'id'}); }catch(_){ }
+        // 기출문제 저장소 추가
+        try{ if(!db.objectStoreNames.contains('questions')) db.createObjectStore('questions', { keyPath: 'id' }); }catch(_){ }
+      };
+      rq.onsuccess=()=>{ db=rq.result; res(db); };
+      rq.onerror=()=>rej(rq.error);
+    });
+  }
+  function tx(store,mode='readonly'){ return db.transaction(store,mode).objectStore(store); }
+  function putRec(rec){ return new Promise((res,rej)=>{ const r=tx('records','readwrite').put(rec); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error); }); }
+  function delRec(id){ return new Promise((res,rej)=>{ const r=tx('records','readwrite').delete(id); r.onsuccess=()=>res(true); r.onerror=()=>rej(r.error); }); }
+  function getAll(){ return new Promise((res,rej)=>{ const r=tx('records').getAll(); r.onsuccess=()=>res(r.result||[]); r.onerror=()=>rej(r.error); }); }
+
+  // 기출문제 데이터 저장 및 로드 함수 추가
+  function putQuestionsRec(data){ 
+      return new Promise((res, rej) => {
+          const trans = db.transaction('questions', 'readwrite');
+          const store = trans.objectStore('questions');
+          
+          // 기존 데이터 삭제 후 새 데이터 저장 (항상 하나의 레코드만 유지)
+          const clearReq = store.clear();
+          clearReq.onsuccess = () => {
+              const rec = { id: 'latest_questions', data: data, ts: nowISO() };
+              const putReq = store.put(rec);
+              putReq.onsuccess = () => res(true);
+              putReq.onerror = () => rej(putReq.error);
+          };
+          clearReq.onerror = () => rej(clearReq.error);
+      }); 
+  }
+  function getQuestionsRec(){
+      return new Promise((res, rej) => {
+          const r = tx('questions').get('latest_questions');
+          r.onsuccess = () => res(r.result || null);
+          r.onerror = () => rej(r.error);
+      });
+  }
+
+  // 초기화
+  function initMaps(){
+    scoresMap = {1:[],2:[],3:[],4:[]};
+    selectedMap = {1:[],2:[],3:[],4:[]};
+    for(let s=1;s<=4;s++){
+      scoresMap[s] = Array.from({length: availableCounts[s]}, ()=>0);
+      selectedMap[s] = Array.from({length: availableCounts[s]}, (_,i)=> i < quota[s]);
+    }
+  }
+  function clamp(v,max){ v=Number(v); if(!Number.isFinite(v)) return 0; if(v<0) return 0; if(v>max) return max; return v; }
+
+  // 탭/테이블(입력)
+  function renderTabs(){
+    const tabs=$('#tabs'); tabs.innerHTML='';
+    for(let s=1;s<=4;s++){
+      const b=document.createElement('button');
+      b.className='tab'+(s===currentSession?' active':'');
+      b.textContent=`${s}교시`;
+      b.addEventListener('click',()=>{ currentSession=s; renderTabs(); renderTable(); updateSums(); });
+      tabs.appendChild(b);
+    }
+  }
+  function renderTable(){
+    const tb=$('#score-table tbody'); tb.innerHTML='';
+    const s=currentSession; const n=availableCounts[s];
+    const head=$('#score-head'); if(head) head.textContent=`점수 (0~${perProblem[s]})`;
+    for(let i=1;i<=n;i++){
+      const tr=document.createElement('tr');
+      const val = clamp(scoresMap[s][i-1] ?? 0, perProblem[s]);
+      const picked = !!selectedMap[s][i-1];
+      tr.innerHTML=`
+        <td>${s}교시</td>
+        <td>${i}번</td>
+        <td>
+          <div class="row" style="gap:8px">
+            <input type="number" min="0" max="${perProblem[s]}" step="1" value="${val}" style="width:100px" />
+            <label class="row" style="gap:6px;align-items:center"><input type="checkbox" ${picked?'checked':''} /> <span class="small">선택</span></label>
+          </div>
+        </td>`;
+      const inp=tr.querySelector('input[type="number"]');
+      const chk=tr.querySelector('input[type="checkbox"]');
+      inp.addEventListener('input',()=>{ const v=clamp(inp.value, perProblem[s]); scoresMap[s][i-1]=v; inp.value=v; updateSums(); renderPreviewTable(); });
+      chk.addEventListener('change',()=>{
+        const cur = selectedMap[s].filter(Boolean).length + (chk.checked && !selectedMap[s][i-1] ? 1 : (!chk.checked && selectedMap[s][i-1] ? -1 : 0));
+        if(cur>quota[s]){ toast(`최대 ${quota[s]}문제까지 선택 가능합니다.`,'warn'); chk.checked=false; return; }
+        selectedMap[s][i-1]=chk.checked; updateSums(); renderPreviewTable();
+      });
+      tb.appendChild(tr);
+    }
+  }
+
+  // 합산
+  function sessionSum(s){
+    let pickedScores=[];
+    for(let i=0;i<availableCounts[s];i++) if(selectedMap[s][i]) pickedScores.push(clamp(scoresMap[s][i], perProblem[s]));
+    pickedScores.sort((a,b)=>b-a);
+    return pickedScores.slice(0, quota[s]).reduce((a,b)=>a+b,0);
+  }
+  function totalSum(){ let t=0; for(let s=1;s<=4;s++) t+=sessionSum(s); return Math.round(t*100)/100; }
+
+  function updateSums(){
+    const s=currentSession;
+    $('#session-sum').textContent=sessionSum(s);
+    $('#session-max').textContent=quota[s]*perProblem[s];
+    const pickedNow=selectedMap[s].filter(Boolean).length; $('#pick-info').textContent=`선택 ${pickedNow}/${quota[s]}`;
+
+    const total=totalSum(); $('#total-sum').textContent=total; $('#total-max').textContent=TOTAL_MAX;
+    const final=Math.round((total/12)*100)/100; $('#final-score').textContent=final; $('#pass-score').textContent=PASS_SCORE;
+    const ps=$('#pass-state'); if(ps){ const diffFinal=Math.round((final-(PASS_SCORE/12))*100)/100; ps.style.display='inline-block'; ps.textContent=diffFinal>=0?`합격(환산 +${diffFinal})`:`미달(환산 ${diffFinal})`; ps.style.background=diffFinal>=0?'#e6fffa':'#fff5f5'; ps.style.border='1px solid #cbd5e0'; ps.style.color=diffFinal>=0?'#065666':'#9b2c2c'; }
+
+    const pct=Math.max(0,Math.min(100,Math.round((total/(TOTAL_MAX||1))*100))); $('#progress-bar').style.width=pct+'%';
+  }
+  
+  // 상세 문구 업데이트
+  function updatePreviewLabel(){
+    const rec = readInputs();
+    const subject = esc(rec.subject || ''); // 종목이 없으면 빈 문자열
+    const round = rec.round || ''; // 회차가 없으면 빈 문자열
+    
+    // subject 또는 round가 없으면 '상세'만 표시되도록 수정
+    let text = '상세';
+    if (subject || round) {
+        text = `${subject}${round ? ' 제'+round+'회' : ''} 상세`;
+    }
+    
+    const el = document.getElementById('pv-label');
+    if(el) el.textContent = text;
+  }
+
+  // ==== 상세(A형 표) ====
+  function renderPreviewTable(){
+    updatePreviewLabel(); // 문구 업데이트
+    
+    const container = document.getElementById('preview');
+    const maxCols = 13; // 1교시가 최대
+    const header = `<tr><th style="width:70px">교시</th>${Array.from({length:maxCols},(_,i)=>`<th>${i+1}문항</th>`).join('')}<th>선택수</th><th>합계</th></tr>`;
+    const rows = [1,2,3,4].map(s=>{
+      const cols = [];
+      const highThreshold = s === 1 ? 18 : 45; // 1교시 18점, 2/3/4교시 45점
+      for(let i=1;i<=maxCols;i++){
+        if(i<=availableCounts[s]){
+          const v = clamp(scoresMap[s][i-1]||0, perProblem[s]);
+          const picked = !!selectedMap[s][i-1];
+          // 고득점 클래스 적용 로직 추가
+          const highClass = (v >= highThreshold) ? 'cell-high' : ''; 
+          // data-period와 data-item 속성 추가 및 클래스 추가
+          cols.push(`<td class="${picked?'sel':''} preview-clickable ${highClass}" data-period="${s}" data-item="${i}">${v}</td>`);
+        }else{
+          cols.push(`<td class="na">-</td>`);
+        }
+      }
+      const pickedCount = selectedMap[s].filter(Boolean).length;
+      const sum = sessionSum(s);
+      return `<tr><td style="text-align:center">${s}교시</td>${cols.join('')}<td>${pickedCount}/${quota[s]}</td><td class="cell-sum">${sum}</td></tr>`;
+    }).join('');
+    container.innerHTML = `<div class="table-wrap" style="max-height:none"><table id="previewTable"><thead>${header}</thead><tbody>${rows}</tbody></table></div>`;
+
+    // 상세 테이블 클릭 이벤트 재연결
+    attachPreviewTableEvents();
+  }
+
+  // I/O
+  function deepCopy(obj){ return JSON.parse(JSON.stringify(obj)); }
+  function readInputs(){
+    const subject=$('#subject').value.trim();
+    const round=parseInt($('#round').value,10);
+    const date=$('#date').value||'';
+    const memo=$('#memo').value.trim();
+    return {subject, round:Number.isFinite(round)?round:null, date, memo, scores: deepCopy(scoresMap), selected: deepCopy(selectedMap), available: deepCopy(availableCounts), quota: deepCopy(quota)};
+  }
+  function writeInputs(rec){
+    $('#subject').value = rec.subject||'';
+    $('#round').value = rec.round||'';
+    $('#date').value = rec.date||'';
+    $('#memo').value = rec.memo||'';
+
+    availableCounts = {...availableCounts, ...(rec.available||{})};
+    quota = {...quota, ...(rec.quota||{})};
+    initMaps();
+    if(rec.scores){ for(let s=1;s<=4;s++){ for(let i=0;i<Math.min(availableCounts[s], (rec.scores[s]||[]).length); i++){ scoresMap[s][i] = clamp(rec.scores[s][i], perProblem[s]); } } }
+    if(rec.selected){ for(let s=1;s<=4;s++){ for(let i=0;i<Math.min(availableCounts[s], (rec.selected[s]||[]).length); i++){ selectedMap[s][i] = !!rec.selected[s][i]; } } }
+
+    renderTabs(); renderTable(); updateSums(); renderPreviewTable();
+  }
+  function clearInputs(){
+    editingId=null;
+    $('#subject').value=''; $('#round').value=''; $('#date').value=''; $('#memo').value='';
+    availableCounts={1:13,2:6,3:6,4:6}; quota={1:10,2:4,3:4,4:4}; currentSession=1; initMaps();
+    renderTabs(); renderTable(); updateSums(); renderPreviewTable();
+    updatePreviewLabel(); // ⭐추가: 입력 초기화 후 라벨 업데이트
+    toast('새 기록 준비 완료','ok');
+  }
+
+  // 목록
+  function refreshSubjectFilter(){
+    const sel=$('#subject-filter');
+    const subs=[...new Set(cache.map(r=>r.subject).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ko'));
+    sel.innerHTML='<option value="">전체 종목</option>'+subs.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
+  }
+  function totalFromRec(rec){
+    const useQuota = rec.quota || quota; const avail = rec.available || availableCounts;
+    let tot=0; for(let s=1;s<=4;s++){
+      const per=perProblem[s]; const scores=(rec.scores?.[s]||[]); const sels=(rec.selected?.[s]||Array(avail[s]).fill(false));
+      const chosen = scores.map((v,i)=> sels[i] ? Math.max(0,Math.min(Number(v)||0, per)) : null).filter(v=>v!=null).sort((a,b)=>b-a).slice(0, useQuota[s]);
+      tot += chosen.reduce((a,b)=>a+b,0);
+    }
+    return Math.round(tot*100)/100;
+  }
+  function filtered(){
+    const q=($('#search').value||'').toLowerCase().trim();
+    const sf=$('#subject-filter').value||'';
+    return cache
+      .filter(r=> !sf || r.subject===sf)
+      .filter(r=>{ if(!q) return true; return [r.subject||'', String(r.round||''), r.memo||''].some(x=>x.toLowerCase().includes(q)); })
+      .sort((a,b)=> (a.subject||'').localeCompare(b.subject||'','ko') || (a.round||0)-(b.round||0));
+  }
+  function renderList(){
+    const tb=$('#list tbody'); tb.innerHTML='';
+    const arr=filtered();
+    arr.forEach(rec=>{
+      const tr=document.createElement('tr'); tr.setAttribute('data-id', rec.id);
+      const total = totalFromRec(rec);
+      const final = Math.round((total/12)*100)/100;
+      tr.innerHTML=`
+        <td>${esc(rec.subject||'')}</td>
+        <td>${rec.round||''}</td>
+        <td>${esc(rec.date||'')}</td>
+        <td><span class="cell-sum">${total}</span> / ${TOTAL_MAX}<br/><span class="small">환산: ${final}</span></td>
+        <td>${esc(rec.memo||'')}</td>
+        <td>
+          <button class="btn" data-act="load" data-id="${rec.id}">불러오기</button>
+          <button class="btn ghost" data-act="del" data-id="${rec.id}">삭제</button>
+        </td>`;
+      tr.querySelector('[data-act="load"]').addEventListener('click',()=>loadRecord(rec.id));
+      tr.querySelector('[data-act="del"]').addEventListener('click',async()=>{ if(confirm('삭제하시겠습니까?')){ await delRec(rec.id); await sync(); }});
+      tb.appendChild(tr);
+    });
+    $('#result-badge').textContent = arr.length+'건';
+  }
+  function updatePreview(rec){ writeInputs(rec); }
+  async function loadRecord(id){ 
+    const rec=cache.find(r=>r.id===id); 
+    if(!rec) return; 
+    editingId=id; 
+    writeInputs(rec); 
+    const row=document.querySelector(`#list tbody tr[data-id="${id}"]`); 
+    if(row){ row.scrollIntoView({block:'center'}); row.classList.add('focus'); setTimeout(()=>row.classList.remove('focus'),900); } 
+  }
+  async function sync(){ cache = await getAll(); refreshSubjectFilter(); renderList(); renderTrend(); }
+
+  // 저장
+  async function save(){
+    const d = readInputs();
+    if(!d.subject){ alert('종목을 입력하세요.'); return; }
+    if(!d.round){ alert('회차를 입력하세요.'); return; }
+    const base = { id: editingId || uid(), ts: nowISO(), ...d };
+    await putRec(base); 
+    editingId=base.id; 
+    toast('저장되었습니다.','ok'); 
+    await sync(); 
+    updatePreview(base);
+  }
+
+  // 엑셀 내보내기 (글꼴 및 스타일 적용)
+  async function exportXLSX(){
+    try{
+      const workbook=new ExcelJS.Workbook();
+      
+      // 폰트 스타일 정의
+      const defaultFont = { name: 'Malgun Gothic', size: 10 }; // 맑은 고딕, 10pt 지정
+      const headerStyle = {
+        font: { ...defaultFont, bold: true },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } }, // 연한 회색 배경
+        border: { 
+          top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } 
+        }
+      };
+      const cellStyle = {
+        font: defaultFont,
+        alignment: { vertical: 'middle', horizontal: 'center' },
+        border: { 
+          top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } 
+        }
+      };
+      const cellStyleLeft = {
+        font: defaultFont,
+        alignment: { vertical: 'middle', horizontal: 'left' },
+        border: { 
+          top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } 
+        }
+      };
+      
+      
+      // 요약 시트
+      const wsSum=workbook.addWorksheet('요약');
+      wsSum.addRow(['종목','회차','날짜','메모','총점(선택기준)','환산(총점÷12)','합격기준']);
+      
+      // 헤더 스타일 적용
+      wsSum.getRow(1).eachCell(cell => { cell.style = headerStyle; });
+      
+      cache.forEach(rec=>{
+        const total=totalFromRec(rec); const final=Math.round((total/12)*100)/100;
+        const row = wsSum.addRow([rec.subject||'', rec.round||'', rec.date||'', rec.memo||'', total, final, PASS_SCORE]);
+        
+        // 데이터 스타일 적용
+        row.eachCell(cell => { cell.style.font = defaultFont; });
+      });
+      
+      // 열 너비 자동 조정
+      wsSum.columns.forEach(column => { column.width = 15; });
+      
+      // 상세 시트 (A형)
+      const ws=workbook.addWorksheet('상세');
+      const maxCols=13;
+      ws.addRow(['종목','회차','날짜','메모','교시', ...Array.from({length:maxCols},(_,i)=>`${i+1}문항`), '선택수','교시합계']);
+      
+      // 헤더 스타일 적용
+      ws.getRow(1).eachCell(cell => { cell.style = headerStyle; });
+
+      let currentRow = 2;
+      cache.forEach(rec=>{
+        for(let s=1;s<=4;s++){
+          const rowData=[rec.subject||'',rec.round||'',rec.date||'',rec.memo||'', `${s}교시`];
+          for(let i=1;i<=maxCols;i++){
+            if(i<= (rec.available?.[s]||availableCounts[s])) rowData.push(rec.scores?.[s]?.[i-1] ?? 0);
+            else rowData.push(null); // 빈 칸
+          }
+          const picked=(rec.selected?.[s]||[]).filter(Boolean).length;
+          const sum=sessionSumFromRaw(rec,s);
+          rowData.push(picked);
+          rowData.push(sum);
+          
+          const row = ws.addRow(rowData);
+          
+          // 데이터 셀 스타일 적용
+          row.getCell(1).style = cellStyleLeft; // 종목
+          row.getCell(2).style = cellStyle;
+          row.getCell(3).style = cellStyle;
+          row.getCell(4).style = cellStyleLeft; // 메모
+          row.getCell(5).style = cellStyle;
+          // 문항 점수 및 선택 수, 합계 스타일 적용
+          for (let j = 6; j <= rowData.length; j++) {
+             row.getCell(j).style = cellStyle;
+          }
+          
+          currentRow++;
+        }
+      });
+      
+      // 열 너비 자동 조정
+      ws.columns.forEach(column => { column.width = 10; });
+      ws.getColumn(1).width = 20; // 종목
+      ws.getColumn(4).width = 25; // 메모
+
+
+      const buf=await workbook.xlsx.writeBuffer();
+      const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='exam_scores_detail.xlsx'; a.click(); URL.revokeObjectURL(a.href);
+      toast('엑셀로 내보냈습니다.','ok');
+    }catch(e){ console.error(e); toast('엑셀 내보내기 실패','bad'); }
+  }
+  
+  // 기출문제 엑셀 내보내기 함수 추가
+  async function exportQuestionsXLSX() {
+      if (questionData.length === 0) {
+          toast('내보낼 기출문제 데이터가 없습니다. 파일을 먼저 불러와 주세요.', 'warn');
+          return;
+      }
+      
+      try {
+          const workbook = new ExcelJS.Workbook();
+          const ws = workbook.addWorksheet('기출문제');
+          
+          // 헤더 생성 (첫 번째 데이터 객체의 키를 헤더로 사용)
+          const headers = Object.keys(questionData[0]);
+          ws.addRow(headers);
+          
+          // 폰트 스타일 정의
+          const defaultFont = { name: 'Malgun Gothic', size: 10 };
+          const headerStyle = {
+            font: { ...defaultFont, bold: true },
+            fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6E6E6' } },
+            border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } }
+          };
+          
+          // 헤더 스타일 적용
+          ws.getRow(1).eachCell(cell => { cell.style = headerStyle; });
+
+          // 데이터 행 추가 및 스타일 적용
+          questionData.forEach(item => {
+              const rowData = headers.map(key => item[key]);
+              const row = ws.addRow(rowData);
+              
+              // 모든 셀에 기본 폰트 적용
+              row.eachCell(cell => { 
+                  cell.style.font = defaultFont;
+                  cell.style.alignment = { wrapText: true, vertical: 'top', horizontal: 'left' }; // 문제 내용이 길 수 있으므로 줄바꿈 적용
+              });
+          });
+          
+          // 열 너비 조정 (선택 사항)
+          ws.columns.forEach(column => { column.width = 15; });
+          ws.getColumn(headers.indexOf('문제') + 1).width = 60; // 문제 컬럼 너비 확장
+
+          const buf = await workbook.xlsx.writeBuffer();
+          const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+          a.download = `기출문제_백업_${new Date().toISOString().slice(0,10)}.xlsx`;
+          a.click();
+          URL.revokeObjectURL(a.href);
+          toast('기출문제를 엑셀로 내보냈습니다.','ok');
+          
+      } catch(e) {
+          console.error(e);
+          toast('기출문제 엑셀 내보내기 실패','bad');
+      }
+  }
+
+
+  function sessionSumFromRaw(rec,s){
+    const per=perProblem[s]; const avail=(rec.available?.[s]||availableCounts[s]); const quotaUse=(rec.quota?.[s]||quota[s]);
+    const scores=(rec.scores?.[s]||Array(avail).fill(0)); const sels=(rec.selected?.[s]||Array(avail).fill(false));
+    const chosen = scores.map((v,i)=> sels[i] ? Math.max(0,Math.min(Number(v)||0, per)) : null).filter(v=>v!=null).sort((a,b)=>b-a).slice(0, quotaUse);
+    return chosen.reduce((a,b)=>a+b,0);
+  }
+
+  // 엑셀 가져오기 (상세 시트 A형 또는 이전 요약형 지원)
+  async function importXLSX(file){
+    try{
+      const wb=new ExcelJS.Workbook();
+      await wb.xlsx.load(await file.arrayBuffer());
+      let ws=wb.getWorksheet('상세');
+      const imported=[];
+      if(ws){
+        // A형 상세: 4행이 1레코드
+        const maxCols=13;
+        const head = ws.getRow(1).values.map(v=>String(v||''));
+        const colStart = head.indexOf('교시')+1; // 1-based values, but ExcelJS row.values[0] is undefined
+        for(let r=2; r<=ws.rowCount; r+=4){
+          const block = [];
+          for(let k=0;k<4;k++) block.push(ws.getRow(r+k));
+          const subject = String(block[0].getCell(1).value||'').trim();
+          const round = parseInt(block[0].getCell(2).value,10)||null;
+          const date = String(block[0].getCell(3).value||'').trim();
+          const memo = String(block[0].getCell(4).value||'').trim();
+          const rec = { id:uid(), ts:nowISO(), subject, round, date, memo, scores:{1:[],2:[],3:[],4:[]}, selected:{1:[],2:[],3:[],4:[]}, available:{1:13,2:6,3:6,4:6}, quota:{1:10,2:4,3:4,4:4} };
+          for(let s=1;s<=4;s++){
+            const row = block[s-1];
+            const avail = s===1?13:6; rec.available[s]=avail; rec.quota[s]= s===1?10:4;
+            for(let i=1;i<=maxCols;i++){
+              // 수정된 부분: 4+i -> 5+i (1문항 점수가 F열, 즉 6열부터 시작)
+              const val = (i<=avail)? Number(row.getCell(5+i).value)||0 : 0; 
+              rec.scores[s].push(val);
+            }
+            // 선택은 별도로 없으니 점수 상위 quota개 자동 선택
+            const idxs = rec.scores[s].map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0, rec.quota[s]).map(x=>x.i);
+            rec.selected[s] = rec.scores[s].map((_,i)=> idxs.includes(i));
+          }
+          imported.push(rec);
+        }
+      }else{
+        // 예전 요약 형식도 일부 복원(최소 정보)
+        ws = wb.worksheets[0]; if(!ws) throw new Error('워크시트 없음');
+        ws.eachRow((row,idx)=>{ if(idx===1) return; const subject=String(row.getCell(1).value||'').trim(); const round=parseInt(row.getCell(2).value,10)||null; const date=String(row.getCell(3).value||'').trim(); const memo=String(row.getCell(4).value||'').trim(); imported.push({ id:uid(), ts:nowISO(), subject, round, date, memo, scores:{1:[],2:[],3:[],4:[]}, selected:{1:[],2:[],3:[],4:[]}, available:{...availableCounts}, quota:{...quota} }); });
+      }
+      for(const r of imported){ await putRec(r); }
+      toast(`엑셀에서 ${imported.length}건을 불러왔습니다.`,'ok');
+      await sync();
+    }catch(e){ console.error(e); toast('엑셀 불러오기 실패','bad'); }
+  }
+
+  // 설정
+  function openSettings(){
+    const curTotal = quota[1]*perProblem[1]+quota[2]*perProblem[2]+quota[3]*perProblem[3]+quota[4]*perProblem[4];
+    const html=`<div style="display:grid;gap:10px">
+      <div class="small">가용/선택 문항 수 설정</div>
+      <div class="row"><label style="min-width:82px">1교시(가용/선택)</label><input id="a-1" type="number" min="0" max="50" value="${availableCounts[1]}" style="width:90px" /> / <input id="q-1" type="number" min="0" max="50" value="${quota[1]}" style="width:90px" /></div>
+      <div class="row"><label style="min-width:82px">2교시(가용/선택)</label><input id="a-2" type="number" min="0" max="50" value="${availableCounts[2]}" style="width:90px" /> / <input id="q-2" type="number" min="0" max="50" value="${quota[2]}" style="width:90px" /></div>
+      <div class="row"><label style="min-width:82px">3교시(가용/선택)</label><input id="a-3" type="number" min="0" max="50" value="${availableCounts[3]}" style="width:90px" /> / <input id="q-3" type="number" min="0" max="50" value="${quota[3]}" style="width:90px" /></div>
+      <div class="row"><label style="min-width:82px">4교시(가용/선택)</label><input id="a-4" type="number" min="0" max="50" value="${availableCounts[4]}" style="width:90px" /> / <input id="q-4" type="number" min="0" max="50" value="${quota[4]}" style="width:90px" /></div>
+      <div class="small">현재 총점 최대(선택 기준): ${curTotal}점</div>
+      <div class="row" style="gap:8px;justify-content:flex-end">
+        <button class="btn" id="set-apply">적용</button>
+        <button class="btn ghost" id="set-cancel">닫기</button>
+      </div>
+    </div>`;
+    const dlg=document.createElement('div'); dlg.style.position='fixed'; dlg.style.inset='0'; dlg.style.background='rgba(0,0,0,.2)'; dlg.style.display='grid'; dlg.style.placeItems='center'; dlg.style.zIndex='10000';
+    const card=document.createElement('div'); card.className='card'; card.style.width='420px';
+    const h=document.createElement('h2'); h.textContent='설정'; card.appendChild(h);
+    const body=document.createElement('div'); body.className='body'; body.innerHTML=html; card.appendChild(body);
+    dlg.appendChild(card); document.body.appendChild(dlg);
+    body.querySelector('#set-apply').addEventListener('click',()=>{
+      availableCounts={1:parseInt(body.querySelector('#a-1').value,10)||0,2:parseInt(body.querySelector('#a-2').value,10)||0,3:parseInt(body.querySelector('#a-3').value,10)||0,4:parseInt(body.querySelector('#a-4').value,10)||0};
+      quota={1:parseInt(body.querySelector('#q-1').value,10)||0,2:parseInt(body.querySelector('#q-2').value,10)||0,3:parseInt(body.querySelector('#q-3').value,10)||0,4:parseInt(body.querySelector('#q-4').value,10)||0};
+      initMaps(); renderTabs(); renderTable(); updateSums(); renderPreviewTable(); toast('설정을 적용했습니다.','ok'); document.body.removeChild(dlg);
+    });
+    body.querySelector('#set-cancel').addEventListener('click',()=>document.body.removeChild(dlg));
+  }
+  
+  // =========================================================================
+  // 🎉 기출문제 모달 표시 기능 추가 영역 (IndexedDB 저장 및 로드 적용)
+  // =========================================================================
+
+  let questionData = []; // 엑셀 데이터를 저장할 배열
+
+  const modal = document.getElementById('questionModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalContent = document.getElementById('modalContent');
+  const modalSource = document.getElementById('modalSource');
+  const closeBtn = document.querySelector('.close-btn');
+
+  // 엑셀 시트 파싱 함수 (이전 .xlsx 로드 방식 재활용)
+  function parseExcelSheet(worksheet) {
+      if (!worksheet) return [];
+
+      const data = [];
+      const headerRow = worksheet.getRow(1);
+      if (!headerRow) return [];
+
+      const headers = [];
+      headerRow.eachCell(cell => {
+          let headerText = cell.text || '';
+          headers.push(headerText.trim().replace(/\n/g, ''));
+      });
+
+      const requiredHeaders = ['교시', '문항번호', '종목', '회차', '문제'];
+      if (!requiredHeaders.every(h => headers.includes(h))) {
+          console.error("엑셀 파일의 첫 번째 시트에 '교시', '문항번호', '종목', '회차', '문제' 중 일부 헤더가 없습니다.");
+          return [];
+      }
+
+      for (let r = 2; r <= worksheet.rowCount; r++) {
+          const row = worksheet.getRow(r);
+          const rowData = {};
+          let isValidRow = false;
+
+          for (let j = 0; j < headers.length; j++) {
+              const header = headers[j];
+              const cell = row.getCell(j + 1); 
+              let value = cell.value;
+              
+              if (value && typeof value === 'object' && value.text) {
+                  value = value.text;
+              }
+              
+              if (value !== null && value !== undefined && String(value).trim() !== '') {
+                  isValidRow = true;
+              }
+              
+              rowData[header] = String(value ?? '').trim();
+          }
+
+          if (isValidRow) {
+              data.push(rowData);
+          }
+      }
+      return data;
+  }
+
+  // 파일 선택을 통해 기출문제 엑셀 파일 로드 및 DB 저장
+  async function loadQuestionsFromFile(file) {
+      if (typeof ExcelJS === 'undefined') {
+          toast("ExcelJS 라이브러리가 로드되지 않아 엑셀을 읽을 수 없습니다.", 'bad');
+          return;
+      }
+      
+      try {
+          const buffer = await file.arrayBuffer();
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(buffer);
+          
+          const firstSheet = workbook.worksheets[0];
+
+          if (!firstSheet) {
+               throw new Error("엑셀 파일에 시트가 없습니다.");
+          }
+
+          const parsedData = parseExcelSheet(firstSheet);
+          
+          const fileName = file.name;
+          
+          if (parsedData.length > 0) {
+              // IndexedDB에 저장
+              await putQuestionsRec(parsedData);
+              questionData = parsedData;
+
+              toast(`[${fileName}] ${firstSheet.name} 시트에서 ${questionData.length}건의 기출문제를 로드하고 저장했습니다.`, 'ok');
+          } else {
+              toast(`[${fileName}]에서 기출문제를 찾을 수 없습니다. 시트 구조를 확인하세요.`, 'warn');
+          }
+          
+
+      } catch (error) {
+          console.error("기출문제 파일 로드 및 파싱 실패:", error);
+          toast(`기출문제 엑셀 로드 실패: ${error.message}`, 'bad');
+      }
+  }
+
+  // DB에서 기출문제 자동 로드
+  async function loadQuestionsFromDB() {
+      try {
+          const rec = await getQuestionsRec();
+          if (rec && rec.data && rec.data.length > 0) {
+              questionData = rec.data;
+              toast(`IndexedDB에서 ${questionData.length}건의 기출문제 자동 로드 완료.`, 'info');
+              return true;
+          }
+      } catch (error) {
+          console.error("IndexedDB에서 기출문제 로드 실패:", error);
+      }
+      return false;
+  }
+
+
+  // 문제 표시
+  function showQuestionModal(교시, 문항번호) {
+    if (questionData.length === 0) {
+        modalTitle.textContent = '문제 데이터 없음';
+        modalContent.textContent = '**기출문제 불러오기** 버튼을 눌러 엑셀 파일을 먼저 로드해주세요.';
+        modalSource.textContent = '';
+        modal.style.display = 'block';
+        return;
+    }
+
+    const rec = readInputs();
+    const currentSubject = rec.subject;
+    const currentRound = rec.round;
+    
+    // 현재 입력된 종목, 회차, 교시, 문항 번호가 모두 일치하는 문제만 검색
+    const filteredQuestion = questionData.find(item => 
+        String(item['교시']) === String(교시) && 
+        String(item['문항번호']) === String(문항번호) &&
+        item['종목'] === currentSubject &&
+        (item['회차'] ? String(item['회차']) === String(currentRound) : true) // 회차가 입력된 경우만 비교
+    );
+
+    if (filteredQuestion) {
+        const roundText = filteredQuestion['회차'] ? `제${filteredQuestion['회차']}회` : '회차 미상';
+        modalTitle.textContent = `${filteredQuestion['종목']} / ${roundText} / ${교시}교시 ${문항번호}번`;
+        modalContent.textContent = filteredQuestion['문제'] || '문제 내용이 엑셀에 없습니다.';
+        modalSource.textContent = `(출처: 종목 "${filteredQuestion['종목']||'없음'}", 회차 "${filteredQuestion['회차']||'없음'}")`;
+    } else {
+        // 일치하는 문제가 없을 경우 '문제 없음' 표시
+        modalTitle.textContent = `${교시}교시 ${문항번호}번 문제 (문제 없음)`;
+        modalContent.textContent = `현재 입력된 종목/회차(${currentSubject||'없음'}/${currentRound||'없음'})에 해당하는 ${교시}교시 ${문항번호}번 문제를 로드된 기출문제에서 찾을 수 없습니다.`;
+        modalSource.textContent = '';
+    }
+
+    modal.style.display = 'block';
+  }
+
+  // 모달 닫기 이벤트
+  closeBtn.onclick = function() {
+      modal.style.display = 'none';
+  }
+  window.onclick = function(event) {
+      if (event.target == modal) {
+          modal.style.display = 'none';
+      }
+  }
+
+  // 상세 테이블 항목에 이벤트 리스너 연결
+  function attachPreviewTableEvents() {
+    document.querySelectorAll('#previewTable td.preview-clickable').forEach(cell => {
+        cell.removeEventListener('click', handleQuestionClick);
+        cell.addEventListener('click', handleQuestionClick);
+    });
+  }
+
+  function handleQuestionClick(e) {
+      const cell = e.currentTarget;
+      const 교시 = cell.dataset.period;
+      const 문항번호 = cell.dataset.item;
+      
+      if (교시 && 문항번호) {
+          showQuestionModal(교시, 문항번호);
+      } else {
+          toast('문제 정보(교시/문항번호)가 누락되었습니다.', 'warn');
+      }
+  }
+
+
+  // =========================================================================
+  // 이벤트 연결 및 초기화 수정
+  // =========================================================================
+
+  // 이벤트
+  function attach(){
+    const btnNew = $('#btn-new');
+    const btnSave = $('#btn-save');
+    const btnExport = $('#btn-export-xlsx');
+    // 기출문제 내보내기 버튼 이벤트 연결
+    const btnExportQuestions = $('#btn-export-questions'); 
+    
+    const fileImport = $('#fileImport');
+    const questionFileImport = $('#questionFileImport'); 
+    const btnSettings = $('#btn-settings');
+    const searchInput = $('#search');
+    const subjectFilter = $('#subject-filter');
+
+    if (btnNew) btnNew.addEventListener('click', clearInputs);
+    if (btnSave) btnSave.addEventListener('click', save);
+    if (btnExport) btnExport.addEventListener('click', exportXLSX);
+    // 이벤트 연결
+    if (btnExportQuestions) btnExportQuestions.addEventListener('click', exportQuestionsXLSX); 
+    
+    // 시험 점수 기록 불러오기
+    if (fileImport) fileImport.addEventListener('change', async e=>{ const f=e.target.files[0]; if(f) await importXLSX(f); e.target.value=''; });
+    
+    // 기출문제 파일 불러오기 이벤트 리스너
+    if (questionFileImport) questionFileImport.addEventListener('change', async e=>{ 
+        const f=e.target.files[0]; 
+        if(f) await loadQuestionsFromFile(f); 
+        e.target.value=''; 
+    });
+
+    if (btnSettings) btnSettings.addEventListener('click', openSettings);
+    if (searchInput) searchInput.addEventListener('input', ()=>renderList());
+    if (subjectFilter) subjectFilter.addEventListener('change', ()=>renderList());
+
+    document.addEventListener('keydown', (e)=>{
+      const key=(e.key||'').toLowerCase();
+      if((e.ctrlKey||e.metaKey) && !e.shiftKey && key==='s'){ e.preventDefault(); $('#btn-save').click(); }
+    }, true);
+    
+    document.querySelectorAll('#subject, #round, #date, #memo').forEach(input => {
+        input.addEventListener('change', () => {
+            renderPreviewTable(); 
+            updatePreviewLabel(); // 라벨 업데이트
+        });
+    });
+    
+  }
+
+  async function init(){
+    try{
+      await openDB();
+      // DB에서 기출문제 자동 로드 시도
+      await loadQuestionsFromDB(); 
+
+      initMaps(); renderTabs(); renderTable(); updateSums(); renderPreviewTable(); 
+      attach();
+      await sync();
+      clearInputs();
+      if (questionData.length === 0) {
+          toast('시험 점수 기록이 준비되었습니다. 기출문제 엑셀 파일을 불러와 주세요.', 'info');
+      }
+    }catch(e){ console.error(e); toast('초기화 실패: 브라우저 설정을 확인하세요.','bad'); }
+  }
+
+  init();
+
+  // 누적 그래프
+  let currentTrendView = 'all'; // 'all', 'total', 's1', 's2', 's3', 's4'
+  const trendSections = [
+    {key:'all', label:'전체', color:'#2b6cb0', type: 'multi'},
+    {key:'total', label:'총점', color:'#2b6cb0', type: 'single'},
+    {key:'s1', label:'1교시', color:'#805ad5', type: 'single'},
+    {key:'s2', label:'2교시', color:'#dd6b20', type: 'single'},
+    {key:'s3', label:'3교시', color:'#38a169', type: 'single'},
+    {key:'s4', label:'4교시', color:'#e53e3e', type: 'single'}
+  ];
+  
+  function renderTrendTabs(){
+    const tabs = document.getElementById('trend-tabs');
+    if (!tabs) return;
+
+    tabs.innerHTML = trendSections.map(sec => 
+      `<button class="tab ${sec.key === currentTrendView ? 'active' : ''}" data-view="${sec.key}">${sec.label}</button>`
+    ).join('');
+
+    tabs.querySelectorAll('.tab').forEach(button => {
+      button.addEventListener('click', (e) => {
+        currentTrendView = e.target.dataset.view;
+        renderTrend();
+      });
+    });
+  }
+
+  function renderTrend(){
+    renderTrendTabs(); // 탭 렌더링/업데이트
+    
+    const cvs = document.getElementById('trend-canvas'); if(!cvs) return;
+    const ctx = cvs.getContext('2d');
+    const W = cvs.width = cvs.clientWidth || 600; 
+
+    // 현재 뷰에 따라 높이 및 섹션 결정
+    const isSingleView = currentTrendView !== 'all';
+    const activeSections = isSingleView 
+      ? [trendSections.find(s => s.key === currentTrendView)] 
+      : trendSections.slice(1); // 'all'을 제외하고 총점~4교시만
+      
+    // 단일 뷰일 경우 캔버스 높이를 늘려 확대 효과
+    const H_MULTI = 220;
+    const H_SINGLE = 300;
+    const H = cvs.height = isSingleView ? H_SINGLE : H_MULTI;
+
+
+    ctx.clearRect(0,0,W,H);
+
+    // 1) 시계열 정렬
+    const arr = [...cache].sort((a,b)=> (a.date||'').localeCompare(b.date||'') || (a.ts||'').localeCompare(b.ts||''));
+    if(arr.length===0){ ctx.fillStyle='#718096'; ctx.fillText('데이터가 없습니다.', 12, H/2); return; }
+
+    // 2) 총점 & 교시별 시리즈
+    const totalSeries = arr.map(r=> totalFromRec(r));
+    const s1Series = arr.map(r=> sessionSumFromRaw(r,1));
+    const s2Series = arr.map(r=> sessionSumFromRaw(r,2));
+    const s3Series = arr.map(r=> sessionSumFromRaw(r,3));
+    const s4Series = arr.map(r=> sessionSumFromRaw(r,4));
+    
+    const dataMap = {
+      total: totalSeries, s1: s1Series, s2: s2Series, s3: s3Series, s4: s4Series
+    };
+
+    // 3) 이전 시험 대비 증감 (diff)
+    const diff = series => series.map((v,i)=> i===0 ? 0 : Math.round((v - series[i-1]) * 100) / 100);
+    const D = {
+      total: diff(totalSeries),
+      s1: diff(s1Series), s2: diff(s2Series), s3: diff(s3Series), s4: diff(s4Series)
+    };
+    
+    const diffDataMap = {
+      total: D.total, s1: D.s1, s2: D.s2, s3: D.s3, s4: D.s4
+    };
+
+    // 최근 증감 표시
+    const last = (a)=> a.length? a[a.length-1] : 0;
+    const lineEl = document.getElementById('delta-line');
+    if(lineEl){
+      lineEl.textContent = `최근 증감(총점/교시1·2·3·4): ${last(D.total)} / ${last(D.s1)}·${last(D.s2)}·${last(D.s3)}·${last(D.s4)}`;
+    }
+
+    const padL=60, padR=10, padT=20, padB=18; // ⭐수정: 상단 여백 10 -> 20으로 늘려 레이블 잘림 방지
+    const innerH = H - padT - padB;
+    const gap = isSingleView ? 0 : 6; // 단일 뷰일 때 섹션 간격 없음
+    const secH = isSingleView ? innerH : Math.max(24, Math.floor((innerH - gap*(activeSections.length-1)) / activeSections.length));
+
+    // x scale
+    const n = arr.length; 
+    const x = i => padL + (n<=1? 0 : (i*( (W-padL-padR) / (n-1) )));
+
+    activeSections.forEach((sec, idx)=>{
+      const y0 = padT + idx*(secH+gap);
+      // 값 범위(대칭 스케일): diff 값 사용
+      const data = diffDataMap[sec.key];
+      let min = Math.min(...data), max = Math.max(...data);
+      const maxAbs = Math.max(Math.abs(min), Math.abs(max), 1);
+      
+      // y 스케일 (가운데 0점)
+      const y = v => y0 + secH/2 - (v / (maxAbs||1)) * (secH/2 - 4);
+
+      // 배경 및 0축
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(padL, y0, W-padL-padR, secH);
+      ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1; ctx.strokeRect(padL, y0, W-padL-padR, secH);
+      ctx.strokeStyle = '#cbd5e0'; ctx.beginPath(); ctx.moveTo(padL, y0+secH/2); ctx.lineTo(W-padR, y0+secH/2); ctx.stroke();
+
+      // 라인 그리기
+      ctx.strokeStyle = sec.color; ctx.lineWidth = 2; ctx.beginPath();
+      data.forEach((v,i)=>{ const xx=x(i), yy=y(v); if(i===0) ctx.moveTo(xx,yy); else ctx.lineTo(xx,yy); });
+      ctx.stroke();
+      
+      // 점 그리기 및 값 표시 (단일 뷰일 때만 값 표시)
+      ctx.fillStyle = sec.color; 
+      data.forEach((v,i)=>{ 
+        const xx=x(i), yy=y(v); 
+        ctx.beginPath(); ctx.arc(xx,yy,3,0,Math.PI*2); ctx.fill(); 
+        
+        // 단일 뷰일 때 점 위에 값 표시
+        if(isSingleView && n > 0) {
+            ctx.textAlign = 'center';
+            ctx.font = '10px system-ui';
+            ctx.fillText(v, xx, yy - 8); 
+        }
+      });
+
+      // 레이블
+      ctx.fillStyle = '#1a202c'; ctx.font='12px system-ui'; 
+      ctx.textAlign = 'left';
+      ctx.fillText(sec.label + (isSingleView ? ' Δ' : ' Δ'), 8, y0 + secH / 2 + 4);
+      
+      // 단일 뷰일 때 최대/최소값 레이블 표시
+      if (isSingleView && maxAbs > 1) {
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#718096';
+          ctx.fillText(`+${maxAbs}`, padL - 2, y0 + 10);
+          ctx.fillText(`-${maxAbs}`, padL - 2, y0 + secH - 4);
+          ctx.textAlign = 'left'; // 원위치
+          ctx.fillText('0', padL - 2, y0 + secH/2 + 4); // 0점 표시
+      }
+    });
+
+    // 4) 회차(Round) 레이블 추가 (맨 아래, 전체 영역에 걸쳐 표시)
+    ctx.textAlign = 'center';
+    ctx.font = '10px system-ui';
+    ctx.fillStyle = '#718096'; // muted color
+    
+    arr.forEach((rec, i) => {
+        const round = rec.round || 'N/A'; // 회차 정보
+        const labelX = x(i);
+        // y 좌표는 캔버스 바닥에서 조금 위
+        const labelY = H - 5; 
+        
+        ctx.fillText(round, labelX, labelY);
+    });
+  }
+})();
+</script>
+</body>
+</html>

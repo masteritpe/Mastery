@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통합 엑셀 뷰어 (XLS & XLSX)</title>
+    <style>
+        :root {
+            --bg: #f7fafc;
+            --card: #ffffff;
+            --ink: #1a202c;
+            --muted: #718096;
+            --accent: #2b6cb0;
+            --ok: #2f855a;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans KR", Arial, sans-serif;
+            padding: 0;
+        }
+
+        /* Header & Controls */
+        header {
+            background: var(--card);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        header h1 {
+            font-size: 18px;
+            margin: 0;
+        }
+        .btn {
+            appearance: none;
+            border: 1px solid #cbd5e0;
+            background: #fff;
+            color: var(--ink);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            line-height: 1.2;
+            transition: all 0.1s;
+        }
+        .btn:hover {
+            border-color: var(--accent);
+        }
+        .btn.accent {
+            background: var(--accent);
+            color: var(--card);
+            border-color: var(--accent);
+        }
+        .btns-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Toast */
+        #toast-area {
+            position: fixed;
+            right: 16px;
+            top: 16px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .toast {
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-left: 6px solid var(--accent);
+            border-radius: 8px;
+            padding: 10px 12px;
+            min-width: 240px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        }
+
+        /* Main Content */
+        main {
+            padding: 20px;
+        }
+        .filter-bar {
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        #multi-filter-container {
+            display: grid; 
+            grid-template-columns: 1fr 1fr;
+            gap: 10px; 
+        }
+        .filter-group {
+            display: grid;
+            grid-template-columns: 40% 1fr 40px; 
+            gap: 8px; 
+            align-items: center;
+            border: 1px solid #edf2f7; 
+            padding: 8px;
+            border-radius: 6px;
+        }
+        .filter-group input, .filter-group select {
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .filter-value-select {
+            height: 80px;
+            resize: none;
+            overflow-y: auto;
+        }
+        .remove-filter-btn {
+            padding: 6px 0 !important;
+            font-size: 11px !important;
+        }
+
+        .global-search-row {
+            display: grid;
+            grid-template-columns: 2fr auto auto auto; 
+            gap: 10px;
+            align-items: center;
+            border-top: 1px solid #edf2f7;
+            padding-top: 10px;
+        }
+        .global-search-row input {
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .global-search-row .badge {
+            font-size: 13px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Table */
+        .table-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: auto;
+            max-height: 70vh;
+            background: var(--card);
+        }
+        #data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            min-width: 800px;
+        }
+        #data-table thead th {
+            background: #f7fafc;
+            border-bottom: 2px solid #e2e8f0;
+            padding: 10px;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        #data-table tbody td {
+            border-bottom: 1px solid #edf2f7;
+            padding: 10px;
+            vertical-align: top;
+            line-height: 1.4;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #data-table tbody tr:hover {
+            background: #fefcff;
+        }
+
+        /* Column Config Popup */
+        .col-config-container {
+            position: relative;
+        }
+        #col-config-popup {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 240px;
+            max-height: 300px;
+            overflow-y: auto;
+            background: var(--card);
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.15);
+            padding: 12px;
+            z-index: 50;
+            display: none;
+            margin-top: 5px;
+        }
+        #col-config-popup.open {
+            display: block;
+        }
+        #col-config-popup label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            padding: 4px 0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <h1>통합 엑셀 뷰어 (XLS & XLSX)</h1>
+            <span class="btn" id="btn-show-data">목록 새로고침</span>
+        </div>
+        <div class="btns-right">
+            <button class="btn" id="btn-export">엑셀 내보내기</button>
+            <label class="btn accent" for="excelFile">엑셀 불러오기</label>
+            <input type="file" id="excelFile" accept=".xlsx, .xls" style="display:none" />
+        </div>
+    </header>
+
+    <main>
+        <div class="filter-bar">
+            <div id="multi-filter-container">
+            </div>
+            
+            <button class="btn" id="btn-add-filter" style="width: 150px;">+ 필터 추가</button>
+
+            <div class="global-search-row">
+                <input id="filter-global-search" type="text" placeholder="전체 검색 (모든 텍스트 필드)" title="전체 검색" />
+
+                <span id="list-count" class="badge">0건</span>
+
+                <div class="col-config-container">
+                    <button class="btn" id="btn-col-config" title="조회 항목 설정">⚙️ 설정</button>
+                    <div id="col-config-popup">
+                        <p style="font-size: 12px; font-weight: 700; margin: 0 0 8px 0;">조회 항목 설정</p>
+                        <div id="col-config-options">
+                            <p style="font-size: 12px; color: var(--muted);">데이터를 불러오면 항목이 표시됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="btn" id="btn-clear-filter" title="필터 초기화">🔍 초기화</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th colspan="100" style="text-align: center; font-weight: 500;">
+                            엑셀 파일(.xlsx, .xls)을 불러와 주세요.
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <div id="toast-area" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script>
+        (function() {
+            const state = {
+                data: [], 
+                headers: [],
+                filters: { globalSearch: "" },
+                multiFilters: [], 
+                visibleColumns: { 'ROWID': false }
+            };
+
+            const escMap = {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"};
+            const esc = s => String(s ?? "").replace(/[&<>"']/g, ch => escMap[ch]);
+            const uid = () => "S" + Math.random().toString(36).slice(2,8).toUpperCase();
+
+            // --- UI Helper Functions ---
+            let lastToastKey = "";
+            let lastToastTime = 0;
+            function toast(msg, type = "info") {
+                const area = document.getElementById("toast-area");
+                if (!area || !msg) return;
+                const key = type + "::" + msg;
+                const now = Date.now();
+                if (key === lastToastKey && now - lastToastTime < 200) return;
+                lastToastKey = key;
+                lastToastTime = now;
+                const icon = { ok: "✅", warn: "⚠️", bad: "⛔", info: "ℹ️" }[type] || "ℹ️";
+                const el = document.createElement("div");
+                el.className = "toast " + (type || "info");
+                el.innerHTML = `<div style="display:flex; gap:10px;">${icon} <div style="font-size:13px; line-height:1.4">${esc(msg)}</div></div>`;
+                area.appendChild(el);
+                setTimeout(() => { if (el.parentNode === area) area.removeChild(el); }, 3000);
+            }
+
+            // --- Data Loading Function (Modified to use SheetJS) ---
+            async function importExcelFile(file) {
+                try {
+                    // SheetJS (XLSX 객체) 확인
+                    if (typeof XLSX === 'undefined') {
+                        throw new Error("SheetJS 라이브러리가 로드되지 않았습니다.");
+                    }
+
+                    const data = await file.arrayBuffer();
+                    // SheetJS를 사용하여 파일 파싱 (xls, xlsx 모두 가능)
+                    const workbook = XLSX.read(data, { 
+                        type: 'array',
+                        cellDates: true, // 날짜 형식을 올바르게 읽기 위함
+                        cellNF: false, 
+                        cellText: false 
+                    });
+
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // 시트를 JSON 배열(배열의 배열 형태)로 변환
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: null });
+
+                    if (!jsonData || jsonData.length === 0) {
+                        throw new Error("데이터가 없는 엑셀 파일입니다.");
+                    }
+
+                    // 첫 번째 행을 헤더로 사용
+                    const rawHeaders = jsonData[0];
+                    if (!rawHeaders || rawHeaders.length === 0) {
+                        throw new Error("첫 번째 행에서 컬럼 헤더를 찾을 수 없습니다.");
+                    }
+                    
+                    const headers = rawHeaders.map(h => String(h || "").trim()).filter(h => h !== "");
+                    
+                    const processedData = [];
+                    // 병합된 셀 처리를 위한 이전 값 저장소 (Forward Fill)
+                    // 헤더의 인덱스별로 값을 기억함
+                    const lastValues = new Array(rawHeaders.length).fill(null);
+
+                    // 2번째 행(인덱스 1)부터 데이터 처리
+                    for (let i = 1; i < jsonData.length; i++) {
+                        const row = jsonData[i];
+                        const item = { id: uid(), rowNumber: i + 1 };
+                        let rowHasValue = false;
+
+                        // 헤더(컬럼) 순서대로 값 매핑
+                        rawHeaders.forEach((headerName, colIndex) => {
+                            if (!headerName) return; // 헤더 이름이 없으면 스킵
+
+                            let val = row[colIndex];
+                            
+                            // 날짜 객체 처리
+                            if (val instanceof Date) {
+                                // 간단한 날짜 포맷팅 (YYYY-MM-DD)
+                                const year = val.getFullYear();
+                                const month = ('0' + (val.getMonth() + 1)).slice(-2);
+                                const day = ('0' + val.getDate()).slice(-2);
+                                val = `${year}-${month}-${day}`;
+                            } else if (val != null) {
+                                val = String(val).trim();
+                            } else {
+                                val = ""; // null/undefined -> 빈 문자열
+                            }
+
+                            // Forward Fill 로직: 값이 있으면 갱신, 없으면 이전 값 사용
+                            if (val !== "") {
+                                lastValues[colIndex] = val;
+                                rowHasValue = true;
+                            } else {
+                                // 현재 값이 비어있다면 이전 행의 같은 열 값을 사용 (병합된 셀 효과)
+                                if (lastValues[colIndex]) {
+                                    val = lastValues[colIndex];
+                                    // 주의: 병합된 값으로 채워졌더라도, 원본 행에 데이터가 하나도 없으면
+                                    // 빈 행으로 간주될 수 있으나, 여기서는 채워진 값도 데이터로 간주
+                                    // rowHasValue = true; 
+                                }
+                            }
+                            
+                            // 최종 값을 아이템에 할당
+                            item[headerName] = val;
+                            if (val) rowHasValue = true;
+                        });
+
+                        if (rowHasValue) {
+                            processedData.push(item);
+                        }
+                    }
+
+                    // 상태 업데이트
+                    state.data = processedData;
+                    state.headers = headers;
+                    
+                    const newVisible = {'ROWID': false};
+                    for (const h of headers) newVisible[h] = true;
+                    state.visibleColumns = newVisible;
+
+                    // 필터 초기화
+                    clearMultiFilters();
+                    state.filters.globalSearch = "";
+                    document.getElementById('filter-global-search').value = "";
+
+                    toast(`파일 로드 완료: ${processedData.length}건 (${file.name})`, "ok");
+                    addFilterGroup();
+                    renderTable();
+
+                } catch (e) {
+                    console.error(e);
+                    toast(`파일 불러오기 실패: ${e.message}`, "bad");
+                }
+            }
+
+            // --- Export Function (Uses ExcelJS) ---
+            async function exportXlsx() {
+                if (!state.data.length) {
+                    toast("내보낼 데이터가 없습니다.", "warn");
+                    return;
+                }
+                const list = filteredData();
+                if (!list.length) {
+                    toast("현재 필터링된 내용이 없습니다.", "warn");
+                    return;
+                }
+
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet("FilteredData");
+                const exportHeaders = state.headers.filter(h => state.visibleColumns[h]);
+                
+                ws.columns = exportHeaders.map(h => ({ header: h, key: h, width: 20 }));
+
+                list.forEach(item => {
+                    const rowData = {};
+                    exportHeaders.forEach(h => rowData[h] = item[h] || "");
+                    ws.addRow(rowData);
+                });
+                
+                const buf = await wb.xlsx.writeBuffer();
+                const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "Export_" + new Date().toISOString().slice(0,10).replace(/-/g,"") + ".xlsx";
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                toast("엑셀 다운로드 완료", "ok");
+            }
+
+            // --- Table & Filter Logic ---
+            function renderColumnConfigOptions() {
+                const optionsEl = document.getElementById("col-config-options");
+                if (!optionsEl) return;
+                optionsEl.innerHTML = "";
+                const allHeaders = state.headers;
+                
+                if (allHeaders.length === 0) {
+                    optionsEl.innerHTML = '<p style="font-size: 12px; color: var(--muted);">데이터 없음</p>';
+                    return;
+                }
+
+                allHeaders.forEach(h => {
+                    const isVisible = !!state.visibleColumns[h];
+                    const labelEl = document.createElement("label");
+                    labelEl.innerHTML = `<input type="checkbox" ${isVisible ? 'checked' : ''} /> ${esc(h)}`;
+                    labelEl.querySelector('input').addEventListener('change', (e) => {
+                        state.visibleColumns[h] = e.target.checked;
+                        renderTable();
+                    });
+                    optionsEl.appendChild(labelEl);
+                });
+            }
+
+            function getUniqueValuesHTML(colName) {
+                if (!colName || state.data.length === 0) return '';
+                const uniqueValues = [...new Set(state.data.map(item => item[colName] || ''))]
+                    .filter(v => v !== '')
+                    .sort((a, b) => String(a).localeCompare(String(b), 'ko', { numeric: true }));
+                return uniqueValues.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("");
+            }
+
+            function addFilterGroup() {
+                if (state.data.length === 0) return;
+                const container = document.getElementById('multi-filter-container');
+                const group = document.createElement('div');
+                group.className = 'filter-group';
+                const id = uid();
+                group.dataset.filterId = id;
+                
+                const colOptions = '<option value="">컬럼 선택</option>' + 
+                                   state.headers.map(h => `<option value="${esc(h)}">${esc(h)}</option>`).join("");
+
+                group.innerHTML = `
+                    <select class="filter-col-name">${colOptions}</select>
+                    <select multiple size="5" class="filter-value-select"></select>
+                    <button class="btn remove-filter-btn">X</button>
+                `;
+
+                const colSelect = group.querySelector('.filter-col-name');
+                const valSelect = group.querySelector('.filter-value-select');
+                
+                colSelect.addEventListener('change', (e) => {
+                    valSelect.innerHTML = getUniqueValuesHTML(e.target.value);
+                    handleMultiFilterChange();
+                });
+                valSelect.addEventListener('change', handleMultiFilterChange);
+                group.querySelector('.remove-filter-btn').addEventListener('click', () => {
+                    group.remove();
+                    handleMultiFilterChange();
+                });
+                container.appendChild(group);
+                
+                // 상태 동기화
+                state.multiFilters.push({ id, colName: "", colValues: [] });
+            }
+
+            function handleMultiFilterChange() {
+                const groups = document.querySelectorAll('.filter-group');
+                state.multiFilters = [];
+                groups.forEach(g => {
+                    const colSelect = g.querySelector('.filter-col-name');
+                    const valSelect = g.querySelector('.filter-value-select');
+                    state.multiFilters.push({
+                        id: g.dataset.filterId,
+                        colName: colSelect.value,
+                        colValues: Array.from(valSelect.selectedOptions).map(o => o.value)
+                    });
+                });
+                renderTable();
+            }
+
+            function clearMultiFilters() {
+                state.multiFilters = [];
+                document.getElementById('multi-filter-container').innerHTML = '';
+            }
+
+            function filteredData() {
+                const q = (state.filters.globalSearch || "").trim().toLowerCase();
+                const activeFilters = state.multiFilters.filter(f => f.colName && f.colValues.length > 0);
+
+                if (state.data.length === 0) return [];
+
+                return state.data.filter(item => {
+                    if (activeFilters.length > 0) {
+                        const match = activeFilters.every(f => {
+                            const val = (item[f.colName] || "").trim();
+                            return f.colValues.includes(val);
+                        });
+                        if (!match) return false;
+                    }
+                    if (q) {
+                        return state.headers.some(h => (item[h] || "").toLowerCase().includes(q));
+                    }
+                    return true;
+                });
+            }
+
+            function renderTable() {
+                const thead = document.querySelector("#data-table thead");
+                const tbody = document.querySelector("#data-table tbody");
+                const cntEl = document.getElementById("list-count");
+                
+                const cols = state.headers.filter(h => state.visibleColumns[h]);
+                const list = filteredData();
+
+                if (state.data.length === 0) {
+                    thead.innerHTML = `<tr><th colspan="100" style="text-align: center;">파일을 불러와 주세요.</th></tr>`;
+                    tbody.innerHTML = "";
+                    if(cntEl) cntEl.textContent = "0건";
+                    return;
+                }
+
+                thead.innerHTML = `<tr>${cols.map(h => `<th>${esc(h)}</th>`).join('')}</tr>`;
+                
+                if (list.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${cols.length}" style="text-align:center;">데이터 없음</td></tr>`;
+                } else {
+                    // 성능을 위해 innerHTML 한 번에 처리
+                    tbody.innerHTML = list.map(item => 
+                        `<tr>${cols.map(h => `<td title="${esc(item[h])}">${esc(item[h])}</td>`).join('')}</tr>`
+                    ).join("");
+                }
+                if(cntEl) cntEl.textContent = `${list.length}건`;
+            }
+
+            // --- Event Listeners ---
+            document.addEventListener("DOMContentLoaded", () => {
+                const fileInput = document.getElementById("excelFile");
+                fileInput.addEventListener("change", (e) => {
+                    if (e.target.files[0]) importExcelFile(e.target.files[0]);
+                    e.target.value = "";
+                });
+
+                document.getElementById("btn-export").addEventListener("click", exportXlsx);
+                document.getElementById("btn-col-config").addEventListener("click", () => {
+                    const popup = document.getElementById("col-config-popup");
+                    popup.classList.toggle('open');
+                    if(popup.classList.contains('open')) renderColumnConfigOptions();
+                });
+                document.getElementById("btn-clear-filter").addEventListener("click", () => {
+                    clearMultiFilters();
+                    state.filters.globalSearch = "";
+                    document.getElementById('filter-global-search').value = "";
+                    renderTable();
+                    toast("초기화 완료");
+                });
+                document.getElementById("btn-show-data").addEventListener("click", renderTable);
+                document.getElementById("btn-add-filter").addEventListener("click", addFilterGroup);
+                
+                document.getElementById('filter-global-search').addEventListener('input', (e) => {
+                    state.filters.globalSearch = e.target.value;
+                    renderTable();
+                });
+
+                // 팝업 닫기
+                document.addEventListener("click", (e) => {
+                    const popup = document.getElementById("col-config-popup");
+                    const btn = document.getElementById("btn-col-config");
+                    if (popup.classList.contains('open') && !popup.contains(e.target) && e.target !== btn) {
+                        popup.classList.remove('open');
+                    }
+                });
+            });
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>문제 타이머</title>
+<style>
+  body {
+    font-family: 'Noto Sans', Arial, sans-serif;
+    margin: 0;
+    background: #f5f5f5;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 15px;
+  }
+  .container {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  h2 {
+    font-size: 22px;
+    margin-bottom: 15px;
+  }
+  .settings-row {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 15px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 90px;
+  }
+  .input-group label {
+    font-size: 14px;
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  .input-group select,
+  .input-group input {
+    width: 100%;
+    font-size: 16px;
+    padding: 6px;
+    background: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .summary-text {
+    font-size: 14px;
+    margin-bottom: 15px;
+    color: #555;
+  }
+  .timer-display {
+    font-size: 48px;
+    background: #f0f0f0;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 6px;
+    min-height: 60px;
+    text-align: center;
+    color: #2b8be0;
+    width: 100%;
+  }
+  #statusText {
+    margin-bottom: 20px;
+    font-size: 16px;
+  }
+  .buttons button {
+    padding: 12px;
+    margin: 5px 0;
+    font-size: 18px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    background: #2b8be0;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .buttons button:hover {
+    background: #1971c2;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <h2>문제 타이머</h2>
+
+  <div class="settings-row">
+    <div class="input-group">
+      <label for="questionCount">문제수</label>
+      <input type="number" id="questionCount" min="1" max="100" value="5" oninput="updateSummary()">
+    </div>
+    <div class="input-group">
+      <label for="intervalSec">문제당 시간(초)</label>
+      <select id="intervalSec" onchange="updateSummary()"></select>
+    </div>
+    <div class="input-group">
+      <label for="restSec">대기시간(초)</label>
+      <select id="restSec" onchange="updateSummary()"></select>
+    </div>
+  </div>
+
+  <div class="summary-text" id="summaryText">예상 소요시간: 00:00</div>
+
+  <div class="timer-display" id="timerDisplay">00:00</div>
+  <div id="statusText">대기 중</div>
+
+  <div class="buttons">
+    <button onclick="startTimer()">시작</button>
+    <button onclick="pauseTimer()">일시정지</button>
+    <button onclick="resetTimer()">초기화</button>
+  </div>
+
+</div>
+
+<script>
+let timer;
+let questionTime = 0;
+let restTime = 3;
+let remainingTime = 0;
+let totalQuestions = 0;
+let currentQuestion = 0;
+let isPaused = false;
+let isResting = false;
+let missionCompleted = false;
+
+function populateSelect(id, max, defaultValue=0) {
+  const select = document.getElementById(id);
+  for(let i=1; i<=max; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.text = i.toString().padStart(2,'0') + '초';
+    if(i === defaultValue) option.selected = true;
+    select.appendChild(option);
+  }
+}
+
+populateSelect('intervalSec', 300, 30); // 문제당 최대 5분
+populateSelect('restSec', 60, 3);       // 대기시간 최대 60초
+
+function formatTime(seconds) {
+  const min = String(Math.floor(seconds / 60)).padStart(2,'0');
+  const sec = String(seconds % 60).padStart(2,'0');
+  return `${min}:${sec}`;
+}
+
+function updateSummary() {
+  const sec = parseInt(document.getElementById('intervalSec').value) || 0;
+  const rest = parseInt(document.getElementById('restSec').value) || 0;
+  const count = parseInt(document.getElementById('questionCount').value) || 0;
+
+  const totalSec = (sec * count) + (rest * (count - 1));
+  const summary = document.getElementById('summaryText');
+  summary.innerText = `예상 소요시간: ${formatTime(totalSec)}`;
+}
+
+function startTimer() {
+  questionTime = parseInt(document.getElementById('intervalSec').value) || 0;
+  restTime = parseInt(document.getElementById('restSec').value) || 0;
+  totalQuestions = parseInt(document.getElementById('questionCount').value) || 1;
+
+  if (questionTime <= 0 || totalQuestions <= 0) {
+    alert("문제당 시간과 문제수는 0보다 커야 합니다.");
+    return;
+  }
+
+  resetTimer();
+  currentQuestion = 0;
+  isResting = false;
+  startCountdown();
+}
+
+function startCountdown() {
+  if (!isResting) {
+    currentQuestion++;
+  }
+
+  remainingTime = isResting ? restTime : questionTime;
+  missionCompleted = false;
+  isPaused = false;
+
+  updateDisplay();
+  updateStatus();
+
+  clearInterval(timer);
+  timer = setInterval(() => {
+    if (!isPaused) {
+      remainingTime--;
+      updateDisplay();
+
+      if (remainingTime <= 0) {
+        clearInterval(timer);
+        if (isResting) {
+          isResting = false;
+          startCountdown();
+        } else {
+          if (currentQuestion < totalQuestions) {
+            isResting = true;
+            startCountdown();
+          } else {
+            showMissionClear();
+          }
+        }
+      }
+    }
+  }, 1000);
+}
+
+function updateDisplay() {
+  const display = document.getElementById('timerDisplay');
+  if (isResting) {
+    display.innerText = `대기 ${formatTime(remainingTime)}`;
+    display.style.color = '#d97706';
+  } else {
+    display.innerText = formatTime(remainingTime);
+    display.style.color = missionCompleted ? '#d9480f' : '#1a73e8';
+  }
+}
+
+function updateStatus() {
+  const status = document.getElementById('statusText');
+  if (missionCompleted) {
+    status.innerText = "모든 문제 완료";
+  } else if (isResting) {
+    status.innerText = `다음 문제 준비 중 (${currentQuestion} / ${totalQuestions})`;
+  } else {
+    status.innerText = `문제 풀이 중 (${currentQuestion} / ${totalQuestions})`;
+  }
+}
+
+function pauseTimer() {
+  isPaused = !isPaused;
+}
+
+function resetTimer() {
+  clearInterval(timer);
+  remainingTime = 0;
+  currentQuestion = 0;
+  isPaused = false;
+  isResting = false;
+  missionCompleted = false;
+  document.getElementById('statusText').innerText = "대기 중";
+  updateDisplay();
+}
+  
+function showMissionClear() {
+  const display = document.getElementById('timerDisplay');
+  display.innerText = "Mission Clear";
+  display.style.color = '#d9480f';
+  missionCompleted = true;
+  document.getElementById('statusText').innerText = "모든 문제 완료";
+}
+
+updateSummary();
+</script>
+
+</body>
+</html>

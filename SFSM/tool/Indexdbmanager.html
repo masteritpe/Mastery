@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndexedDB Admin</title>
+    <style>
+        :root {
+            --bg: #f4f5f7; --card: #ffffff; --text: #172b4d; --border: #dfe1e6;
+            --primary: #0052cc; --primary-hover: #0747a6; 
+            --danger: #de350b; --danger-hover: #bf2600;
+            --success: #00875a; --success-hover: #006644;
+            --header-bg: #ffffff; --header-height: 56px;
+            --sidebar-width: 260px;
+            --key-color: #e03131;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Pretendard", -apple-system, sans-serif; background: var(--bg); color: var(--text); font-size: 13px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* === 1. Header === */
+        header { 
+            background: var(--header-bg); border-bottom: 1px solid var(--border); height: var(--header-height); 
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px; flex-shrink: 0; z-index: 20;
+        }
+        .header-left { display: flex; align-items: center; gap: 16px; }
+        .app-title { font-size: 16px; font-weight: 800; color: #0052cc; display: flex; align-items: center; gap: 6px; }
+        .db-selector-group { display: flex; align-items: center; background: #f4f5f7; border-radius: 4px; padding: 2px; border: 1px solid #dfe1e6; }
+        .db-select { border: none; background: transparent; height: 30px; font-size: 13px; font-weight: 600; color: #172b4d; outline: none; padding: 0 8px; cursor: pointer; min-width: 150px; }
+        .btn-refresh { border: none; background: transparent; cursor: pointer; padding: 0 8px; color: #5e6c84; display: flex; align-items: center; justify-content: center; height: 30px; border-left: 1px solid #dfe1e6; }
+        .btn-refresh:hover { color: var(--primary); background: #ebecf0; }
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .btn-header-action { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #fff; border: 1px solid #dfe1e6; border-radius: 4px; color: #42526e; font-weight: 600; cursor: pointer; transition: all 0.2s; height: 34px; }
+        .btn-header-action:hover { background: #ebecf0; color: #172b4d; border-color: #c1c7d0; }
+        .btn-restore { border-color: #ffedd5; background: #fff7ed; color: #ea580c; }
+        .btn-restore:hover { background: #ffedd5; border-color: #fdba74; color: #c2410c; }
+
+        /* === 2. Layout === */
+        .container { flex: 1; display: flex; overflow: hidden; }
+        aside { width: var(--sidebar-width); background: #fafbfc; border-right: 1px solid var(--border); display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 15px 15px 10px 15px; font-size: 11px; font-weight: 700; color: #6b778c; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f0f0f0; }
+        .store-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex: 1; }
+        .store-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid transparent; display: flex; justify-content: space-between; align-items: center; transition: background 0.1s; font-size: 13px; color: #42526e; }
+        .store-item:hover { background: #ebecf0; }
+        .store-item.active { background: #e9f2ff; color: var(--primary); font-weight: 600; border-right: 3px solid var(--primary); }
+        .badge { background: rgba(9, 30, 66, 0.08); padding: 2px 6px; border-radius: 4px; font-size: 10px; color: #42526e; font-weight: 600; }
+        .store-item.active .badge { background: rgba(0, 82, 204, 0.1); color: var(--primary); }
+
+        main { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow: hidden; background: #fff; }
+        .toolbar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; background: #fff; padding: 4px 0; }
+        .current-table-title { font-size: 18px; font-weight: 700; color: #172b4d; margin-right: 15px; display: flex; align-items: center; gap: 8px;}
+        .search-area { display: flex; gap: 0; background: #fff; border-radius: 4px; border: 1px solid #dfe1e6; overflow: hidden; align-items: center; height: 34px;}
+        .search-area select { border: none; background: #f9f9f9; width: 130px; height: 100%; border-right: 1px solid #dfe1e6; font-size: 12px; padding-left: 8px; outline: none; color:#172b4d; }
+        .search-area input { border: none; width: 220px; padding: 0 10px; height: 100%; outline: none; font-size: 13px; }
+        .search-btn { border: none; background: transparent; padding: 0 12px; cursor: pointer; color: #5e6c84; border-left: 1px solid #dfe1e6; height: 100%; transition: 0.2s;}
+        .search-btn:hover { background: #ebecf0; color: var(--primary); }
+        
+        .table-wrapper { flex: 1; border: 1px solid #dfe1e6; border-radius: 6px; overflow: auto; position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        table { width: 100%; border-collapse: collapse; min-width: 100%; }
+        th, td { padding: 8px 12px; border-bottom: 1px solid #dfe1e6; text-align: left; white-space: nowrap; height: 40px; }
+        th { background: #fafbfc; font-weight: 600; position: sticky; top: 0; z-index: 10; border-right: 1px solid #dfe1e6; color: #5e6c84; font-size: 12px; }
+        td { border-right: 1px solid #f4f5f7; font-size: 13px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; color: #172b4d; }
+        tr:hover { background-color: #f4f5f7; }
+        .check-col { width: 40px; text-align: center; }
+        input[type="checkbox"] { cursor: pointer; margin:0; vertical-align: middle; }
+
+        .btn { padding: 0 12px; border-radius: 3px; border: 1px solid #dfe1e6; background: #fff; color: #42526e; font-weight: 500; cursor: pointer; font-size: 13px; display: inline-flex; align-items: center; gap:6px; height: 34px; transition: all 0.2s; white-space: nowrap; justify-content: center;}
+        .btn:hover { background: #ebecf0; }
+        .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-danger { color: #fff; border-color: var(--danger); background: var(--danger); }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-outline-danger { color: var(--danger); border-color: #ffbdad; background: #fff; }
+        .btn-outline-danger:hover { background: #ffebe6; }
+        .btn-sm { padding: 0 8px; font-size: 11px; height: 24px; }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(9, 30, 66, 0.54); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(2px); }
+        .modal-box { background: #fff; padding: 0; border-radius: 6px; width: 600px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 8px 30px rgba(0,0,0,0.12); overflow: hidden; }
+        .modal-header { padding: 16px 20px; font-size: 16px; font-weight: 600; display:flex; justify-content:space-between; align-items: center; border-bottom: 1px solid #dfe1e6; background: #fafbfc; color: #172b4d; }
+        .modal-body { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .json-editor { width: 100%; height: 300px; border: 1px solid #dfe1e6; font-family: "D2Coding", "Consolas", monospace; padding: 12px; border-radius: 4px; resize: none; background: #1b263b; color: #e0e6ed; font-size: 14px; line-height: 1.5; outline: none; }
+        .modal-footer { padding: 12px 20px; text-align: right; display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid #dfe1e6; background: #fafbfc; }
+        .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6b778c; gap:12px; }
+
+        .backup-action-area { text-align: center; padding: 30px 20px; background: #f4f5f7; border-radius: 6px; border: 1px solid #dfe1e6; margin-bottom: 15px;}
+        .backup-desc { color: #5e6c84; margin-bottom: 20px; font-size: 14px; line-height: 1.5; }
+        .history-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; border: 1px solid #dfe1e6; border-radius: 4px; max-height: 250px; }
+        .history-item { padding: 12px 16px; border-bottom: 1px solid #dfe1e6; display: flex; justify-content: space-between; align-items: center; background:#fff; }
+        .history-item:last-child { border-bottom: none; }
+        .h-info { display: flex; flex-direction: column; gap: 4px; }
+        .h-db { font-weight: 600; color: #172b4d; font-size: 13px; }
+        .h-file { font-size: 12px; color: var(--primary); font-family: monospace; }
+        .h-date { font-size: 11px; color: #6b778c; }
+        .h-size { font-size: 11px; font-weight: 600; color: #42526e; background: #ebecf0; padding: 2px 6px; border-radius: 4px; }
+        
+        .drop-zone { border: 2px dashed #dfe1e6; border-radius: 6px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafbfc; }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--primary); background: #e9f2ff; }
+        .drop-zone p { margin: 10px 0 0; color: #5e6c84; font-weight: 600; }
+        .drop-zone span { font-size: 12px; color: #97a0af; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-left">
+            <div class="app-title">
+                <span>🗄️ IDB Admin</span>
+            </div>
+            
+            <div class="db-selector-group">
+                <select id="dbList" class="db-select" onchange="connectDB(this.value)">
+                    <option value="">DB 선택...</option>
+                </select>
+                <button class="btn-refresh" onclick="loadDBList()" title="DB 목록 새로고침">
+                    🔄
+                </button>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <button class="btn-header-action" onclick="openBackupModal()">
+                <span>📥 백업(Export)</span>
+            </button>
+            <button class="btn-header-action btn-restore" onclick="openRestoreModal()">
+                <span>📤 복구(Import)</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside>
+            <div class="sidebar-header">Object Stores</div>
+            <div class="store-list" id="storeList">
+                <div style="padding:20px; color:#999; text-align:center; font-size:12px;">
+                    상단에서 DB를<br>선택해주세요.
+                </div>
+            </div>
+        </aside>
+
+        <main>
+            <div class="toolbar">
+                <div class="current-table-title" id="currentStoreInfo">
+                    테이블 미선택
+                </div>
+                
+                <div class="search-area">
+                    <select id="searchTargetSelector">
+                        <option value="">전체 검색(Raw)</option>
+                    </select>
+                    <input type="text" id="searchInput" placeholder="검색어 입력..." onkeydown="if(event.key==='Enter') performSearch()">
+                    <button class="search-btn" onclick="performSearch()">🔍</button>
+                </div>
+
+                <span style="flex:1"></span>
+
+                <button id="btnBulkDelete" class="btn btn-danger" onclick="deleteSelectedData()" style="display:none;">🗑️ 선택 삭제</button>
+                
+                <button class="btn btn-primary" onclick="openModal('add')">+ 추가</button>
+                <button class="btn btn-outline-danger" onclick="clearCurrentStore()">⚠️ 비우기</button>
+                <button class="btn" onclick="performSearch(true)">🔄 새로고침</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table id="dataTable"><thead></thead><tbody></tbody></table>
+                <div id="emptyState" class="empty-state" style="display:none;">
+                    <div style="font-size:48px; opacity:0.3;">🗂️</div>
+                    <div>좌측 목록에서 조회할 테이블을 선택하세요.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="editorModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span id="modalTitle">데이터 수정</span>
+                <button class="btn-sm" style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeModal('editorModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div id="keyInputArea" style="background:#fff7d6; padding:12px; border-radius:4px; border:1px solid #ffab00; margin-bottom:10px;">
+                    <label style="font-weight:bold; font-size:12px; display:block; color:#b07b00; margin-bottom:5px;">🔑 Key 직접 입력</label>
+                    <input type="text" id="manualKeyInput" placeholder="고유 ID 입력" style="width:100%; padding:8px; border:1px solid #ffab00; border-radius:3px;">
+                </div>
+                <div style="font-size:12px; color:#5e6c84; display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span>* JSON 포맷 편집</span>
+                    <span id="keyInfoDisplay" style="font-weight:bold; color:var(--primary);"></span>
+                </div>
+                <textarea id="jsonEditor" class="json-editor"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('editorModal')">취소</button>
+                <button class="btn btn-primary" onclick="saveData()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="backupModal" class="modal-overlay">
+        <div class="modal-box" style="width: 550px;">
+            <div class="modal-header">
+                <span>📂 데이터 백업</span>
+                <button class="btn-sm" style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeModal('backupModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="backup-action-area">
+                    <div class="backup-desc">
+                        현재 연결된 <strong id="backupTargetDB" style="color:var(--primary); font-size:15px;">DB 없음</strong>의 데이터를<br>
+                        JSON 파일로 추출합니다.<br>
+                    </div>
+                    <button id="btnBackupRun" class="btn btn-primary" onclick="executeBackup()" style="padding: 0 24px; height: 40px; font-size: 14px;">
+                        💾 백업 파일 다운로드(.json)
+                    </button>
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; margin-top:10px;">
+                    <span style="font-weight:700; color:#42526e;">📜 다운로드 이력</span>
+                    <button class="btn btn-sm btn-outline-danger" onclick="clearBackupHistory()">삭제</button>
+                </div>
+                <div class="history-list" id="backupHistoryList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('backupModal')">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="restoreModal" class="modal-overlay">
+        <div class="modal-box" style="width: 550px;">
+            <div class="modal-header">
+                <span>📤 데이터 복구</span>
+                <button class="btn-sm" style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeModal('restoreModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="backup-desc">
+                    연결된 <strong id="restoreTargetDB" style="color:var(--primary); font-size:15px;">DB 없음</strong>에 데이터를 덮어씁니다.<br>
+                    <span style="color:#de350b; font-weight:bold;">주의: 키가 중복되면 덮어씌워지며, 데이터 변환에 시간이 걸릴 수 있습니다.</span>
+                </div>
+
+                <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileRestore').click()">
+                    <div style="font-size:32px;">📂</div>
+                    <p>JSON 파일 선택 또는 드래그</p>
+                    <span id="selectedFileName">선택된 파일 없음</span>
+                    <input type="file" id="fileRestore" accept=".json" style="display:none" onchange="handleFileSelect(this)">
+                </div>
+                
+                <div id="restoreProgress" style="display:none; margin-top:15px; padding:10px; background:#e9f2ff; border-radius:4px; font-size:13px; text-align:center; color:var(--primary);">
+                    ⏳ 데이터 분석 및 복구 중...
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('restoreModal')">취소</button>
+                <button id="btnRestoreRun" class="btn btn-primary" onclick="executeRestore()" disabled>복구 시작</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDB = null;
+        let currentDBName = "";
+        let currentStoreName = "";
+        let currentKeyPath = null;
+        let currentAutoIncrement = false;
+        let currentRows = []; 
+        let currentRealIndexes = [];
+
+        window.onload = loadDBList;
+
+        async function loadDBList() {
+            const select = document.getElementById('dbList');
+            const prevValue = select.value;
+            select.innerHTML = '<option value="">DB 선택...</option>';
+            if (indexedDB.databases) {
+                try {
+                    const dbs = await indexedDB.databases();
+                    if(dbs.length === 0) select.innerHTML += '<option disabled>(없음)</option>';
+                    dbs.forEach(db => {
+                        const opt = document.createElement('option');
+                        opt.value = db.name;
+                        opt.text = `${db.name} (v${db.version})`;
+                        select.appendChild(opt);
+                    });
+                    if(prevValue) select.value = prevValue;
+                } catch(e) { console.error(e); }
+            }
+        }
+
+        function connectDB(dbName) {
+            if (!dbName) return;
+            if (currentDB) currentDB.close();
+            const request = indexedDB.open(dbName);
+            request.onerror = e => alert("DB 연결 오류: " + e.target.error);
+            request.onsuccess = e => {
+                currentDB = e.target.result;
+                currentDBName = dbName;
+                currentStoreName = "";
+                renderStoreList(currentDB.objectStoreNames);
+                
+                document.getElementById('backupTargetDB').innerText = dbName; 
+                document.getElementById('restoreTargetDB').innerText = dbName;
+
+                clearTable();
+                document.getElementById('emptyState').style.display = 'flex';
+                document.querySelector('#emptyState div:last-child').innerText = "좌측 목록에서 조회할 테이블을 선택하세요.";
+                document.getElementById('currentStoreInfo').innerText = "테이블 미선택";
+            };
+        }
+
+        function renderStoreList(names) {
+            const list = document.getElementById('storeList');
+            list.innerHTML = '';
+            if (names.length === 0) return list.innerHTML = '<div style="padding:20px; color:#999; text-align:center; font-size:12px;">테이블 없음</div>';
+            Array.from(names).forEach(name => {
+                const item = document.createElement('div');
+                item.className = 'store-item';
+                item.innerHTML = `<span>${name}</span> <span class="badge">Table</span>`;
+                item.onclick = () => initStoreView(name, item);
+                list.appendChild(item);
+            });
+        }
+
+        function initStoreView(storeName, clickedEl) {
+            if(!currentDB) return;
+            currentStoreName = storeName;
+            
+            if(clickedEl) {
+                document.querySelectorAll('.store-item').forEach(el => el.classList.remove('active'));
+                clickedEl.classList.add('active');
+            }
+
+            const tx = currentDB.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            currentKeyPath = store.keyPath;
+            currentAutoIncrement = store.autoIncrement;
+            currentRealIndexes = Array.from(store.indexNames);
+            
+            document.getElementById('currentStoreInfo').innerText = storeName;
+            fetchAllDataAndSetupSearch(); 
+        }
+
+        function fetchAllDataAndSetupSearch() {
+            currentRows = [];
+            const tx = currentDB.transaction(currentStoreName, 'readonly');
+            const store = tx.objectStore(currentStoreName);
+            const req = store.openCursor();
+            
+            req.onsuccess = e => {
+                const cursor = e.target.result;
+                if(cursor) {
+                    currentRows.push({ realKey: cursor.key, value: cursor.value });
+                    cursor.continue();
+                } else {
+                    setupSearchOptions();
+                    renderTable();
+                }
+            };
+        }
+
+        function setupSearchOptions() {
+            const sel = document.getElementById('searchTargetSelector');
+            sel.innerHTML = '<option value="">전체 검색 (Raw)</option>';
+            if (currentRealIndexes.length > 0) {
+                const groupIdx = document.createElement('optgroup');
+                groupIdx.label = "⚡ Index (Fast)";
+                currentRealIndexes.forEach(idxName => {
+                    const opt = document.createElement('option');
+                    opt.value = `IDX:${idxName}`;
+                    opt.innerText = `${idxName}`;
+                    groupIdx.appendChild(opt);
+                });
+                sel.appendChild(groupIdx);
+            }
+            if (currentRows.length > 0) {
+                const groupCol = document.createElement('optgroup');
+                groupCol.label = "🔎 Column (Text)";
+                let foundKeys = new Set();
+                currentRows.slice(0, 10).forEach(row => {
+                    if (row.value && typeof row.value === 'object') Object.keys(row.value).forEach(k => foundKeys.add(k));
+                });
+                foundKeys.forEach(k => {
+                    if (!currentRealIndexes.includes(k)) {
+                        const opt = document.createElement('option');
+                        opt.value = `COL:${k}`;
+                        opt.innerText = `${k}`;
+                        groupCol.appendChild(opt);
+                    }
+                });
+                sel.appendChild(groupCol);
+            }
+        }
+
+        function performSearch(forceReload = false) {
+            if(!currentDB || !currentStoreName) return;
+            if(forceReload) {
+                document.getElementById('searchInput').value = '';
+                fetchAllDataAndSetupSearch();
+                return;
+            }
+            const target = document.getElementById('searchTargetSelector').value;
+            const keyword = document.getElementById('searchInput').value.trim();
+            if (!keyword) { renderTable(); return; }
+
+            if (target.startsWith('IDX:')) {
+                const indexName = target.replace('IDX:', '');
+                fetchByIndex(indexName, keyword);
+            } else if (target.startsWith('COL:')) {
+                const colName = target.replace('COL:', '');
+                const filtered = currentRows.filter(r => {
+                    const val = (r.value && r.value[colName]) ? String(r.value[colName]) : '';
+                    return val.toLowerCase().includes(keyword.toLowerCase());
+                });
+                renderTable(filtered);
+            } else {
+                const filtered = currentRows.filter(r => 
+                    JSON.stringify(r.value).toLowerCase().includes(keyword.toLowerCase())
+                );
+                renderTable(filtered);
+            }
+        }
+
+        function fetchByIndex(indexName, query) {
+            let resultRows = [];
+            const tx = currentDB.transaction(currentStoreName, 'readonly');
+            const store = tx.objectStore(currentStoreName);
+            const index = store.index(indexName);
+            const req = index.openCursor(IDBKeyRange.only(query));
+            req.onsuccess = e => {
+                const cursor = e.target.result;
+                if(cursor) {
+                    resultRows.push({ realKey: cursor.primaryKey, value: cursor.value });
+                    cursor.continue();
+                } else {
+                    renderTable(resultRows);
+                }
+            };
+            req.onerror = () => {
+                if (!isNaN(query)) {
+                     const req2 = index.openCursor(IDBKeyRange.only(Number(query)));
+                     req2.onsuccess = e2 => {
+                        const cursor2 = e2.target.result;
+                        if(cursor2) {
+                            resultRows.push({ realKey: cursor2.primaryKey, value: cursor2.value });
+                            cursor2.continue();
+                        } else renderTable(resultRows);
+                     }
+                } else { alert("인덱스 조회 실패 (타입 불일치 등)"); renderTable([]); }
+            }
+        }
+
+        function renderTable(rows = null) {
+            const displayRows = rows || currentRows;
+            const thead = document.querySelector('#dataTable thead');
+            const tbody = document.querySelector('#dataTable tbody');
+            const emptyState = document.getElementById('emptyState');
+            const btnBulkDelete = document.getElementById('btnBulkDelete');
+            
+            thead.innerHTML = ''; tbody.innerHTML = '';
+            btnBulkDelete.style.display = 'none';
+
+            if (displayRows.length === 0) {
+                emptyState.style.display = 'flex';
+                if(currentRows.length > 0) document.querySelector('#emptyState div:last-child').innerText = "검색 결과가 없습니다.";
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            let allKeys = new Set();
+            displayRows.forEach(r => {
+                if(r.value && typeof r.value === 'object') Object.keys(r.value).forEach(k => allKeys.add(k));
+                else allKeys.add('Value');
+            });
+            const cols = Array.from(allKeys);
+            if(currentKeyPath && cols.includes(currentKeyPath)) {
+                cols.splice(cols.indexOf(currentKeyPath), 1);
+                cols.unshift(currentKeyPath);
+            }
+
+            let trH = `<tr><th class="check-col"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th><th style="width:110px;">Action</th>`;
+            if(!currentKeyPath) trH += `<th style="color:var(--key-color)">(KEY)</th>`;
+            cols.forEach(c => trH += `<th>${c}</th>`);
+            trH += `</tr>`;
+            thead.innerHTML = trH;
+
+            displayRows.forEach((row) => {
+                const realIdx = currentRows.findIndex(r => r.realKey === row.realKey);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td class="check-col"><input type="checkbox" class="row-select" value="${realIdx}" onchange="updateBulkBtnState()"></td>
+                    <td><button class="btn btn-sm btn-primary" onclick="openModal('edit', ${realIdx})">수정</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteData(${realIdx})">삭제</button></td>`;
+                if(!currentKeyPath) tr.innerHTML += `<td style="font-weight:bold; color:var(--key-color)">${row.realKey}</td>`;
+                cols.forEach(col => {
+                    let val = (row.value && typeof row.value === 'object') ? row.value[col] : row.value;
+                    
+                    // Blob/File 표시 처리
+                    if(val instanceof Blob || val instanceof File) {
+                        val = `[${val.constructor.name}] ${val.type} (${val.size} bytes)`;
+                    } else if(typeof val === 'object' && val !== null) {
+                        val = JSON.stringify(val);
+                    }
+                    
+                    tr.innerHTML += `<td>${val === undefined ? '' : val}</td>`;
+                });
+                tbody.appendChild(tr);
+            });
+        }
+
+        function clearTable() {
+            document.querySelector('#dataTable thead').innerHTML = '';
+            document.querySelector('#dataTable tbody').innerHTML = '';
+            document.getElementById('btnBulkDelete').style.display = 'none';
+        }
+
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('.row-select');
+            checkboxes.forEach(cb => cb.checked = source.checked);
+            updateBulkBtnState();
+        }
+
+        function updateBulkBtnState() {
+            const checkedCount = document.querySelectorAll('.row-select:checked').length;
+            const btn = document.getElementById('btnBulkDelete');
+            const selectAll = document.getElementById('selectAll');
+            if(checkedCount > 0) {
+                btn.style.display = 'inline-flex';
+                btn.innerText = `🗑️ 선택 삭제 (${checkedCount})`;
+            } else btn.style.display = 'none';
+            const total = document.querySelectorAll('.row-select').length;
+            if(total > 0 && checkedCount === total) selectAll.checked = true;
+            else selectAll.checked = false;
+        }
+
+        function deleteSelectedData() {
+            const checkedBoxes = document.querySelectorAll('.row-select:checked');
+            if(checkedBoxes.length === 0) return;
+            if(!confirm(`선택한 ${checkedBoxes.length}개 항목을 삭제하시겠습니까?`)) return;
+            const tx = currentDB.transaction(currentStoreName, 'readwrite');
+            const store = tx.objectStore(currentStoreName);
+            checkedBoxes.forEach(cb => {
+                const idx = parseInt(cb.value);
+                const realKey = currentRows[idx].realKey;
+                store.delete(realKey);
+            });
+            tx.oncomplete = () => { performSearch(true); };
+            tx.onerror = () => alert("오류 발생");
+        }
+
+        // Modal & CRUD
+        let editMode = false; let editIndex = -1;
+        function openModal(mode, idx) {
+            if(mode === 'add' || mode === 'edit') {
+                if(!currentStoreName) return alert("테이블 선택 필요");
+                const modal = document.getElementById('editorModal');
+                const keyArea = document.getElementById('keyInputArea');
+                const editor = document.getElementById('jsonEditor');
+                const info = document.getElementById('keyInfoDisplay');
+                
+                editMode = (mode === 'edit');
+                editIndex = idx;
+
+                if(editMode) {
+                    if(idx === -1) return;
+                    const item = currentRows[idx];
+                    document.getElementById('modalTitle').innerText = "데이터 수정";
+                    info.innerText = `ID: ${item.realKey}`;
+                    editor.value = JSON.stringify(item.value, null, 4);
+                    keyArea.style.display = 'none';
+                } else {
+                    document.getElementById('modalTitle').innerText = "새 데이터 추가";
+                    info.innerText = currentKeyPath ? `(Auto ID: ${currentKeyPath})` : "(수동 ID 입력)";
+                    let tpl = {};
+                    if(currentRows.length>0 && typeof currentRows[0].value==='object') {
+                        Object.keys(currentRows[0].value).forEach(k=>tpl[k]="");
+                        if(currentKeyPath && currentAutoIncrement) delete tpl[currentKeyPath];
+                    }
+                    editor.value = JSON.stringify(tpl, null, 4);
+                    if(!currentKeyPath && !currentAutoIncrement) {
+                        keyArea.style.display = 'block';
+                        document.getElementById('manualKeyInput').value = '';
+                    } else keyArea.style.display = 'none';
+                }
+                modal.style.display = 'flex';
+            }
+        }
+        function openBackupModal() {
+            if(!currentDB) return alert('DB를 먼저 연결해주세요.');
+            document.getElementById('backupModal').style.display = 'flex';
+            renderBackupHistory();
+        }
+        function openRestoreModal() {
+            if(!currentDB) return alert('DB를 먼저 연결해주세요.');
+            document.getElementById('restoreModal').style.display = 'flex';
+            document.getElementById('selectedFileName').innerText = "선택된 파일 없음";
+            document.getElementById('btnRestoreRun').disabled = true;
+            document.getElementById('restoreProgress').style.display = 'none';
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+        
+        function saveData() {
+            try {
+                const newData = JSON.parse(document.getElementById('jsonEditor').value);
+                const tx = currentDB.transaction(currentStoreName, 'readwrite');
+                const store = tx.objectStore(currentStoreName);
+                let req;
+                if(editMode) {
+                    const originalKey = currentRows[editIndex].realKey;
+                    if(currentKeyPath) { newData[currentKeyPath] = originalKey; req = store.put(newData); }
+                    else req = store.put(newData, originalKey);
+                } else {
+                    if(!currentKeyPath && !currentAutoIncrement) {
+                        const k = document.getElementById('manualKeyInput').value.trim();
+                        if(!k) return alert("Key 입력 필요");
+                        const finalK = isNaN(Number(k)) ? k : Number(k);
+                        req = store.add(newData, finalK);
+                    } else req = store.add(newData);
+                }
+                req.onsuccess = () => { closeModal('editorModal'); performSearch(true); }; 
+                req.onerror = e => alert("저장 실패: " + e.target.error);
+            } catch(e) { alert("JSON 오류: " + e.message); }
+        }
+
+        function deleteData(idx) {
+            if(!confirm("삭제하시겠습니까?")) return;
+            const item = currentRows[idx];
+            const tx = currentDB.transaction(currentStoreName, 'readwrite');
+            const store = tx.objectStore(currentStoreName);
+            store.delete(item.realKey).onsuccess = () => performSearch(true);
+            store.delete(item.realKey).onerror = e => alert("삭제 실패");
+        }
+        function clearCurrentStore() {
+            if(confirm(`[${currentStoreName}] 전체 삭제하시겠습니까?`)) {
+                const tx = currentDB.transaction(currentStoreName, 'readwrite');
+                tx.objectStore(currentStoreName).clear().onsuccess = () => performSearch(true);
+            }
+        }
+
+        // ============================
+        // Helper: Blob <-> Base64
+        // ============================
+        function blobToBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        }
+
+        async function processValueForBackup(val) {
+            if (val instanceof Blob || val instanceof File) {
+                const base64 = await blobToBase64(val);
+                return {
+                    __type: "Blob",
+                    mime: val.type,
+                    data: base64,
+                    name: val.name || ""
+                };
+            } else if (Array.isArray(val)) {
+                return await Promise.all(val.map(item => processValueForBackup(item)));
+            } else if (val && typeof val === 'object' && val !== null) {
+                const newVal = {};
+                for (const key of Object.keys(val)) {
+                    newVal[key] = await processValueForBackup(val[key]);
+                }
+                return newVal;
+            }
+            return val;
+        }
+
+        // [수정] 복원 시 데이터 변환 프로세스 개선 (줄바꿈 변경 제거)
+        async function processValueForRestore(val) {
+            if (val && typeof val === 'object' && val.__type === "Blob") {
+                const res = await fetch(val.data);
+                const blob = await res.blob();
+                if(val.name) {
+                    return new File([blob], val.name, { type: val.mime });
+                }
+                return blob;
+            } else if (Array.isArray(val)) {
+                return await Promise.all(val.map(item => processValueForRestore(item)));
+            } else if (val && typeof val === 'object' && val !== null) {
+                const newVal = {};
+                for (const key of Object.keys(val)) {
+                    newVal[key] = await processValueForRestore(val[key]);
+                }
+                return newVal;
+            }
+            // [중요 수정] 문자열 변환 제거 (Base64 파손 방지)
+            return val;
+        }
+
+        // ============================
+        // Backup Logic
+        // ============================
+        const HISTORY_KEY = 'idx_admin_backup_history';
+        function getBackupHistory() { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+        function addBackupHistory(log) {
+            const list = getBackupHistory();
+            list.unshift(log);
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+        }
+        function clearBackupHistory() {
+            if(confirm('백업 이력을 삭제하시겠습니까?')) {
+                localStorage.removeItem(HISTORY_KEY);
+                renderBackupHistory();
+            }
+        }
+        function renderBackupHistory() {
+            const list = getBackupHistory();
+            const el = document.getElementById('backupHistoryList');
+            el.innerHTML = '';
+            if(list.length === 0) {
+                el.innerHTML = '<div style="padding:20px; text-align:center; color:#adb5bd; font-size:13px;">이력이 없습니다.</div>';
+                return;
+            }
+            list.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'history-item';
+                row.innerHTML = `<div class="h-info"><span class="h-db">${item.dbName}</span><span class="h-file">📄 ${item.fileName}</span><span class="h-date">${item.date}</span></div><span class="h-size">${item.size}</span>`;
+                el.appendChild(row);
+            });
+        }
+        
+        async function executeBackup() {
+            if(!currentDB) return alert('백업할 DB가 연결되지 않았습니다.');
+            const btn = document.getElementById('btnBackupRun');
+            btn.disabled = true; btn.innerText = "⏳ 백업 생성 중...";
+
+            const dbName = currentDB.name;
+            const stores = Array.from(currentDB.objectStoreNames);
+            const exportData = { database: dbName, version: currentDB.version, exportedAt: new Date().toISOString(), stores: {} };
+            
+            try {
+                for (const storeName of stores) {
+                    const tx = currentDB.transaction(storeName, 'readonly');
+                    const store = tx.objectStore(storeName);
+                    
+                    // [수정] getAll() 대신 openCursor()를 사용하여 외부 키(Out-of-line Key) 유실 방지
+                    const rawData = await new Promise((resolve, reject) => {
+                        const req = store.openCursor();
+                        const results = [];
+                        req.onsuccess = e => {
+                            const cursor = e.target.result;
+                            if (cursor) {
+                                let val = cursor.value;
+                                // keyPath가 없는 경우에만 객체 내부에 임시로 키를 심어서 백업
+                                if (!store.keyPath && val && typeof val === 'object') {
+                                    val.__idb_out_key = cursor.key;
+                                }
+                                results.push(val);
+                                cursor.continue();
+                            } else {
+                                resolve(results);
+                            }
+                        };
+                        req.onerror = reject;
+                    });
+
+                    const processedData = await Promise.all(rawData.map(async item => {
+                        return await processValueForBackup(item);
+                    }));
+
+                    exportData.stores[storeName] = processedData;
+                }
+
+                const jsonStr = JSON.stringify(exportData, null, 2);
+                const blob = new Blob([jsonStr], { type: "application/json" });
+                const now = new Date();
+                const timeStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + "_" + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
+                const fileName = `${dbName}_Backup_${timeStr}.json`;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = fileName;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                addBackupHistory({ dbName: dbName, date: now.toLocaleString(), fileName: fileName, size: (blob.size / 1024).toFixed(1) + " KB" });
+                renderBackupHistory();
+
+            } catch(e) { 
+                console.error(e); alert("백업 중 오류 발생: " + e.message); 
+            } finally {
+                btn.disabled = false; btn.innerText = "💾 백업 파일 다운로드 (.json)";
+            }
+        }
+
+        // ============================
+        // Restore Logic (Improved Compatibility)
+        // ============================
+        let selectedRestoreFile = null;
+
+        function handleFileSelect(input) {
+            const file = input.files[0];
+            if(file) {
+                selectedRestoreFile = file;
+                document.getElementById('selectedFileName').innerText = file.name + ` (${(file.size/1024).toFixed(1)} KB)`;
+                document.getElementById('btnRestoreRun').disabled = false;
+            } else {
+                selectedRestoreFile = null;
+                document.getElementById('selectedFileName').innerText = "선택된 파일 없음";
+                document.getElementById('btnRestoreRun').disabled = true;
+            }
+        }
+
+        async function executeRestore() {
+            if(!selectedRestoreFile || !currentDB) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                document.getElementById('restoreProgress').style.display = 'block';
+                document.getElementById('btnRestoreRun').disabled = true;
+
+                try {
+                    const json = JSON.parse(e.target.result);
+                    
+                    // [호환성 로직] 배열 형태인지(단일 앱 백업), 객체 형태인지(관리자 백업) 확인
+                    let storeDataMap = {};
+                    
+                    if(Array.isArray(json)) {
+                        if(!currentStoreName) throw new Error("단일 파일을 복구하려면 좌측 목록에서 대상 테이블을 먼저 선택해주세요.");
+                        if(!confirm(`선택한 파일을 현재 테이블 [${currentStoreName}]에 복구하시겠습니까?`)) {
+                             document.getElementById('restoreProgress').style.display = 'none';
+                             document.getElementById('btnRestoreRun').disabled = false;
+                             return;
+                        }
+                        storeDataMap[currentStoreName] = json;
+                    } else if(json.stores) {
+                        storeDataMap = json.stores;
+                    } else {
+                        throw new Error("지원되지 않는 파일 형식입니다.");
+                    }
+
+                    const storeNames = Object.keys(storeDataMap);
+                    
+                    for (const storeName of storeNames) {
+                        if(!currentDB.objectStoreNames.contains(storeName)) {
+                            console.warn(`Skipping ${storeName} (Store not found in DB)`);
+                            continue;
+                        }
+
+                        const rawRecords = storeDataMap[storeName];
+                        const processedRecords = await Promise.all(rawRecords.map(async (record) => {
+                            return await processValueForRestore(record);
+                        }));
+
+                        // [수정] 테이블의 구조(keyPath 존재 여부) 확인
+                        const tempTx = currentDB.transaction(storeName, 'readonly');
+                        const storeInfo = tempTx.objectStore(storeName);
+                        const keyPath = storeInfo.keyPath;
+
+                        const tx = currentDB.transaction(storeName, 'readwrite');
+                        const store = tx.objectStore(storeName);
+                        
+                        // [수정] ID 중복 여부를 판단하여 Upsert(업데이트 또는 신규추가) 처리
+                        for (let finalData of processedRecords) {
+                            if (keyPath) {
+                                // 1. 인라인 키 (keyPath가 있는 경우)
+                                // put() 호출 시 내부적으로 식별하여 동일 키가 있으면 업데이트, 없으면 추가됨
+                                store.put(finalData);
+                            } else {
+                                // 2. 아웃오브라인 키 (keyPath가 없는 경우)
+                                // 백업 시 저장해둔 키를 찾거나, 일반적인 ID(id, idx, key 등)를 추출
+                                let explicitKey = finalData.__idb_out_key;
+                                
+                                if (explicitKey !== undefined) {
+                                    delete finalData.__idb_out_key; // DB 저장 전 임시 키 삭제
+                                } else {
+                                    explicitKey = finalData.id || finalData._id || finalData.idx || finalData.key;
+                                }
+
+                                if (explicitKey !== undefined) {
+                                    // 키를 두 번째 파라미터로 명시하여 업데이트
+                                    store.put(finalData, explicitKey);
+                                } else {
+                                    // 식별 가능한 키가 아예 없는 경우 신규 추가
+                                    store.put(finalData);
+                                }
+                            }
+                        }
+
+                        await new Promise((resolve, reject) => {
+                            tx.oncomplete = resolve;
+                            tx.onerror = (e) => reject(e.target.error);
+                        });
+                    }
+
+                    alert("복구가 완료되었습니다.");
+                    closeModal('restoreModal');
+                    performSearch(true);
+
+                } catch(err) {
+                    alert("복구 실패: " + err.message);
+                    console.error(err);
+                } finally {
+                    document.getElementById('restoreProgress').style.display = 'none';
+                    document.getElementById('btnRestoreRun').disabled = false;
+                }
+            };
+            reader.readAsText(selectedRestoreFile);
+        }
+
+        // Drag and Drop
+        const dropZone = document.getElementById('dropZone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('dragover');
+            if(e.dataTransfer.files.length) {
+                document.getElementById('fileRestore').files = e.dataTransfer.files;
+                handleFileSelect(document.getElementById('fileRestore'));
+            }
+        });
+
+    </script>
+</body>
+</html>
