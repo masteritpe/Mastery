@@ -1185,7 +1185,7 @@
           list.innerHTML = '';
           const rawNotes = request.result;
 
-          // ✅ 완료 데이터(_COM) 통계 계산 추가
+          // ✅ 완료 데이터(_COM) 통계 계산 유지
           let comCount = 0;
           let comProblems = 0;
           rawNotes.forEach(note => {
@@ -1195,7 +1195,7 @@
             }
           });
 
-          // ✅ 계산된 통계 UI 업데이트
+          // ✅ 계산된 통계 UI 업데이트 유지
           const statsEl = document.getElementById('completionStats');
           if (statsEl) {
             if (comCount > 0) {
@@ -1206,11 +1206,9 @@
             }
           }
 
+          // ✅ 정렬 방식 변경: 제목 기준 오름차순 (자연 정렬)
           const notes = rawNotes.sort((a, b) => {
-            const aIsCom = a.title.endsWith('_COM'); const bIsCom = b.title.endsWith('_COM');
-            if (aIsCom && bIsCom) return a.title.localeCompare(b.title);
-            else if (!aIsCom && !bIsCom) return new Date(b.date) - new Date(a.date);
-            else return aIsCom ? -1 : 1;
+            return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
           });
           
           notes.forEach(note => {
