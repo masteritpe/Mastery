@@ -153,35 +153,36 @@
     }
     
     /* 🚀 Quill Editor Reset & Padding Control */
+    /* 🔥 핵심 수정: 편집기 서식(인라인) 보존을 위해 * 및 !important 강제 지정 제거 */
     .ql-editor { 
-        font-family: inherit !important; 
-        font-size: inherit !important; 
-        line-height: inherit !important; 
-        min-height: auto !important; 
-        height: auto !important; 
-        overflow: visible !important;
+        font-family: inherit; 
+        font-size: inherit; 
+        line-height: inherit; 
+        min-height: auto; 
+        height: auto; 
+        overflow: visible;
     }
-    .paper-prob.ql-editor, .paper-sol.ql-editor { padding: 0 !important; }
-    .paper-lead.ql-editor { padding: 4px 0 4px 20px !important; border-left: 5px solid #111827; margin-bottom: 30px; } 
-    .paper-conc.ql-editor { padding: 25px 30px !important; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; margin-bottom: 30px; } 
-
-    /* 🔥 핵심 수정사항: 내부 태그 무조건 강제 고정 (inherit 대신 픽셀 직접 박음) */
     
-    /* 1. 리드문, 개념, 해설 -> 전부 28px */
-    .paper-lead.ql-editor, .paper-lead.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #52525b !important; }
-    .paper-conc.ql-editor, .paper-conc.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #4b5563 !important; }
-    .paper-sol.ql-editor, .paper-sol.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #374151 !important; }
+    .paper-prob.ql-editor, .paper-sol.ql-editor { padding: 0; }
+    .paper-lead.ql-editor { padding: 4px 0 4px 20px; border-left: 5px solid #111827; margin-bottom: 30px; font-size: 28px; line-height: 1.7; color: #52525b; } 
+    .paper-conc.ql-editor { padding: 25px 30px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9; margin-bottom: 30px; font-size: 28px; line-height: 1.7; color: #4b5563; } 
+    .paper-sol.ql-editor { font-size: 28px; line-height: 1.7; color: #374151; }
     
-    /* 2. 문제 영역 -> 전부 46px */
+    /* 2. 문제 영역 */
     .paper-prob-container { display: flex; align-items: baseline; gap: 15px; margin-bottom: 30px; font-family: 'Pretendard Variable', -apple-system, sans-serif; }
-    .paper-prob-num { font-size: 46px !important; font-weight: 800; color: var(--accent-color); line-height: 1.4 !important; font-variant-numeric: tabular-nums; }
-    .paper-prob.ql-editor, .paper-prob.ql-editor * { font-size: 46px !important; line-height: 1.4 !important; color: #111827 !important; font-weight: 700 !important; }
+    .paper-prob-num { font-size: 46px; font-weight: 800; color: var(--accent-color); line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .paper-prob.ql-editor { font-size: 46px; line-height: 1.4; color: #111827; font-weight: 700; }
 
-    /* 3. 표(Table) -> 전부 24px */
-    .ql-editor table { width: 100%; border-collapse: collapse; margin: 30px 0; font-family: 'Pretendard Variable', -apple-system, sans-serif; text-align: left; }
-    .ql-editor table, .ql-editor table * { font-size: 24px !important; line-height: 1.5 !important; }
+    /* 형광펜(마크) 등 배경색 강조 스타일 라운딩 처리 (에디터 지정 색상은 상속) */
+    .ql-editor [style*="background-color"] {
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+
+    /* 3. 표(Table) */
+    .ql-editor table { width: 100%; border-collapse: collapse; margin: 30px 0; font-family: 'Pretendard Variable', -apple-system, sans-serif; text-align: left; font-size: 24px; line-height: 1.5; }
     .ql-editor th, .ql-editor td { border: 1px solid #e5e7eb; padding: 15px 20px; }
-    .ql-editor th, .ql-editor th * { background-color: #f8fafc; font-weight: 700 !important; color: #374151 !important; }
+    .ql-editor th { background-color: #f8fafc; font-weight: 700; color: #374151; }
 
     .paper-divider { border: 0; height: 1px; background: #e5e7eb; margin: 0 0 30px 0; }
 

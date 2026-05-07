@@ -219,28 +219,29 @@
         text-align: justify;
     }
     
-    /* 🚀 Quill Editor Reset */
+    /* 🔥 핵심 수정: 편집기 서식(인라인 스타일) 보존을 위해 강제 덮어쓰기(!important 및 *) 제거 */
     .ql-editor { 
-        font-family: inherit !important; font-size: inherit !important; line-height: inherit !important; 
-        text-align: inherit !important; min-height: auto !important; height: auto !important; overflow: visible !important;
+        font-family: inherit; font-size: inherit; line-height: inherit; 
+        text-align: inherit; min-height: auto; height: auto; overflow: visible;
     }
-    .paper-prob.ql-editor, .paper-sol.ql-editor { padding: 0 !important; }
-    .paper-lead.ql-editor { padding: 4px 0 4px 20px !important; border-left: 5px solid var(--border-focus); margin-bottom: 30px; } 
-    .paper-conc.ql-editor { padding: 25px 30px !important; background: #f9f9f9; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 30px;} 
-
-    /* 🔥 핵심 수정사항: 내부 태그 무조건 강제 고정 */
-    .paper-lead.ql-editor, .paper-lead.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #666 !important; }
-    .paper-conc.ql-editor, .paper-conc.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #333 !important; }
-    .paper-sol.ql-editor, .paper-sol.ql-editor * { font-size: 28px !important; line-height: 1.7 !important; color: #111 !important; }
+    .paper-prob.ql-editor, .paper-sol.ql-editor { padding: 0; }
+    .paper-lead.ql-editor { padding: 4px 0 4px 20px; border-left: 5px solid var(--border-focus); margin-bottom: 30px; font-size: 28px; line-height: 1.7; color: #666; } 
+    .paper-conc.ql-editor { padding: 25px 30px; background: #f9f9f9; border-radius: var(--radius-md); border: 1px solid #e2e8f0; margin-bottom: 30px; font-size: 28px; line-height: 1.7; color: #333; } 
+    .paper-sol.ql-editor { font-size: 28px; line-height: 1.7; color: #111; }
     
     .paper-prob-container { display: flex; align-items: baseline; gap: 15px; margin-bottom: 30px; font-family: 'Pretendard', sans-serif; }
-    .paper-prob-num { font-size: 46px !important; font-weight: 800; color: #000; line-height: 1.4 !important; font-variant-numeric: tabular-nums; }
-    .paper-prob.ql-editor, .paper-prob.ql-editor * { font-size: 46px !important; line-height: 1.4 !important; color: #000 !important; font-weight: 700 !important; }
+    .paper-prob-num { font-size: 46px; font-weight: 800; color: #000; line-height: 1.4; font-variant-numeric: tabular-nums; }
+    .paper-prob.ql-editor { font-size: 46px; line-height: 1.4; color: #000; font-weight: 700; }
 
-    .ql-editor table { width: 100%; border-collapse: collapse; margin: 30px 0; font-family: 'Pretendard', sans-serif; text-align: left; }
-    .ql-editor table, .ql-editor table * { font-size: 24px !important; line-height: 1.5 !important; }
+    /* 형광펜(마크) 등 배경색 강조 스타일 둥글게 표현 (에디터 지정 색상과 글꼴 속성 그대로 존중) */
+    .ql-editor [style*="background-color"] {
+        padding: 2px 4px;
+        border-radius: 4px;
+    }
+
+    .ql-editor table { width: 100%; border-collapse: collapse; margin: 30px 0; font-family: 'Pretendard', sans-serif; text-align: left; font-size: 24px; line-height: 1.5; }
     .ql-editor th, .ql-editor td { border: 1px solid #ccc; padding: 15px 20px; }
-    .ql-editor th, .ql-editor th * { background-color: #f9f9f9; font-weight: 700 !important; color: #333 !important; }
+    .ql-editor th { background-color: #f9f9f9; font-weight: 700; color: #333; }
 
     .ql-editor p { margin-top: 0; margin-bottom: 0.6em; }
     .ql-editor p:last-child { margin-bottom: 0; }
@@ -443,9 +444,8 @@
     const $emptyState = document.getElementById('empty-state');
     const $playerControls = document.getElementById('player-controls');
     const $rangeModal = document.getElementById('range-modal');
-    const $btnResetStatus = document.getElementById('btn-reset-status'); // 🚀 초기화 버튼
+    const $btnResetStatus = document.getElementById('btn-reset-status'); 
     
-    // 🚀 마우스 움직임 감지 로직 (2초 미동작 시 숨김)
     const $playerAreaDOM = document.querySelector('.player-area');
     let controlsTimeout;
     
@@ -673,7 +673,6 @@
         transaction.objectStore('notes').put(currentNote);
     }
 
-    // 🚀 암기 완료 초기화 버튼 로직
     $btnResetStatus.onclick = () => {
         if (!currentNote || !currentNote.items) return;
         
@@ -684,7 +683,6 @@
             saveCurrentNoteState();
             renderList();
             
-            // 현재 플레이 중인 슬라이드가 있다면 UI 갱신
             if (currentPlayIndex !== -1 && selectedIndices.length > 0) {
                 showSlide(currentPlayIndex);
             }
@@ -892,12 +890,10 @@
         }
     });
 
-    // 🚀 마우스 휠 스크롤 유지
     $tabs.addEventListener('wheel', (e) => {
         if (e.deltaY !== 0) { e.preventDefault(); $tabs.scrollLeft += e.deltaY; }
     });
 
-    // 🚀 마우스 클릭 & 드래그 스크롤 기능
     let isDown = false;
     let startX;
     let scrollLeft;
@@ -923,7 +919,7 @@
         if (!isDown) return;
         e.preventDefault();
         const x = e.pageX - $tabs.offsetLeft;
-        const walk = (x - startX) * 1.5; // 스크롤 속도
+        const walk = (x - startX) * 1.5; 
         $tabs.scrollLeft = scrollLeft - walk;
     });
 
