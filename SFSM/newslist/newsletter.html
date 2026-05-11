@@ -143,7 +143,6 @@
     .card { background: var(--surface); padding: 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; border: 1px solid var(--border); }
     .card-title { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; }
 
-    /* 간격 넉넉하게 조정 */
     .form-group { margin-bottom: 24px; }
     label { display: block; font-weight: 600; margin-bottom: 10px; font-size: 14px; color: #334155; }
     
@@ -163,17 +162,15 @@
     
     .btn-outline { width: 100%; padding: 16px; border-style: dashed; border-width: 2px; justify-content: center; margin-top: 10px;}
     
-    /* 시각자료 에디터 UI 간격 조절 */
     .visual-selector { background: #fff; padding: 20px; border-radius: 12px; border: 1px dashed var(--border); margin-top: 20px; }
     .visual-options { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px dashed var(--border); }
     .visual-common-fields { background: #f8fafc; padding: 20px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 20px; }
 
-    .flex-row { display: flex; gap: 16px; margin-bottom: 16px; }
+    .flex-row { display: flex; gap: 8px; margin-bottom: 16px; }
     .flex-row > div { flex: 1; }
     .divider { height: 1px; background: var(--border); margin: 24px 0; }
     .section-tag { display: inline-block; background: #e2e8f0; color: #475569; font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-bottom: 16px; font-weight: 700; }
 
-    /* 토스트 알림 */
     #toast { visibility: hidden; min-width: 250px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 15px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
     #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
 </style>
@@ -272,24 +269,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "N
 .easy-box .easy-title { font-size: 12px; font-weight: 700; color: #b9770e; margin-bottom: 8px; letter-spacing: 1px; }
 .easy-box p { font-size: 13.5px; line-height: 1.7; color: #3a3a3a; word-break: keep-all; margin-bottom: 8px; }
 
-/* -------------------------------------
-   새롭게 추가된 시각자료 공통 & 프레젠테이션 스타일 
-   ------------------------------------- */
 .visual-container { margin: 0 18px 24px; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; }
 .visual-header { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; color: #1a3a6c; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e8edf5; word-break: keep-all; line-height: 1.4;}
 .visual-header .v-icon { font-size: 16px; }
 .visual-footer { margin-top: 16px; text-align: center; font-size: 13.5px; font-weight: 700; color: #4a5568; background: #f8fafc; padding: 10px; border-radius: 8px; word-break: keep-all; line-height: 1.5; }
 
-/* 1. 기본 인포그래픽 */
 .infographic { padding: 14px; background: #f7f9fc; border-radius: 8px; border: 1px solid #e3e8f0; }
 .ig-title { font-size: 13px; font-weight: 700; color: #1a3a6c; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #1a3a6c; }
 .data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
 .data-table th { background: #1a3a6c; color: white; padding: 8px 8px; text-align: left; font-weight: 600; font-size: 12px; }
 .data-table td { padding: 7px 8px; border-bottom: 1px solid #e5e8ed; background: white; word-break: keep-all; }
 .data-table tr:nth-child(even) td { background: #f7f9fc; }
-.ig-caption { margin-top: 8px; font-size: 11.5px; color: #666; text-align: center; line-height: 1.5; padding: 4px; }
 
-/* 2. 프레젠테이션형 - 3분할 */
 .split-3 { display: flex; gap: 10px; }
 .split-3-item { flex: 1; padding: 16px 10px; border-radius: 12px; text-align: center; position: relative; background: #f8fafc; border: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; min-height: 90px; }
 .split-3-item.c1 { background: #fff5f5; border-top: 4px solid #fc8181; }
@@ -298,18 +289,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "N
 .split-label { font-size: 11.5px; color: #718096; margin-bottom: 6px; font-weight: 700; word-break: keep-all; }
 .split-val { font-size: 15px; font-weight: 800; color: #2d3748; line-height: 1.4; word-break: keep-all; }
 
-/* 3. 프레젠테이션형 - 2분할 */
 .split-2 { display: flex; align-items: center; gap: 10px; }
 .split-2-card { flex: 1; padding: 18px 12px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; text-align: center; font-size: 14px; font-weight: 700; color: #2d3748; line-height: 1.5; word-break: keep-all; min-height: 70px; display: flex; align-items: center; justify-content: center; }
 .split-2-card.green { background: #f0fff4; border-color: #9ae6b4; }
 .split-2-connector { font-size: 20px; font-weight: 900; color: #4a5568; flex-shrink: 0; }
 
-/* 4. 프레젠테이션형 - 4분할 */
 .split-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .split-4-card { padding: 16px 12px; border-radius: 12px; background: #f0fff4; border: 1px solid #9ae6b4; font-size: 14px; font-weight: 700; color: #2d3748; line-height: 1.5; word-break: keep-all; text-align: center; display: flex; align-items: center; justify-content: center; min-height: 60px; }
 .split-4-card.blue { background: #ebf8ff; border-color: #90cdf4; }
 
-/* 5. 표 형식 (프레젠테이션) */
 .table-presentation { width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid #1a3a6c; }
 .tp-header { display: flex; background: #1a3a6c; color: white; font-weight: 700; text-align: center; font-size: 13.5px; }
 .tp-header-col { flex: 1; padding: 10px 8px; border-right: 1px solid rgba(255,255,255,0.2); word-break: keep-all; display: flex; align-items: center; justify-content: center; }
@@ -439,7 +427,6 @@ document.querySelectorAll('article.article').forEach(article => {
     article.appendChild(bottom);
 });
 
-// 하단 '전체 기사 공유하기' 버튼 로직
 document.getElementById('shareIssueBtn').addEventListener('click', async () => {
     const url = location.origin + location.pathname;
     const headlines = Array.from(document.querySelectorAll('article.article h3')).slice(0, 10).map(h => h.textContent.trim());
@@ -451,7 +438,6 @@ document.getElementById('shareIssueBtn').addEventListener('click', async () => {
     } else { try { await navigator.clipboard.writeText(message); alert('복사되었습니다.'); } catch (e) { prompt('복사해 주세요:', message); } }
 });
 
-// 상단 공유 버튼을 하단 전체 공유 버튼 기능과 연결
 document.getElementById('topShareBtn').addEventListener('click', () => {
     const bottomShareBtn = document.getElementById('shareIssueBtn');
     if (bottomShareBtn) {
@@ -462,9 +448,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
 </template>
 
 <script>
-    /* =========================================================
-       1. 데이터베이스 (IndexedDB) 관리 로직
-       ========================================================= */
     const dbName = "NewsletterDB";
     let db;
     let articleCount = 0;
@@ -484,7 +467,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         request.onerror = (e) => console.error("IndexedDB error:", e);
     }
 
-    // 타임라인 (사이드바) 렌더링
     function loadTimeline() {
         if(!db) return;
         const tx = db.transaction("newsletters", "readonly");
@@ -494,13 +476,11 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         request.onsuccess = () => {
             let dataList = request.result || [];
             
-            // 검색 필터링 (YYYY-MM 형식)
             const searchVal = document.getElementById('searchDate').value;
             if (searchVal) {
                 dataList = dataList.filter(item => item.date.startsWith(searchVal));
             }
 
-            // 최신 날짜순 정렬
             dataList.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             const container = document.getElementById('timelineList');
@@ -530,10 +510,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         };
     }
 
-    /* =========================================================
-       2. 에디터 폼 관리 (입력/불러오기/초기화)
-       ========================================================= */
-    // DOM에서 현재 입력된 데이터를 추출
     function gatherFormData() {
         const date = document.getElementById('issueDate').value;
         if (!date) return null;
@@ -541,7 +517,7 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         const articles = [];
         document.querySelectorAll('.article-block').forEach(block => {
             const title = block.querySelector('.a-title').value.trim();
-            if(!title) return; // 제목 없으면 무시
+            if(!title) return;
             
             const visualType = block.querySelector('.a-visual-type').value;
             const presType = block.querySelector('.a-pres-type') ? block.querySelector('.a-pres-type').value : 'split3';
@@ -555,26 +531,31 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
                 });
             }
 
+            const getVal = (cls) => {
+                const el = block.querySelector(cls);
+                return el ? el.value : '';
+            };
+
             articles.push({
                 title: title,
                 content: block.querySelector('.a-content').value,
                 easy: block.querySelector('.a-easy').value,
                 visualType: visualType,
                 
-                // 말머리와 타이틀 직접 입력
-                vIcon: block.querySelector('.a-v-icon') ? block.querySelector('.a-v-icon').value : '',
-                vTitle: block.querySelector('.a-v-title') ? block.querySelector('.a-v-title').value : '',
-                vFooter: block.querySelector('.a-v-footer') ? block.querySelector('.a-v-footer').value : '',
+                vIcon: getVal('.a-v-icon'),
+                vTitle: getVal('.a-v-title'),
+                vFooter: getVal('.a-v-footer'),
                 
                 presType: presType,
                 presData: presData,
                 
-                // 기본 표형식(table)
-                igTitle: block.querySelector('.a-ig-title').value,
-                igK1: block.querySelector('.a-ig-k1').value, igV1: block.querySelector('.a-ig-v1').value, igD1: block.querySelector('.a-ig-d1').value,
-                igK2: block.querySelector('.a-ig-k2').value, igV2: block.querySelector('.a-ig-v2').value, igD2: block.querySelector('.a-ig-d2').value,
-                igK3: block.querySelector('.a-ig-k3').value, igV3: block.querySelector('.a-ig-v3').value, igD3: block.querySelector('.a-ig-d3').value,
-                igCaption: block.querySelector('.a-ig-caption').value
+                igTitle: getVal('.a-ig-title'),
+                igK1: getVal('.a-ig-k1'), igV1: getVal('.a-ig-v1'), igD1: getVal('.a-ig-d1'),
+                igK2: getVal('.a-ig-k2'), igV2: getVal('.a-ig-v2'), igD2: getVal('.a-ig-d2'),
+                igK3: getVal('.a-ig-k3'), igV3: getVal('.a-ig-v3'), igD3: getVal('.a-ig-d3'),
+                igK4: getVal('.a-ig-k4'), igV4: getVal('.a-ig-v4'), igD4: getVal('.a-ig-d4'),
+                igK5: getVal('.a-ig-k5'), igV5: getVal('.a-ig-v5'), igD5: getVal('.a-ig-d5'),
+                igK6: getVal('.a-ig-k6'), igV6: getVal('.a-ig-v6'), igD6: getVal('.a-ig-d6')
             });
         });
 
@@ -588,7 +569,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         };
     }
 
-    // 빈 폼으로 신규 생성
     function createNew() {
         document.getElementById('issueDate').value = new Date().toISOString().split('T')[0];
         document.getElementById('quoteKo').value = '';
@@ -597,13 +577,12 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         
         document.getElementById('articlesContainer').innerHTML = '';
         articleCount = 0;
-        addArticle(); // 기본 1개 세팅
+        addArticle();
         
         loadTimeline();
         showToast("✨ 새로운 문서를 시작합니다.");
     }
 
-    // 선택한 날짜의 데이터 폼에 불러오기
     function loadDataToForm(dateStr) {
         if(!db) return;
         const tx = db.transaction("newsletters", "readonly");
@@ -625,7 +604,7 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
             if (data.articles && data.articles.length > 0) {
                 data.articles.forEach(art => addArticle(art));
             } else {
-                addArticle(); // 빈 블록
+                addArticle();
             }
             
             loadTimeline();
@@ -633,7 +612,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         };
     }
 
-    // 시각자료 옵션 토글
     function toggleVisualOptions(id, type) {
         const block = document.getElementById(id);
         block.querySelectorAll('.visual-options').forEach(opt => opt.style.display = 'none');
@@ -658,7 +636,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         }
     }
 
-    // 프레젠테이션 세부 레이아웃 토글
     function togglePresLayout(id, layout) {
         const block = document.getElementById(id);
         const container = block.querySelector('.pres-layout-fields');
@@ -708,10 +685,20 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         container.innerHTML = html;
     }
 
-    // 폼 블록 추가
     function addArticle(data = null) {
         articleCount++;
         const id = `article_${articleCount}`;
+        
+        let tableRowsHtml = '';
+        for(let i=1; i<=6; i++) {
+            tableRowsHtml += `
+            <div class="flex-row">
+                <div><input type="text" class="a-ig-k${i}" placeholder="${i}행 1열 (항목명)"></div>
+                <div><input type="text" class="a-ig-v${i}" placeholder="${i}행 2열 (강조값)"></div>
+                <div><input type="text" class="a-ig-d${i}" placeholder="${i}행 3열 (부가설명)"></div>
+            </div>`;
+        }
+
         const html = `
             <div class="article-block" id="${id}">
                 <button class="remove-btn" onclick="document.getElementById('${id}').remove()">삭제</button>
@@ -737,7 +724,7 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
                     <label style="margin-bottom:8px; display:block; font-weight:700;">📊 하단 시각자료 추가 (선택)</label>
                     <select class="a-visual-type" onchange="toggleVisualOptions('${id}', this.value)">
                         <option value="none">사용 안 함</option>
-                        <option value="table">기본 인포그래픽 요약표 (3열)</option>
+                        <option value="table">기본 인포그래픽 요약표 (3열, 최대 6행)</option>
                         <option value="pres1">프레젠테이션형 (2/3/4분할 및 표형식)</option>
                     </select>
 
@@ -758,24 +745,7 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
                         <div class="form-group">
                             <input type="text" class="a-ig-title" placeholder="표 내부 상단 제목(선택)" style="margin-bottom: 16px;">
                         </div>
-                        <div class="flex-row">
-                            <div><input type="text" class="a-ig-k1" placeholder="항목명 1"></div>
-                            <div><input type="text" class="a-ig-v1" placeholder="강조값 1"></div>
-                            <div><input type="text" class="a-ig-d1" placeholder="부가설명 1"></div>
-                        </div>
-                        <div class="flex-row">
-                            <div><input type="text" class="a-ig-k2" placeholder="항목명 2"></div>
-                            <div><input type="text" class="a-ig-v2" placeholder="강조값 2"></div>
-                            <div><input type="text" class="a-ig-d2" placeholder="부가설명 2"></div>
-                        </div>
-                        <div class="flex-row">
-                            <div><input type="text" class="a-ig-k3" placeholder="항목명 3"></div>
-                            <div><input type="text" class="a-ig-v3" placeholder="강조값 3"></div>
-                            <div><input type="text" class="a-ig-d3" placeholder="부가설명 3"></div>
-                        </div>
-                        <div class="form-group" style="margin-top: 16px;">
-                            <input type="text" class="a-ig-caption" placeholder="표 내부 하단 캡션(선택)">
-                        </div>
+                        ${tableRowsHtml}
                     </div>
 
                     <div class="visual-options v-pres1" style="display:none;">
@@ -802,14 +772,12 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         `;
         document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
 
-        // 데이터가 넘어왔다면 값 세팅
         if (data) {
             const block = document.getElementById(id);
             block.querySelector('.a-title').value = data.title || '';
             block.querySelector('.a-content').value = data.content || '';
             block.querySelector('.a-easy').value = data.easy || '';
             
-            // 호환성 처리
             const vType = data.visualType || (data.igTitle ? 'table' : 'none');
             block.querySelector('.a-visual-type').value = vType;
             toggleVisualOptions(id, vType);
@@ -819,11 +787,16 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
             if (data.vFooter) block.querySelector('.a-v-footer').value = data.vFooter;
 
             if(vType === 'table') {
-                block.querySelector('.a-ig-title').value = data.igTitle || '';
-                block.querySelector('.a-ig-k1').value = data.igK1 || ''; block.querySelector('.a-ig-v1').value = data.igV1 || ''; block.querySelector('.a-ig-d1').value = data.igD1 || '';
-                block.querySelector('.a-ig-k2').value = data.igK2 || ''; block.querySelector('.a-ig-v2').value = data.igV2 || ''; block.querySelector('.a-ig-d2').value = data.igD2 || '';
-                block.querySelector('.a-ig-k3').value = data.igK3 || ''; block.querySelector('.a-ig-v3').value = data.igV3 || ''; block.querySelector('.a-ig-d3').value = data.igD3 || '';
-                block.querySelector('.a-ig-caption').value = data.igCaption || '';
+                const setVal = (cls, val) => {
+                    const el = block.querySelector(cls);
+                    if(el) el.value = val || '';
+                };
+                setVal('.a-ig-title', data.igTitle);
+                for(let i=1; i<=6; i++) {
+                    setVal(`.a-ig-k${i}`, data[`igK${i}`]);
+                    setVal(`.a-ig-v${i}`, data[`igV${i}`]);
+                    setVal(`.a-ig-d${i}`, data[`igD${i}`]);
+                }
             } else if(vType === 'pres1') {
                 block.querySelector('.a-pres-type').value = data.presType || 'split3';
                 togglePresLayout(id, data.presType || 'split3');
@@ -838,9 +811,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         }
     }
 
-    /* =========================================================
-       3. DB 저장 및 HTML 파일 생성 (단축키 지원)
-       ========================================================= */
     function showToast(msg) {
         const toast = document.getElementById("toast");
         toast.textContent = msg;
@@ -873,12 +843,10 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
         }
     }
 
-    // 완전히 복구된 원본 HTML 조립 로직
     function handleDownload() {
         const data = gatherFormData();
         if (!data) return alert('발행일자를 선택해주세요.');
 
-        // 1. 자동 저장
         if (db) {
             const tx = db.transaction("newsletters", "readwrite");
             const store = tx.objectStore("newsletters");
@@ -886,7 +854,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
             tx.oncomplete = () => loadTimeline(); 
         }
 
-        // 2. HTML 템플릿 조립 
         const dates = getFormattedDates(data.date);
         
         let quoteHTML = '';
@@ -918,14 +885,28 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
             let visualHTML = '';
             if (art.visualType !== 'none') {
                 let innerHTML = '';
-                
-                if (art.visualType === 'table') {
-                    let trs = '';
-                    if(art.igK1) trs += `<tr><td>${art.igK1}</td><td><strong>${art.igV1}</strong></td><td>${art.igD1}</td></tr>\n                `;
-                    if(art.igK2) trs += `<tr><td>${art.igK2}</td><td><strong>${art.igV2}</strong></td><td>${art.igD2}</td></tr>\n                `;
-                    if(art.igK3) trs += `<tr><td>${art.igK3}</td><td><strong>${art.igV3}</strong></td><td>${art.igD3}</td></tr>`;
+                let footerHTML = ''; // 기본적으로 외부에 위치하는 푸터
 
-                    innerHTML = `<div class="infographic">\n        ${art.igTitle ? `<div class="ig-title">${art.igTitle}</div>` : ''}\n        <table class="data-table">\n            <tbody>\n                ${trs}\n            </tbody>\n        </table>\n        ${art.igCaption ? `<div class="ig-caption">${art.igCaption}</div>` : ''}\n    </div>`;
+                if (art.visualType === 'table') {
+                    const buildRow = (i) => {
+                        const k = art[`igK${i}`] || '';
+                        const v = art[`igV${i}`] || '';
+                        const d = art[`igD${i}`] || '';
+                        
+                        if (!k.trim() && !v.trim() && !d.trim()) return '';
+                        
+                        return `<tr><td>${k}</td><td><strong>${v}</strong></td><td>${d}</td></tr>\n                `;
+                    };
+
+                    let trs = '';
+                    for(let i=1; i<=6; i++) {
+                        trs += buildRow(i);
+                    }
+
+                    // 하단 마무리 요약 문구를 표 내부(회색 박스) 하단 캡션 자리에 렌더링
+                    const captionHtml = art.vFooter ? `<div class="visual-footer" style="background: transparent; margin-top: 12px; padding: 0;">👉 ${art.vFooter}</div>` : '';
+
+                    innerHTML = `<div class="infographic">\n        ${art.igTitle ? `<div class="ig-title">${art.igTitle}</div>` : ''}\n        <table class="data-table">\n            <tbody>\n                ${trs}</tbody>\n        </table>\n        ${captionHtml}\n    </div>`;
                 } else if(art.visualType === 'pres1') {
                     const pd = art.presData || {};
                     if(art.presType === 'split3') {
@@ -960,10 +941,14 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
                             ${rows}
                         </div>`;
                     }
+
+                    // 프레젠테이션 형식일 경우에만 외부 하단 영역에 요약 문구 배치
+                    if (art.vFooter) {
+                        footerHTML = `<div class="visual-footer">👉 ${art.vFooter}</div>`;
+                    }
                 }
 
                 const headerHTML = (art.vIcon || art.vTitle) ? `<div class="visual-header"><span class="v-icon">${art.vIcon}</span> <span class="v-title">${art.vTitle}</span></div>` : '';
-                const footerHTML = art.vFooter ? `<div class="visual-footer">👉 ${art.vFooter}</div>` : '';
 
                 visualHTML = `\n    <div class="visual-container">\n        ${headerHTML}\n        ${innerHTML}\n        ${footerHTML}\n    </div>`;
             }
@@ -983,7 +968,6 @@ document.getElementById('topShareBtn').addEventListener('click', () => {
 `;
         });
 
-        // 템플릿 합성 (원본 구조 100% 복구)
         const cssContent = document.getElementById('original-css').innerHTML;
         const jsContent = document.getElementById('original-js').innerHTML;
 
@@ -1037,7 +1021,6 @@ ${jsContent}
 </body>
 </html>`;
 
-        // 3. 브라우저 단에서 다운로드 실행
         const blob = new Blob([finalHTML], { type: 'text/html;charset=utf-8' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
@@ -1048,7 +1031,6 @@ ${jsContent}
         showToast("📥 다운로드가 완료되었습니다.");
     }
 
-    // 단축키 설정
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'n') {
             e.preventDefault();
@@ -1060,10 +1042,9 @@ ${jsContent}
         }
     });
 
-    // 앱 초기화 구동
     window.onload = () => {
         initDB();
-        createNew(); // 시작 시 오늘 날짜로 빈 폼 세팅
+        createNew();
     };
 </script>
 </body>
