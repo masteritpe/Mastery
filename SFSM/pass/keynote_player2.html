@@ -61,24 +61,36 @@
     /* Top Navigation */
     .header-area { display: flex; justify-content: space-between; align-items: center; padding: 12px 28px; flex-shrink: 0; gap: 16px; }
     
-    .tabs-container { 
-        display: flex; gap: 4px; overflow-x: auto; flex: 1; 
-        background: #E2E8F0; padding: 4px; border-radius: var(--radius-full); 
-        max-width: fit-content;
-        cursor: grab; 
+    /* 🚀 셀렉트 박스 CSS */
+    .note-select {
+        flex: 1;
+        max-width: 400px;
+        padding: 8px 16px;
+        border-radius: var(--radius-full);
+        border: 1px solid var(--border-subtle);
+        background-color: var(--bg-surface);
+        color: var(--text-primary);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: var(--shadow-sm);
+        appearance: none; 
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        background-size: 16px;
+        padding-right: 36px;
+        outline: none;
+        transition: all 0.2s ease;
+        font-family: inherit;
     }
-    .tabs-container.dragging { cursor: grabbing; } 
-    .tabs-container::-webkit-scrollbar { display: none; }
-    .tab-btn { 
-        padding: 8px 20px; background: transparent; color: var(--text-secondary); 
-        border: none; border-radius: var(--radius-full); cursor: pointer; 
-        font-weight: 600; font-size: 14px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap; 
-        user-select: none; 
+    .note-select:hover {
+        border-color: var(--border-focus);
+        box-shadow: var(--shadow-md);
     }
-    .tab-btn:hover { color: var(--text-primary); }
-    .tab-btn.active { 
-        background: var(--bg-surface); color: var(--accent-primary); 
-        box-shadow: var(--shadow-sm); font-weight: 700;
+    .note-select:focus {
+        border-color: var(--text-tertiary);
+        box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.05);
     }
     
     .exit-btn { 
@@ -104,7 +116,6 @@
     }
     .sidebar-header span { font-weight: 700; font-size: 14px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 8px; }
     
-    /* 🚀 전체선택 & 초기화 버튼 영역 CSS */
     .header-actions { display: flex; align-items: center; gap: 8px; }
     .check-all-label { font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; color: var(--text-secondary); transition: color 0.2s; }
     .check-all-label:hover { color: var(--accent-primary); }
@@ -207,7 +218,7 @@
         display: block; 
     }
     
-    /* 📖 Document Layout - 밀도 강화 */
+    /* 📖 Document Layout */
     .paper-container { width: 100%; max-width: 1000px; margin: 0 auto; }
     
     .paper-lead { 
@@ -230,7 +241,6 @@
     .paper-sol { word-break: keep-all; }
     
     /* 🚀 Quill Editor Reset & Padding Control */
-    /* 🔥 핵심 수정: 편집기 서식 보존을 위해 * 및 !important 강제 지정 제거 */
     .ql-editor { 
         font-family: inherit; font-size: inherit; line-height: inherit; 
         min-height: auto; height: auto; overflow: visible;
@@ -242,14 +252,11 @@
     
     .paper-prob.ql-editor { font-size: 46px; line-height: 1.3; color: var(--accent-primary); font-weight: 700; }
 
-    /* 키워드 강조(배경색이 적용된) 부분 라운딩 및 간격 최적화 */
-    /* 에디터의 인라인 컬러와 폰트 크기/굵기는 그대로 상속받도록 둠 */
     .ql-editor [style*="background-color"] {
         padding: 2px 4px;
         border-radius: 4px;
     }
 
-    /* 표(Table) -> 간격/여백 최적화 */
     .ql-editor table { width: 100%; border-collapse: collapse; margin: 16px 0; font-family: 'Pretendard Variable', sans-serif; text-align: left; font-size: 24px; line-height: 1.4; }
     .ql-editor th, .ql-editor td { border: 1px solid var(--border-subtle); padding: 12px 16px; }
     .ql-editor th { background-color: var(--bg-elevated); font-weight: 700; color: var(--text-primary); }
@@ -347,7 +354,8 @@
 <body>
 
 <div class="header-area">
-    <div class="tabs-container" id="note-tabs"></div>
+    <select class="note-select" id="note-select"></select>
+    
     <button class="exit-btn" onclick="window.location.href='keynote.html'">
         <i class="fas fa-arrow-left" style="font-size: 12px;"></i> 에디터 복귀
     </button>
@@ -474,10 +482,10 @@
     let slideDuration = 10000;
     let startTime = 0;
 
-    const $tabs = document.getElementById('note-tabs');
+    const $noteSelect = document.getElementById('note-select');
     const $list = document.getElementById('item-list');
     const $checkAll = document.getElementById('check-all');
-    const $btnResetStatus = document.getElementById('btn-reset-status'); // 🚀 초기화 버튼
+    const $btnResetStatus = document.getElementById('btn-reset-status'); 
     const $screenContent = document.getElementById('screen-content');
     const $emptyState = document.getElementById('empty-state');
     const $playerControls = document.getElementById('player-controls');
@@ -527,8 +535,14 @@
             const transaction = db.transaction(['notes'], 'readonly');
             const request = transaction.objectStore('notes').getAll();
             request.onsuccess = () => {
-                allNotes = request.result.sort((a, b) => new Date(b.date) - new Date(a.date));
-                renderTabs();
+                // 🚀 숫자 오름차순(자연 정렬) 적용
+                allNotes = request.result.sort((a, b) => {
+                    const titleA = a.title || '';
+                    const titleB = b.title || '';
+                    return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+                });
+                
+                renderNoteSelect();
                 if(allNotes.length > 0) {
                     loadNoteData(allNotes[0].id, 1, allNotes[0].items ? allNotes[0].items.length : 0);
                 }
@@ -560,6 +574,11 @@
     function closeRangeModal() {
         $rangeModal.style.display = 'none';
         targetNoteForRange = null;
+        
+        // 🚀 모달 닫을 시 셀렉트박스를 기존 노트로 원복
+        if(currentNote) {
+            $noteSelect.value = currentNote.id;
+        }
     }
 
     document.getElementById('btn-study-range').onclick = () => {
@@ -588,26 +607,36 @@
         loadNoteData(targetId, 1, total);
     };
 
-    function renderTabs() {
-        $tabs.innerHTML = '';
+    // 🚀 셀렉트 박스 렌더링
+    function renderNoteSelect() {
+        $noteSelect.innerHTML = '';
         if(allNotes.length === 0) {
-            $tabs.style.display = 'none';
+            $noteSelect.style.display = 'none';
             return;
         }
-        $tabs.style.display = 'flex';
+        $noteSelect.style.display = 'block';
+        
         allNotes.forEach(note => {
-            const btn = document.createElement('button');
-            btn.className = `tab-btn ${currentNote && currentNote.id === note.id ? 'active' : ''}`;
+            const option = document.createElement('option');
+            option.value = note.id;
             const titleText = note.title || '제목 없음';
-            btn.textContent = titleText;
-            btn.title = titleText; 
-            btn.onclick = () => { 
-                if(isPlaying) stopPlay(); 
-                openRangeModal(note); 
-            };
-            $tabs.appendChild(btn);
+            option.textContent = titleText;
+            if(currentNote && currentNote.id === note.id) {
+                option.selected = true;
+            }
+            $noteSelect.appendChild(option);
         });
     }
+
+    // 🚀 셀렉트 박스 OnChange 이벤트 (다른 노트 선택 시)
+    $noteSelect.addEventListener('change', (e) => {
+        if(isPlaying) stopPlay(); 
+        const selectedId = e.target.value;
+        const note = allNotes.find(n => String(n.id) === String(selectedId));
+        if(note) {
+            openRangeModal(note); 
+        }
+    });
 
     function loadNoteData(noteId, start = 1, end = null) {
         currentNote = allNotes.find(n => n.id === noteId);
@@ -630,7 +659,7 @@
             }
         });
         
-        renderTabs();
+        renderNoteSelect();
         renderList();
         updateSelection();
         if(selectedIndices.length > 0) showSlide(0);
@@ -710,7 +739,6 @@
         transaction.objectStore('notes').put(currentNote);
     }
 
-    // 🚀 암기 완료 초기화 버튼 로직
     $btnResetStatus.onclick = () => {
         if (!currentNote || !currentNote.items) return;
         
@@ -721,7 +749,6 @@
             saveCurrentNoteState();
             renderList();
             
-            // 현재 플레이 중인 슬라이드가 있다면 UI 갱신
             if (currentPlayIndex !== -1 && selectedIndices.length > 0) {
                 showSlide(currentPlayIndex);
             }
@@ -939,35 +966,6 @@
                 if($playerControls.style.display !== 'none') document.getElementById('btn-complete').click(); 
             }
         }
-    });
-
-    let isDown = false;
-    let startX;
-    let scrollLeft;
-
-    $tabs.addEventListener('mousedown', (e) => {
-        isDown = true;
-        $tabs.classList.add('dragging');
-        startX = e.pageX - $tabs.offsetLeft;
-        scrollLeft = $tabs.scrollLeft;
-    });
-
-    $tabs.addEventListener('mouseleave', () => {
-        isDown = false;
-        $tabs.classList.remove('dragging');
-    });
-
-    $tabs.addEventListener('mouseup', () => {
-        isDown = false;
-        $tabs.classList.remove('dragging');
-    });
-
-    $tabs.addEventListener('mousemove', (e) => {
-        if (!isDown) return;
-        e.preventDefault();
-        const x = e.pageX - $tabs.offsetLeft;
-        const walk = (x - startX) * 1.5; 
-        $tabs.scrollLeft = scrollLeft - walk;
     });
 
     window.onload = init;
