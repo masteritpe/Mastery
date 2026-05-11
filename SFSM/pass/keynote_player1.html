@@ -212,12 +212,33 @@
     body.immersive .sidebar { width: 0; opacity: 0; border: none; margin: 0; padding: 0; pointer-events: none;}
     body.immersive .main-wrapper { padding: 24px; }
 
-    body.immersive .player-header {
-        position: absolute; top: 16px; left: 16px; right: 16px; background: rgba(255, 255, 255, 0.95);
-        padding: 8px 16px; border-radius: var(--radius-md); box-shadow: var(--shadow-md); opacity: 0; pointer-events: none;
-        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); transition: opacity 0.3s ease;
+    body.immersive .player-header { 
+        position: absolute; 
+        top: 16px; 
+        right: 16px; 
+        left: 16px; 
+        min-height: auto; 
+        pointer-events: none; 
+        justify-content: flex-end;
+        z-index: 100;
+        background: transparent;
+        padding: 0;
+        box-shadow: none;
     }
-    body.immersive .player-area.show-controls .player-header, body.immersive .player-header:hover { opacity: 1; pointer-events: auto; }
+    body.immersive .header-left,
+    body.immersive .header-center,
+    body.immersive .status-title,
+    body.immersive #speed-select { 
+        display: none !important; 
+    }
+    body.immersive .header-right { 
+        opacity: 0.3 !important; 
+        pointer-events: auto; 
+        transition: opacity 0.3s;
+    }
+    body.immersive .header-right:hover { 
+        opacity: 1 !important; 
+    }
 
     /* --- Presentation Mode (Ctrl + M key) --- */
     body.presentation .header-area { display: none !important; }
@@ -289,12 +310,17 @@
             <div class="header-right">
                 <div class="status-box" style="align-items: flex-end;">
                     <div class="status-title" style="margin-right:4px;">SPEED PITCH</div>
-                    <select id="speed-select" class="speed-select">
-                        <option value="5000">x1.5 (5s)</option>
-                        <option value="10000" selected>x1.0 (10s)</option>
-                        <option value="15000">x0.7 (15s)</option>
-                        <option value="20000">x0.5 (20s)</option>
-                    </select>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <select id="speed-select" class="speed-select">
+                            <option value="5000">x1.5 (5s)</option>
+                            <option value="10000" selected>x1.0 (10s)</option>
+                            <option value="15000">x0.7 (15s)</option>
+                            <option value="20000">x0.5 (20s)</option>
+                        </select>
+                        <button id="btn-immersive-toggle" class="nav-btn" style="background: var(--surface-1); border: 1px solid var(--border-light); box-shadow: 0 2px 4px rgba(0,0,0,0.02);" title="몰입 모드 전환 (Ctrl+H)">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -702,6 +728,21 @@
     document.getElementById('btn-prev').onclick = () => { if(isPlaying) stopPlay(); playPrev(); };
     document.getElementById('speed-select').onchange = (e) => { if(isPlaying) { slideDuration = parseInt(e.target.value); resetProgressTimer(); } };
 
+    // 🚀 몰입모드 토글 함수
+    function toggleImmersiveMode() {
+        document.body.classList.toggle('immersive');
+        document.body.classList.remove('presentation');
+        const icon = document.querySelector('#btn-immersive-toggle i');
+        if(document.body.classList.contains('immersive')) {
+            icon.className = 'fas fa-compress';
+        } else {
+            icon.className = 'fas fa-expand';
+        }
+    }
+
+    // 🚀 버튼 클릭 이벤트 할당
+    document.getElementById('btn-immersive-toggle').onclick = toggleImmersiveMode;
+
     // --- 단축키 이벤트 ---
     document.addEventListener('keydown', (e) => {
         // 프리젠테이션 모드 (Ctrl + M)
@@ -715,8 +756,7 @@
         // 몰입 모드 (Ctrl + H)
         if (e.ctrlKey && e.key.toLowerCase() === 'h') { 
             e.preventDefault(); 
-            document.body.classList.toggle('immersive'); 
-            document.body.classList.remove('presentation'); // 충돌 방지
+            toggleImmersiveMode(); // 새로 만든 함수로 교체
             return; 
         }
         
