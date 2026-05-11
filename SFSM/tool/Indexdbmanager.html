@@ -25,6 +25,11 @@
         .header-left { display: flex; align-items: center; gap: 16px; }
         .app-title { font-size: 16px; font-weight: 800; color: #0052cc; display: flex; align-items: center; gap: 6px; }
         .db-selector-group { display: flex; align-items: center; background: #f4f5f7; border-radius: 4px; padding: 2px; border: 1px solid #dfe1e6; }
+        
+        /* 추가된 검색 필드 스타일 */
+        .db-filter { border: none; background: transparent; height: 30px; font-size: 13px; padding: 0 8px; border-right: 1px solid #dfe1e6; width: 120px; outline: none; color: #172b4d; }
+        .db-filter::placeholder { color: #97a0af; }
+        
         .db-select { border: none; background: transparent; height: 30px; font-size: 13px; font-weight: 600; color: #172b4d; outline: none; padding: 0 8px; cursor: pointer; min-width: 150px; }
         .btn-refresh { border: none; background: transparent; cursor: pointer; padding: 0 8px; color: #5e6c84; display: flex; align-items: center; justify-content: center; height: 30px; border-left: 1px solid #dfe1e6; }
         .btn-refresh:hover { color: var(--primary); background: #ebecf0; }
@@ -107,6 +112,7 @@
             </div>
             
             <div class="db-selector-group">
+                <input type="text" id="dbFilter" class="db-filter" placeholder="DB명 검색..." onkeyup="filterDBList(this.value)">
                 <select id="dbList" class="db-select" onchange="connectDB(this.value)">
                     <option value="">DB 선택...</option>
                 </select>
@@ -159,7 +165,7 @@
                 <button class="btn" onclick="performSearch(true)">🔄 새로고침</button>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-wrapper" id="tableWrapper">
                 <table id="dataTable"><thead></thead><tbody></tbody></table>
                 <div id="emptyState" class="empty-state" style="display:none;">
                     <div style="font-size:48px; opacity:0.3;">🗂️</div>
@@ -204,6 +210,7 @@
                     <div class="backup-desc">
                         현재 연결된 <strong id="backupTargetDB" style="color:var(--primary); font-size:15px;">DB 없음</strong>의 데이터를<br>
                         JSON 파일로 추출합니다.<br>
+                        <span style="font-size:12px; color:#97a0af;">(메모리 초과 방지를 위해 파일은 100MB 단위로 자동 분할됩니다)</span>
                     </div>
                     <button id="btnBackupRun" class="btn btn-primary" onclick="executeBackup()" style="padding: 0 24px; height: 40px; font-size: 14px;">
                         💾 백업 파일 다운로드(.json)
@@ -261,25 +268,53 @@
         let currentRows = []; 
         let currentRealIndexes = [];
 
-        window.onload = loadDBList;
+        // DB 리스트 저장용 및 스크롤 렌더링용 추가 변수
+        let availableDBs = [];
+        let tableDisplayRows = [];
+        let tableRenderedCount = 0;
+        let currentCols = [];
+        const RENDER_CHUNK_SIZE = 50; // 한 번에 보여줄 행 개수
 
+        window.onload = () => {
+            loadDBList();
+            
+            // 무한 스크롤(Lazy Load) 이벤트 리스너 등록
+            document.getElementById('tableWrapper').addEventListener('scroll', function() {
+                // 스크롤이 하단에서 50px 이내로 접근했을 때 추가 렌더링
+                if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
+                    renderNextTableChunk();
+                }
+            });
+        };
+
+        // DB 목록 가져오기 로직 (변경)
         async function loadDBList() {
-            const select = document.getElementById('dbList');
-            const prevValue = select.value;
-            select.innerHTML = '<option value="">DB 선택...</option>';
             if (indexedDB.databases) {
                 try {
-                    const dbs = await indexedDB.databases();
-                    if(dbs.length === 0) select.innerHTML += '<option disabled>(없음)</option>';
-                    dbs.forEach(db => {
-                        const opt = document.createElement('option');
-                        opt.value = db.name;
-                        opt.text = `${db.name} (v${db.version})`;
-                        select.appendChild(opt);
-                    });
-                    if(prevValue) select.value = prevValue;
+                    availableDBs = await indexedDB.databases();
+                    renderDBSelect(availableDBs, document.getElementById('dbList').value);
                 } catch(e) { console.error(e); }
             }
+        }
+
+        function renderDBSelect(dbs, prevValue) {
+            const select = document.getElementById('dbList');
+            select.innerHTML = '<option value="">DB 선택...</option>';
+            if(dbs.length === 0) select.innerHTML += '<option disabled>(없음)</option>';
+            dbs.forEach(db => {
+                const opt = document.createElement('option');
+                opt.value = db.name;
+                opt.text = `${db.name} (v${db.version})`;
+                select.appendChild(opt);
+            });
+            // 이전 선택값 유지
+            if(prevValue && dbs.find(d => d.name === prevValue)) select.value = prevValue;
+        }
+
+        // DB명 필터(검색) 함수
+        function filterDBList(keyword) {
+            const filtered = availableDBs.filter(db => db.name.toLowerCase().includes(keyword.toLowerCase()));
+            renderDBSelect(filtered, document.getElementById('dbList').value);
         }
 
         function connectDB(dbName) {
@@ -444,8 +479,9 @@
             }
         }
 
+        // 스크롤 성능 최적화를 위해 renderTable 분리
         function renderTable(rows = null) {
-            const displayRows = rows || currentRows;
+            tableDisplayRows = rows || currentRows;
             const thead = document.querySelector('#dataTable thead');
             const tbody = document.querySelector('#dataTable tbody');
             const emptyState = document.getElementById('emptyState');
@@ -453,8 +489,9 @@
             
             thead.innerHTML = ''; tbody.innerHTML = '';
             btnBulkDelete.style.display = 'none';
+            tableRenderedCount = 0; // 초기화
 
-            if (displayRows.length === 0) {
+            if (tableDisplayRows.length === 0) {
                 emptyState.style.display = 'flex';
                 if(currentRows.length > 0) document.querySelector('#emptyState div:last-child').innerText = "검색 결과가 없습니다.";
                 return;
@@ -462,43 +499,61 @@
             emptyState.style.display = 'none';
 
             let allKeys = new Set();
-            displayRows.forEach(r => {
+            tableDisplayRows.forEach(r => {
                 if(r.value && typeof r.value === 'object') Object.keys(r.value).forEach(k => allKeys.add(k));
                 else allKeys.add('Value');
             });
-            const cols = Array.from(allKeys);
-            if(currentKeyPath && cols.includes(currentKeyPath)) {
-                cols.splice(cols.indexOf(currentKeyPath), 1);
-                cols.unshift(currentKeyPath);
+            currentCols = Array.from(allKeys);
+            if(currentKeyPath && currentCols.includes(currentKeyPath)) {
+                currentCols.splice(currentCols.indexOf(currentKeyPath), 1);
+                currentCols.unshift(currentKeyPath);
             }
 
             let trH = `<tr><th class="check-col"><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th><th style="width:110px;">Action</th>`;
             if(!currentKeyPath) trH += `<th style="color:var(--key-color)">(KEY)</th>`;
-            cols.forEach(c => trH += `<th>${c}</th>`);
+            currentCols.forEach(c => trH += `<th>${c}</th>`);
             trH += `</tr>`;
             thead.innerHTML = trH;
 
-            displayRows.forEach((row) => {
+            // 처음 일부 데이터만 렌더링
+            renderNextTableChunk();
+        }
+
+        // 스크롤 시 추가 렌더링을 처리하는 함수
+        function renderNextTableChunk() {
+            if (tableRenderedCount >= tableDisplayRows.length) return;
+            
+            const tbody = document.querySelector('#dataTable tbody');
+            const end = Math.min(tableRenderedCount + RENDER_CHUNK_SIZE, tableDisplayRows.length);
+            const selectAllElem = document.getElementById('selectAll');
+            const isSelectAllChecked = selectAllElem ? selectAllElem.checked : false;
+            
+            for (let i = tableRenderedCount; i < end; i++) {
+                const row = tableDisplayRows[i];
                 const realIdx = currentRows.findIndex(r => r.realKey === row.realKey);
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="check-col"><input type="checkbox" class="row-select" value="${realIdx}" onchange="updateBulkBtnState()"></td>
+                
+                tr.innerHTML = `<td class="check-col"><input type="checkbox" class="row-select" value="${realIdx}" onchange="updateBulkBtnState()" ${isSelectAllChecked ? 'checked' : ''}></td>
                     <td><button class="btn btn-sm btn-primary" onclick="openModal('edit', ${realIdx})">수정</button>
                     <button class="btn btn-sm btn-outline-danger" onclick="deleteData(${realIdx})">삭제</button></td>`;
+                
                 if(!currentKeyPath) tr.innerHTML += `<td style="font-weight:bold; color:var(--key-color)">${row.realKey}</td>`;
-                cols.forEach(col => {
+                
+                currentCols.forEach(col => {
                     let val = (row.value && typeof row.value === 'object') ? row.value[col] : row.value;
                     
-                    // Blob/File 표시 처리
                     if(val instanceof Blob || val instanceof File) {
                         val = `[${val.constructor.name}] ${val.type} (${val.size} bytes)`;
                     } else if(typeof val === 'object' && val !== null) {
-                        val = JSON.stringify(val);
+                        try { val = JSON.stringify(val); } catch(e) { val = "[Complex Object]"; }
                     }
                     
                     tr.innerHTML += `<td>${val === undefined ? '' : val}</td>`;
                 });
                 tbody.appendChild(tr);
-            });
+            }
+            tableRenderedCount = end;
+            updateBulkBtnState(); 
         }
 
         function clearTable() {
@@ -523,7 +578,7 @@
             } else btn.style.display = 'none';
             const total = document.querySelectorAll('.row-select').length;
             if(total > 0 && checkedCount === total) selectAll.checked = true;
-            else selectAll.checked = false;
+            else if(selectAll) selectAll.checked = false;
         }
 
         function deleteSelectedData() {
@@ -541,7 +596,6 @@
             tx.onerror = () => alert("오류 발생");
         }
 
-        // Modal & CRUD
         let editMode = false; let editIndex = -1;
         function openModal(mode, idx) {
             if(mode === 'add' || mode === 'edit') {
@@ -559,7 +613,12 @@
                     const item = currentRows[idx];
                     document.getElementById('modalTitle').innerText = "데이터 수정";
                     info.innerText = `ID: ${item.realKey}`;
-                    editor.value = JSON.stringify(item.value, null, 4);
+                    
+                    try {
+                        editor.value = JSON.stringify(item.value, null, 4);
+                    } catch (e) {
+                        editor.value = "데이터가 너무 커서 에디터에서 불러올 수 없습니다.";
+                    }
                     keyArea.style.display = 'none';
                 } else {
                     document.getElementById('modalTitle').innerText = "새 데이터 추가";
@@ -631,9 +690,6 @@
             }
         }
 
-        // ============================
-        // Helper: Blob <-> Base64
-        // ============================
         function blobToBase64(blob) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -645,16 +701,38 @@
 
         async function processValueForBackup(val) {
             if (val instanceof Blob || val instanceof File) {
-                const base64 = await blobToBase64(val);
+                const chunkSize = 5 * 1024 * 1024; 
+                const chunks = [];
+                for (let offset = 0; offset < val.size; offset += chunkSize) {
+                    const slice = val.slice(offset, offset + chunkSize);
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const result = reader.result;
+                            const b64 = result.indexOf(',') !== -1 ? result.split(',')[1] : result;
+                            resolve(b64 || "");
+                        };
+                        reader.onerror = reject;
+                        reader.readAsDataURL(slice);
+                    });
+                    chunks.push(base64);
+                }
                 return {
-                    __type: "Blob",
+                    __type: "ChunkedBlob",
                     mime: val.type,
-                    data: base64,
+                    dataChunks: chunks,
                     name: val.name || ""
                 };
             } else if (Array.isArray(val)) {
-                return await Promise.all(val.map(item => processValueForBackup(item)));
+                const newArr = new Array(val.length);
+                for (let i = 0; i < val.length; i++) {
+                    newArr[i] = await processValueForBackup(val[i]);
+                }
+                return newArr;
             } else if (val && typeof val === 'object' && val !== null) {
+                if (val instanceof ArrayBuffer || ArrayBuffer.isView(val)) {
+                    return await processValueForBackup(new Blob([val]));
+                }
                 const newVal = {};
                 for (const key of Object.keys(val)) {
                     newVal[key] = await processValueForBackup(val[key]);
@@ -664,36 +742,45 @@
             return val;
         }
 
-        // [수정] 복원 시 데이터 변환 프로세스 개선 (줄바꿈 변경 제거)
         async function processValueForRestore(val) {
-            if (val && typeof val === 'object' && val.__type === "Blob") {
-                const res = await fetch(val.data);
-                const blob = await res.blob();
-                if(val.name) {
-                    return new File([blob], val.name, { type: val.mime });
+            if (val && typeof val === 'object') {
+                if (val.__type === "Blob") {
+                    const res = await fetch(val.data);
+                    const blob = await res.blob();
+                    if(val.name) return new File([blob], val.name, { type: val.mime });
+                    return blob;
+                } else if (val.__type === "ChunkedBlob") {
+                    const byteArrays = [];
+                    for (const b64Chunk of val.dataChunks) {
+                        const byteString = atob(b64Chunk);
+                        const byteNumbers = new Array(byteString.length);
+                        for (let i = 0; i < byteString.length; i++) {
+                            byteNumbers[i] = byteString.charCodeAt(i);
+                        }
+                        byteArrays.push(new Uint8Array(byteNumbers));
+                    }
+                    const blob = new Blob(byteArrays, { type: val.mime });
+                    if(val.name) return new File([blob], val.name, { type: val.mime });
+                    return blob;
+                } else if (Array.isArray(val)) {
+                    return await Promise.all(val.map(item => processValueForRestore(item)));
+                } else {
+                    const newVal = {};
+                    for (const key of Object.keys(val)) {
+                        newVal[key] = await processValueForRestore(val[key]);
+                    }
+                    return newVal;
                 }
-                return blob;
-            } else if (Array.isArray(val)) {
-                return await Promise.all(val.map(item => processValueForRestore(item)));
-            } else if (val && typeof val === 'object' && val !== null) {
-                const newVal = {};
-                for (const key of Object.keys(val)) {
-                    newVal[key] = await processValueForRestore(val[key]);
-                }
-                return newVal;
             }
-            // [중요 수정] 문자열 변환 제거 (Base64 파손 방지)
             return val;
         }
 
-        // ============================
-        // Backup Logic
-        // ============================
         const HISTORY_KEY = 'idx_admin_backup_history';
         function getBackupHistory() { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
         function addBackupHistory(log) {
-            const list = getBackupHistory();
+            let list = getBackupHistory();
             list.unshift(log);
+            if(list.length > 50) list = list.slice(0, 50);
             localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
         }
         function clearBackupHistory() {
@@ -725,46 +812,90 @@
 
             const dbName = currentDB.name;
             const stores = Array.from(currentDB.objectStoreNames);
-            const exportData = { database: dbName, version: currentDB.version, exportedAt: new Date().toISOString(), stores: {} };
             
-            try {
-                for (const storeName of stores) {
-                    const tx = currentDB.transaction(storeName, 'readonly');
-                    const store = tx.objectStore(storeName);
-                    
-                    // [수정] getAll() 대신 openCursor()를 사용하여 외부 키(Out-of-line Key) 유실 방지
-                    const rawData = await new Promise((resolve, reject) => {
-                        const req = store.openCursor();
-                        const results = [];
-                        req.onsuccess = e => {
-                            const cursor = e.target.result;
-                            if (cursor) {
-                                let val = cursor.value;
-                                // keyPath가 없는 경우에만 객체 내부에 임시로 키를 심어서 백업
-                                if (!store.keyPath && val && typeof val === 'object') {
-                                    val.__idb_out_key = cursor.key;
-                                }
-                                results.push(val);
-                                cursor.continue();
-                            } else {
-                                resolve(results);
-                            }
-                        };
-                        req.onerror = reject;
-                    });
+            const MAX_CHUNK_LENGTH = 100 * 1024 * 1024; 
 
-                    const processedData = await Promise.all(rawData.map(async item => {
-                        return await processValueForBackup(item);
-                    }));
+            let partIndex = 1;
+            let jsonParts = []; 
+            let currentChunkSize = 0;
+            let currentStore = null;
+            let isFirstItem = true;
 
-                    exportData.stores[storeName] = processedData;
+            let stringBuffer = "";
+            const flushBuffer = () => {
+                if (stringBuffer.length > 0) {
+                    jsonParts.push(stringBuffer);
+                    currentChunkSize += stringBuffer.length;
+                    stringBuffer = "";
                 }
+            };
+            const pushStr = (str) => {
+                stringBuffer += str;
+                if (stringBuffer.length > 512 * 1024) { 
+                    flushBuffer();
+                }
+            };
 
-                const jsonStr = JSON.stringify(exportData, null, 2);
-                const blob = new Blob([jsonStr], { type: "application/json" });
+            const streamStringify = (val) => {
+                if (val === null || val === undefined) {
+                    pushStr("null");
+                } else if (typeof val === "string") {
+                    const STR_CHUNK_LIMIT = 5 * 1024 * 1024; 
+                    if (val.length > STR_CHUNK_LIMIT) {
+                        pushStr('"');
+                        for (let i = 0; i < val.length; i += STR_CHUNK_LIMIT) {
+                            const chunk = val.substring(i, i + STR_CHUNK_LIMIT);
+                            pushStr(JSON.stringify(chunk).slice(1, -1)); 
+                        }
+                        pushStr('"');
+                    } else {
+                        pushStr(JSON.stringify(val)); 
+                    }
+                } else if (typeof val === "number" || typeof val === "boolean") {
+                    pushStr(String(val));
+                } else if (Array.isArray(val)) {
+                    pushStr("[");
+                    for (let i = 0; i < val.length; i++) {
+                        streamStringify(val[i]);
+                        if (i < val.length - 1) pushStr(",");
+                    }
+                    pushStr("]");
+                } else if (typeof val === "object") {
+                    if (val instanceof Date) {
+                        pushStr(JSON.stringify(val));
+                    } else {
+                        pushStr("{");
+                        const keys = Object.keys(val);
+                        for (let i = 0; i < keys.length; i++) {
+                            pushStr(JSON.stringify(keys[i]) + ":");
+                            streamStringify(val[keys[i]]);
+                            if (i < keys.length - 1) pushStr(",");
+                        }
+                        pushStr("}");
+                    }
+                }
+            };
+
+            const startNewChunk = (storeName) => {
+                const startStr = `{"database":"${dbName}","version":${currentDB.version},"exportedAt":"${new Date().toISOString()}","part":${partIndex},"stores":{"${storeName}":[`;
+                jsonParts = [];
+                stringBuffer = "";
+                currentChunkSize = 0;
+                pushStr(startStr);
+                currentStore = storeName;
+                isFirstItem = true;
+            };
+
+            const closeAndDownloadChunk = () => {
+                pushStr(`]}}`);
+                flushBuffer(); 
+                
+                const blob = new Blob(jsonParts, { type: "application/json" });
+                
                 const now = new Date();
                 const timeStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0') + "_" + String(now.getHours()).padStart(2,'0') + String(now.getMinutes()).padStart(2,'0');
-                const fileName = `${dbName}_Backup_${timeStr}.json`;
+                const fileName = `${dbName}_Backup_${timeStr}_part${partIndex}.json`;
+                
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url; a.download = fileName;
@@ -772,6 +903,78 @@
                 URL.revokeObjectURL(url);
                 
                 addBackupHistory({ dbName: dbName, date: now.toLocaleString(), fileName: fileName, size: (blob.size / 1024).toFixed(1) + " KB" });
+                
+                partIndex++;
+                jsonParts = [];
+                stringBuffer = "";
+                currentChunkSize = 0;
+            };
+
+            try {
+                for (const storeName of stores) {
+                    if (jsonParts.length === 0 && stringBuffer.length === 0) {
+                        startNewChunk(storeName);
+                    } else if (currentStore !== storeName) {
+                        pushStr(`], "${storeName}":[`);
+                        currentStore = storeName;
+                        isFirstItem = true;
+                    }
+
+                    let lastKey = null;
+                    let hasMore = true;
+
+                    while (hasMore) {
+                        const batch = await new Promise((resolve, reject) => {
+                            const tx = currentDB.transaction(storeName, 'readonly');
+                            const store = tx.objectStore(storeName);
+                            
+                            const range = lastKey !== null ? IDBKeyRange.lowerBound(lastKey, true) : null;
+                            const req = store.openCursor(range);
+                            const results = [];
+                            let count = 0;
+                            
+                            req.onsuccess = e => {
+                                const cursor = e.target.result;
+                                if (cursor && count < 50) {
+                                    let val = cursor.value;
+                                    if (!store.keyPath && val && typeof val === 'object') {
+                                        val.__idb_out_key = cursor.key;
+                                    }
+                                    results.push(val);
+                                    lastKey = cursor.key;
+                                    count++;
+                                    cursor.continue();
+                                } else {
+                                    resolve(results);
+                                }
+                            };
+                            req.onerror = reject;
+                        });
+
+                        if (batch.length === 0) {
+                            hasMore = false;
+                            break; 
+                        }
+
+                        for(let i=0; i < batch.length; i++) {
+                            const processedItem = await processValueForBackup(batch[i]);
+
+                            if (!isFirstItem) pushStr(",");
+                            streamStringify(processedItem);
+                            isFirstItem = false;
+
+                            if (currentChunkSize + stringBuffer.length > MAX_CHUNK_LENGTH) {
+                                closeAndDownloadChunk();
+                                startNewChunk(storeName);
+                            }
+                        }
+                    }
+                }
+
+                if (jsonParts.length > 0 || stringBuffer.length > 0) {
+                    closeAndDownloadChunk();
+                }
+
                 renderBackupHistory();
 
             } catch(e) { 
@@ -781,9 +984,6 @@
             }
         }
 
-        // ============================
-        // Restore Logic (Improved Compatibility)
-        // ============================
         let selectedRestoreFile = null;
 
         function handleFileSelect(input) {
@@ -810,7 +1010,6 @@
                 try {
                     const json = JSON.parse(e.target.result);
                     
-                    // [호환성 로직] 배열 형태인지(단일 앱 백업), 객체 형태인지(관리자 백업) 확인
                     let storeDataMap = {};
                     
                     if(Array.isArray(json)) {
@@ -840,7 +1039,6 @@
                             return await processValueForRestore(record);
                         }));
 
-                        // [수정] 테이블의 구조(keyPath 존재 여부) 확인
                         const tempTx = currentDB.transaction(storeName, 'readonly');
                         const storeInfo = tempTx.objectStore(storeName);
                         const keyPath = storeInfo.keyPath;
@@ -848,28 +1046,21 @@
                         const tx = currentDB.transaction(storeName, 'readwrite');
                         const store = tx.objectStore(storeName);
                         
-                        // [수정] ID 중복 여부를 판단하여 Upsert(업데이트 또는 신규추가) 처리
                         for (let finalData of processedRecords) {
                             if (keyPath) {
-                                // 1. 인라인 키 (keyPath가 있는 경우)
-                                // put() 호출 시 내부적으로 식별하여 동일 키가 있으면 업데이트, 없으면 추가됨
                                 store.put(finalData);
                             } else {
-                                // 2. 아웃오브라인 키 (keyPath가 없는 경우)
-                                // 백업 시 저장해둔 키를 찾거나, 일반적인 ID(id, idx, key 등)를 추출
                                 let explicitKey = finalData.__idb_out_key;
                                 
                                 if (explicitKey !== undefined) {
-                                    delete finalData.__idb_out_key; // DB 저장 전 임시 키 삭제
+                                    delete finalData.__idb_out_key; 
                                 } else {
                                     explicitKey = finalData.id || finalData._id || finalData.idx || finalData.key;
                                 }
 
                                 if (explicitKey !== undefined) {
-                                    // 키를 두 번째 파라미터로 명시하여 업데이트
                                     store.put(finalData, explicitKey);
                                 } else {
-                                    // 식별 가능한 키가 아예 없는 경우 신규 추가
                                     store.put(finalData);
                                 }
                             }
@@ -896,7 +1087,6 @@
             reader.readAsText(selectedRestoreFile);
         }
 
-        // Drag and Drop
         const dropZone = document.getElementById('dropZone');
         dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
         dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); });
