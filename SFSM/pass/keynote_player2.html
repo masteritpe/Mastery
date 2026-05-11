@@ -279,7 +279,29 @@
     body.immersive .header-area { opacity: 0; height: 0; padding-top: 0; padding-bottom: 0; pointer-events: none; overflow: hidden; }
     body.immersive .sidebar { width: 0; opacity: 0; border: none; margin: 0; padding: 0; pointer-events: none;}
     body.immersive .main-wrapper { padding: 12px; }
-    body.immersive .player-header { display: none !important; } 
+    
+    body.immersive .player-header { 
+        position: absolute; 
+        top: 12px; 
+        right: 12px; 
+        left: 12px; 
+        min-height: auto; 
+        pointer-events: none; 
+        justify-content: flex-end;
+        z-index: 100;
+    }
+    body.immersive .header-left,
+    body.immersive .header-center,
+    body.immersive #speed-select { 
+        display: none !important; 
+    }
+    body.immersive .header-right { 
+        opacity: 0.3 !important; 
+        pointer-events: auto; 
+    }
+    body.immersive .header-right:hover { 
+        opacity: 1 !important; 
+    }
 
     /* --- Presentation Mode (Ctrl + M key) --- */
     body.presentation .header-area { display: none !important; }
@@ -369,13 +391,16 @@
                 </div>
             </div>
 
-            <div class="header-right">
+            <div class="header-right" style="display: flex; align-items: center; gap: 8px;">
                 <select id="speed-select" class="speed-select">
                     <option value="5000">x1.5 (5s)</option>
                     <option value="10000" selected>x1.0 (10s)</option>
                     <option value="15000">x0.7 (15s)</option>
                     <option value="20000">x0.5 (20s)</option>
                 </select>
+                <button id="btn-immersive-toggle" class="nav-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);" title="몰입 모드 전환 (Ctrl+H)">
+                    <i class="fas fa-expand"></i>
+                </button>
             </div>
         </div>
 
@@ -869,6 +894,19 @@
     document.getElementById('btn-prev').onclick = () => { if(isPlaying) stopPlay(); playPrev(); };
     document.getElementById('speed-select').onchange = (e) => { if(isPlaying) { slideDuration = parseInt(e.target.value); resetProgressTimer(); } };
 
+    function toggleImmersiveMode() {
+        document.body.classList.toggle('immersive');
+        document.body.classList.remove('presentation');
+        const icon = document.querySelector('#btn-immersive-toggle i');
+        if(document.body.classList.contains('immersive')) {
+            icon.className = 'fas fa-compress';
+        } else {
+            icon.className = 'fas fa-expand';
+        }
+    }
+
+    document.getElementById('btn-immersive-toggle').onclick = toggleImmersiveMode;
+
     document.addEventListener('keydown', (e) => {
         if($rangeModal.style.display === 'flex') return;
 
@@ -881,8 +919,7 @@
 
         if(e.ctrlKey && e.key.toLowerCase() === 'h') { 
             e.preventDefault(); 
-            document.body.classList.toggle('immersive'); 
-            document.body.classList.remove('presentation');
+            toggleImmersiveMode();
             return; 
         }
         
