@@ -33,7 +33,7 @@
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
       --radius-md: 8px;
       --radius-lg: 12px;
-      --editor-font-size: 16px; 
+      --editor-font-size: 18px; /* 수정: 기본 폰트 사이즈 18px */
     }
 
     * { box-sizing: border-box; }
@@ -123,8 +123,9 @@
     .edit-ui .badge-number { background: var(--primary); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; font-weight: 700; }
     .edit-ui .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
     
-    .edit-ui .form-group label { font-size: 16px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
-    .edit-ui .form-group label i { font-size: 18px; } 
+    /* 수정: 라벨 폰트 18px 및 아이콘 크기 20px로 증가 */
+    .edit-ui .form-group label { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+    .edit-ui .form-group label i { font-size: 20px; } 
 
     .edit-ui .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
@@ -450,7 +451,7 @@
     let leadEditors = [];
     let concEditors = [];
     let editors = [];
-    let currentEditorFontSize = 16;
+    let currentEditorFontSize = 18; /* 수정: JS 초기 폰트 사이즈 18 */
     let activeTargetImage = null;
 
     // 🌟 스크롤 맨 위로 올리는 함수 추가
@@ -970,7 +971,7 @@
                 return match; // 에러가 나면 원본 유지
               }
             });
-            textNode.parentNode.replaceChild(span, textNode); // 기존 텍스트를 수식이 적용된 span으로 교체
+            textNode.parentNode.replaceChild(span, textNode); // 기존 텍스트 시을 수식이 적용된 span으로 교체
           }
         });
 
