@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뉴스 레터</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+<style>
+    :root {
+        --primary: #3b82f6;
+        --primary-hover: #2563eb;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --border: #e2e8f0;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --danger: #ef4444;
+        --danger-bg: #fee2e2;
+        --radius-lg: 16px;
+        --radius-md: 10px;
+        --sidebar-w: 300px;
+    }
+    
+    body { 
+        font-family: 'Pretendard', -apple-system, sans-serif; 
+        background: var(--bg); 
+        color: var(--text-main); 
+        margin: 0; 
+        padding: 0;
+        display: flex;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    /* ===== 사이드바 (왼쪽 패널) ===== */
+    .sidebar {
+        width: var(--sidebar-w);
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        z-index: 10;
+        box-shadow: 1px 0 10px rgba(0,0,0,0.02);
+    }
+    .sidebar-header {
+        padding: 24px 20px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+    .sidebar-header h2 {
+        margin: 0 0 12px 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .search-box {
+        position: relative;
+    }
+    .search-box input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-size: 14px;
+        background: #f1f5f9;
+        box-sizing: border-box;
+    }
+    .timeline-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+    }
+    .timeline-item {
+        padding: 14px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+        margin-bottom: 8px;
+        background: #fff;
+    }
+    .timeline-item:hover { background: #f8fafc; border-color: var(--border); }
+    .timeline-item.active { background: #eff6ff; border-color: #bfdbfe; }
+    .tl-date { font-weight: 700; font-size: 15px; color: #1e293b; margin-bottom: 4px; }
+    .tl-meta { font-size: 12px; color: var(--text-muted); display: flex; justify-content: space-between; }
+    .empty-list { text-align: center; color: #94a3b8; font-size: 14px; padding: 40px 20px; }
+
+    /* ===== 메인 에디터 (오른쪽 패널) ===== */
+    .main-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 40px 20px;
+        position: relative;
+    }
+    .top-bar {
+        position: sticky;
+        top: 0;
+        background: rgba(248, 250, 252, 0.95);
+        backdrop-filter: blur(8px);
+        padding: 24px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 50;
+        border-bottom: 1px solid var(--border);
+        margin-bottom: 24px;
+    }
+    .top-bar h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 800;
+        color: #0f172a;
+    }
+    .top-actions {
+        display: flex;
+        gap: 12px;
+    }
+    
+    .btn { 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        gap: 6px;
+        background: var(--surface); 
+        color: #475569; 
+        border: 1px solid var(--border); 
+        padding: 10px 18px; 
+        font-size: 14px; 
+        font-weight: 700; 
+        border-radius: 8px; 
+        cursor: pointer; 
+        transition: all 0.2s; 
+    }
+    .btn:hover { background: #f1f5f9; color: #0f172a; }
+    .btn-primary { background: var(--primary); color: white; border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); color: white; border-color: var(--primary-hover); box-shadow: var(--shadow-sm); }
+
+    .editor-container { max-width: 860px; margin: 0 auto; padding-bottom: 20px; }
+    .card { background: var(--surface); padding: 32px; border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); margin-bottom: 24px; border: 1px solid var(--border); }
+    .card-title { font-size: 18px; font-weight: 700; margin: 0 0 20px 0; display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; color: #334155; }
+    
+    input[type="text"], input[type="date"], textarea { 
+        width: 100%; padding: 14px 16px; border: 1px solid var(--border); border-radius: var(--radius-md); 
+        box-sizing: border-box; font-family: inherit; font-size: 15px; background: #fdfdfd; transition: all 0.2s ease;
+    }
+    input::placeholder, textarea::placeholder { color: #94a3b8; }
+    input:focus, textarea:focus { outline: none; border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
+    textarea { resize: vertical; min-height: 120px; line-height: 1.7; }
+    
+    .article-block { background: #f8fafc; border: 1px solid var(--border); padding: 24px; border-radius: var(--radius-md); margin-bottom: 20px; position: relative; transition: 0.2s; }
+    .article-block:hover { border-color: #cbd5e1; }
+    
+    .remove-btn { position: absolute; top: 20px; right: 20px; background: var(--danger-bg); color: var(--danger); border: none; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .remove-btn:hover { background: #fecaca; }
+    
+    .btn-outline { width: 100%; padding: 16px; border-style: dashed; border-width: 2px; justify-content: center; margin-top: 10px;}
+    .flex-row { display: flex; gap: 12px; margin-bottom: 10px; }
+    .flex-row > div { flex: 1; }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .section-tag { display: inline-block; background: #e2e8f0; color: #475569; font-size: 12px; padding: 4px 8px; border-radius: 4px; margin-bottom: 12px; font-weight: 700; }
+
+    /* 토스트 알림 */
+    #toast { visibility: hidden; min-width: 250px; background-color: #1e293b; color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 1000; left: 50%; bottom: 30px; transform: translateX(-50%); font-size: 15px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2); opacity: 0; transition: opacity 0.3s, bottom 0.3s; }
+    #toast.show { visibility: visible; opacity: 1; bottom: 50px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <div class="sidebar-header">
+        <h2>📂 발행 이력</h2>
+        <div class="search-box">
+            <input type="month" id="searchDate" title="연/월로 필터링" onchange="loadTimeline()">
+        </div>
+    </div>
+    <div class="timeline-list" id="timelineList">
+        </div>
+</div>
+
+<div class="main-content" id="mainContent">
+    <div class="top-bar">
+        <h1>뉴스 레터</h1>
+        <div class="top-actions">
+            <button class="btn" onclick="createNew()">
+                <span>✨ 신규 생성</span>
+            </button>
+            <button class="btn" onclick="handleSave()">
+                <span>💾 저장</span>
+            </button>
+            <button class="btn btn-primary" onclick="handleDownload()">
+                <span>📥 다운로드</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="editor-container">
+        <div class="card">
+            <h2 class="card-title">📅 1. 기본 설정</h2>
+            <div class="form-group">
+                <label>발행일자 (YYYY-MM-DD)</label>
+                <input type="date" id="issueDate" required>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="card-title">💬 2. 오늘의 한 줄(선택사항)</h2>
+            <div class="form-group">
+                <label>한국어 명언</label>
+                <input type="text" id="quoteKo" placeholder="예: 외부에서 구하지 말라. 성공은 내면에 존재하니까.">
+            </div>
+            <div class="form-group">
+                <label>영어 명언(선택)</label>
+                <input type="text" id="quoteEn" placeholder="예: Seek not outside yourself for success lies within.">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>저자</label>
+                <input type="text" id="quoteAuthor" placeholder="예: 메리 루 쿡 (Mary Lou Cook)">
+            </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 0;">
+            <h2 class="card-title">📝 3. 기사 등록</h2>
+            <div id="articlesContainer"></div>
+            <button class="btn btn-outline" onclick="addArticle()">+ 새로운 기사 블록 추가하기</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast">저장 및 생성이 완료되었습니다!</div>
+
+
+<template id="original-css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+/* padding-bottom 을 80px 에서 20px로 수정하여 하단 여백 축소 */
+body { font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif; font-size: 15px; line-height: 1.7; color: #1a1a1a; background: #f0f2f5; padding-bottom: 20px; -webkit-text-size-adjust: 100%; }
+.top-bar { position: sticky; top: 0; background: #1a3a6c; color: white; padding: 14px 16px; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; justify-content: space-between; align-items: center; }
+.top-bar .title { font-size: 15px; font-weight: 700; text-decoration: none; color: inherit; cursor: pointer; transition: opacity 0.15s;}
+.top-bar .title:hover { opacity: 0.8; }
+.top-bar-actions { display: flex; align-items: center; gap: 8px; }
+.cover { background: linear-gradient(135deg, #1a3a6c 0%, #2a5ca8 100%); color: white; padding: 50px 24px 40px; text-align: center; }
+.cover .label { font-size: 11px; letter-spacing: 5px; opacity: 0.85; margin-bottom: 16px; }
+.cover h1 { font-size: 32px; font-weight: 900; margin-bottom: 10px; letter-spacing: -1px; line-height: 1.2; }
+.cover .subtitle { font-size: 14px; opacity: 0.92; margin-bottom: 6px; }
+.cover .date-info { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+.toc { background: white; margin: 16px 12px; padding: 18px 18px 8px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.toc h2 { font-size: 16px; color: #1a3a6c; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e8edf5; }
+.toc-item { display: flex; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f3f4f7; font-size: 13.5px; color: #333; text-decoration: none; line-height: 1.45; }
+.toc-item:last-child { border-bottom: none; }
+.toc-item:active { background: #f7f9fc; }
+.toc-item .toc-num { flex-shrink: 0; width: 24px; height: 24px; background: #1a3a6c; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-right: 10px; margin-top: 1px; }
+.article { background: white; margin: 12px; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); scroll-margin-top: 64px; }
+.article-header { padding: 16px 18px 12px; border-left: 4px solid #1a3a6c; }
+.article .num { display: inline-block; background: #1a3a6c; color: white; font-size: 12px; font-weight: 700; padding: 3px 9px; border-radius: 4px; margin-bottom: 8px; }
+.article h3 { font-size: 17px; font-weight: 700; color: #0d2444; line-height: 1.4; word-break: keep-all; }
+.article .body { padding: 0 18px 16px; font-size: 14.5px; line-height: 1.75; color: #2a2a2a; }
+.article .body p { margin-bottom: 12px; word-break: keep-all; }
+.easy-box { margin: 0 18px 16px; background: linear-gradient(135deg, #fff8e1 0%, #fef5e7 100%); border-left: 4px solid #d68910; border-radius: 8px; padding: 14px 16px; }
+.easy-box .easy-title { font-size: 12px; font-weight: 700; color: #b9770e; margin-bottom: 8px; letter-spacing: 1px; }
+.easy-box p { font-size: 13.5px; line-height: 1.7; color: #3a3a3a; word-break: keep-all; margin-bottom: 8px; }
+.infographic { margin: 0 18px 18px; padding: 14px; background: #f7f9fc; border-radius: 8px; border: 1px solid #e3e8f0; }
+.ig-title { font-size: 13px; font-weight: 700; color: #1a3a6c; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #1a3a6c; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+.data-table th { background: #1a3a6c; color: white; padding: 8px 8px; text-align: left; font-weight: 600; font-size: 12px; }
+.data-table td { padding: 7px 8px; border-bottom: 1px solid #e5e8ed; background: white; word-break: keep-all; }
+.data-table tr:nth-child(even) td { background: #f7f9fc; }
+.ig-caption { margin-top: 8px; font-size: 11.5px; color: #666; text-align: center; line-height: 1.5; padding: 4px; }
+.quote-card { background: linear-gradient(135deg, #f7f4ec 0%, #faf8f1 100%); margin: 16px 12px; border-radius: 12px; padding: 22px 24px; border-left: 4px solid #c0392b; box-shadow: 0 2px 8px rgba(0,0,0,0.06); position: relative; }
+.quote-card .quote-header { font-size: 11px; font-weight: 700; color: #c0392b; letter-spacing: 2px; margin-bottom: 14px; }
+.quote-card .quote-ko { font-size: 16px; line-height: 1.75; color: #1a1a1a; font-weight: 600; word-break: keep-all; margin-bottom: 12px; }
+.quote-card .quote-en { font-size: 12.5px; line-height: 1.6; color: #777; font-style: italic; margin-bottom: 14px; word-break: keep-all; }
+.quote-card .quote-author { font-size: 12.5px; color: #888; text-align: right; margin-bottom: 14px; }
+.quote-card .share-btn { display: block; margin-left: auto; }
+.share-btn { background: rgba(255,255,255,0.95); border: 1px solid #d0d8e4; border-radius: 6px; padding: 5px 11px; font-size: 11.5px; font-weight: 600; color: #555; cursor: pointer; transition: 0.15s; font-family: inherit;}
+.share-btn:hover, .share-btn:active { background: #f5f7fa; border-color: #1a3a6c; color: #1a3a6c; }
+.share-btn.bottom { display: block; margin: 0 18px 16px auto; }
+.top-btn { position: fixed; bottom: 20px; right: 16px; width: 48px; height: 48px; background: #1a3a6c; color: white; border: none; border-radius: 50%; box-shadow: 0 4px 12px rgba(26,58,108,0.4); font-size: 20px; cursor: pointer; display: none; align-items: center; justify-content: center; z-index: 99; }
+.top-btn.visible { display: flex; }
+.share-section { margin: 24px 16px 8px; text-align: center; }
+.issue-share-btn { background: #1a3a6c; color: white; border: none; border-radius: 8px; padding: 12px 28px; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(26,58,108,0.25); font-family: inherit;}
+.issue-share-btn:hover { background: #15305c; }
+.footer-note { text-align: center; padding: 30px 20px; font-size: 12px; color: #888; line-height: 1.7; }
+@media (prefers-color-scheme: dark) {
+    body { background: #15181d; color: #e0e0e0; }
+    .article, .toc { background: #232730; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .article h3 { color: #f0f4fa; }
+    .article .body { color: #c8ccd4; }
+    .toc h2 { color: #6da3e8; border-bottom-color: #2d3340; }
+    .toc-item { color: #c8ccd4; border-bottom-color: #2d3340; }
+    .infographic { background: #1c1f26; border-color: #2d3340; }
+    .ig-title { color: #6da3e8; border-bottom-color: #6da3e8; }
+    .data-table td { background: #232730; color: #c8ccd4; border-bottom-color: #2d3340; }
+    .data-table tr:nth-child(even) td { background: #1c1f26; }
+    .quote-card { background: linear-gradient(135deg, #2a2520 0%, #2e2823 100%); border-left-color: #e88; }
+    .quote-card .quote-header { color: #e88; }
+    .quote-card .quote-ko { color: #f0e6d0; }
+    .quote-card .quote-en { color: #b0a89a; }
+    .quote-card .quote-author { color: #aaa; }
+    .share-btn { background: #2a2f38; border-color: #3a4150; color: #c0c5d0; }
+    .share-btn:hover, .share-btn:active { background: #353b46; color: #6da3e8; border-color: #6da3e8; }
+    .issue-share-btn { background: #2a5ca8; }
+}
+@media (min-width: 600px) { body { max-width: 720px; margin: 0 auto; box-shadow: 0 0 20px rgba(0,0,0,0.05); } }
+</style>
+</template>
+
+<template id="original-js">
+<button class="top-btn" id="topBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<script>
+window.addEventListener('scroll', function() {
+    const btn = document.getElementById('topBtn');
+    if (window.scrollY > 400) btn.classList.add('visible');
+    else btn.classList.remove('visible');
+});
+
+async function shareArticle(id, title) {
+    const url = location.origin + location.pathname + '#' + id;
+    const articleEl = document.getElementById(id);
+    const firstP = articleEl ? articleEl.querySelector('.body p') : null;
+    const bodyText = firstP ? firstP.textContent.trim() : '';
+    const sentMatch = bodyText.match(/^.+?[.!?](?=\s|$)/);
+    const firstSentence = sentMatch ? sentMatch[0] : bodyText.slice(0, 120);
+    const message = `${title}\n\n${firstSentence ? firstSentence : ''}\n\n${url}`;
+    const data = { title: '뉴스 - ' + title, text: message };
+    if (navigator.share) {
+        try { await navigator.share(data); } catch (e) { }
+    } else {
+        try { await navigator.clipboard.writeText(message); alert('내용이 복사되었습니다.');
+        } catch (e) { prompt('복사해 주세요:', message); }
+    }
+}
+
+async function shareQuote(ko, en, author) {
+    const url = location.origin + location.pathname;
+    let message = `💬 "${ko}"\n`;
+    if(en) message += `\n"${en}"\n`;
+    if(author) message += `\n— ${author}\n`;
+    message += `\n[뉴스]\n${url}`;
+    const data = { title: '뉴스 · 오늘의 한 줄', text: message };
+    if (navigator.share) {
+        try { await navigator.share(data); } catch (e) { }
+    } else {
+        try { await navigator.clipboard.writeText(message); alert('명언이 복사되었습니다.'); } catch (e) { prompt('복사해 주세요:', message); }
+    }
+}
+
+document.querySelectorAll('article.article').forEach(article => {
+    const id = article.id;
+    if (!id) return;
+    const titleEl = article.querySelector('h3');
+    const title = titleEl ? titleEl.textContent.trim() : '';
+    const bottom = document.createElement('button');
+    bottom.className = 'share-btn bottom';
+    bottom.type = 'button';
+    bottom.textContent = '📤 이 기사 공유하기';
+    bottom.addEventListener('click', () => shareArticle(id, title));
+    article.appendChild(bottom);
+});
+
+// 하단 '전체 기사 공유하기' 버튼 로직
+document.getElementById('shareIssueBtn').addEventListener('click', async () => {
+    const url = location.origin + location.pathname;
+    const headlines = Array.from(document.querySelectorAll('article.article h3')).slice(0, 10).map(h => h.textContent.trim());
+    let message = `📰 뉴스\n\n오늘의 핵심뉴스\n`;
+    headlines.forEach(h => { message += `• ${h}\n`; });
+    message += `\n더보기 →\n${url}`;
+    const data = { title: `뉴스`, text: message };
+    if (navigator.share) { try { await navigator.share(data); } catch (e) {}
+    } else { try { await navigator.clipboard.writeText(message); alert('복사되었습니다.'); } catch (e) { prompt('복사해 주세요:', message); } }
+});
+
+// 상단 공유 버튼을 하단 전체 공유 버튼 기능과 연결
+document.getElementById('topShareBtn').addEventListener('click', () => {
+    const bottomShareBtn = document.getElementById('shareIssueBtn');
+    if (bottomShareBtn) {
+        bottomShareBtn.click();
+    }
+});
+</script>
+</template>
+
+<script>
+    /* =========================================================
+       1. 데이터베이스 (IndexedDB) 관리 로직
+       ========================================================= */
+    const dbName = "NewsletterDB";
+    let db;
+    let articleCount = 0;
+
+    function initDB() {
+        const request = indexedDB.open(dbName, 1);
+        request.onupgradeneeded = (e) => {
+            db = e.target.result;
+            if(!db.objectStoreNames.contains("newsletters")) {
+                db.createObjectStore("newsletters", { keyPath: "date" });
+            }
+        };
+        request.onsuccess = (e) => {
+            db = e.target.result;
+            loadTimeline();
+        };
+        request.onerror = (e) => console.error("IndexedDB error:", e);
+    }
+
+    // 타임라인 (사이드바) 렌더링
+    function loadTimeline() {
+        if(!db) return;
+        const tx = db.transaction("newsletters", "readonly");
+        const store = tx.objectStore("newsletters");
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+            let dataList = request.result || [];
+            
+            // 검색 필터링 (YYYY-MM 형식)
+            const searchVal = document.getElementById('searchDate').value;
+            if (searchVal) {
+                dataList = dataList.filter(item => item.date.startsWith(searchVal));
+            }
+
+            // 최신 날짜순 정렬
+            dataList.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            const container = document.getElementById('timelineList');
+            container.innerHTML = '';
+            
+            if (dataList.length === 0) {
+                container.innerHTML = '<div class="empty-list">저장된 내역이 없습니다.</div>';
+                return;
+            }
+
+            const currentDate = document.getElementById('issueDate').value;
+
+            dataList.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `timeline-item ${item.date === currentDate ? 'active' : ''}`;
+                div.onclick = () => loadDataToForm(item.date);
+                
+                const articleLen = item.articles ? item.articles.length : 0;
+                div.innerHTML = `
+                    <div class="tl-date">${item.date}</div>
+                    <div class="tl-meta">
+                        <span>기사 ${articleLen}건</span>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        };
+    }
+
+    /* =========================================================
+       2. 에디터 폼 관리 (입력/불러오기/초기화)
+       ========================================================= */
+    // DOM에서 현재 입력된 데이터를 추출
+    function gatherFormData() {
+        const date = document.getElementById('issueDate').value;
+        if (!date) return null;
+
+        const articles = [];
+        document.querySelectorAll('.article-block').forEach(block => {
+            const title = block.querySelector('.a-title').value.trim();
+            if(!title) return; // 제목 없으면 무시
+            
+            articles.push({
+                title: title,
+                content: block.querySelector('.a-content').value,
+                easy: block.querySelector('.a-easy').value,
+                igTitle: block.querySelector('.a-ig-title').value,
+                igK1: block.querySelector('.a-ig-k1').value, igV1: block.querySelector('.a-ig-v1').value, igD1: block.querySelector('.a-ig-d1').value,
+                igK2: block.querySelector('.a-ig-k2').value, igV2: block.querySelector('.a-ig-v2').value, igD2: block.querySelector('.a-ig-d2').value,
+                igK3: block.querySelector('.a-ig-k3').value, igV3: block.querySelector('.a-ig-v3').value, igD3: block.querySelector('.a-ig-d3').value,
+                igCaption: block.querySelector('.a-ig-caption').value
+            });
+        });
+
+        return {
+            date: date,
+            quoteKo: document.getElementById('quoteKo').value,
+            quoteEn: document.getElementById('quoteEn').value,
+            quoteAuthor: document.getElementById('quoteAuthor').value,
+            articles: articles,
+            updatedAt: Date.now()
+        };
+    }
+
+    // 빈 폼으로 신규 생성
+    function createNew() {
+        document.getElementById('issueDate').value = new Date().toISOString().split('T')[0];
+        document.getElementById('quoteKo').value = '';
+        document.getElementById('quoteEn').value = '';
+        document.getElementById('quoteAuthor').value = '';
+        
+        document.getElementById('articlesContainer').innerHTML = '';
+        articleCount = 0;
+        addArticle(); // 기본 1개 세팅
+        
+        // 타임라인 하이라이트 해제 및 재렌더
+        loadTimeline();
+        showToast("✨ 새로운 문서를 시작합니다.");
+    }
+
+    // 선택한 날짜의 데이터 폼에 불러오기
+    function loadDataToForm(dateStr) {
+        if(!db) return;
+        const tx = db.transaction("newsletters", "readonly");
+        const store = tx.objectStore("newsletters");
+        const request = store.get(dateStr);
+
+        request.onsuccess = () => {
+            const data = request.result;
+            if(!data) return;
+
+            document.getElementById('issueDate').value = data.date;
+            document.getElementById('quoteKo').value = data.quoteKo || '';
+            document.getElementById('quoteEn').value = data.quoteEn || '';
+            document.getElementById('quoteAuthor').value = data.quoteAuthor || '';
+
+            document.getElementById('articlesContainer').innerHTML = '';
+            articleCount = 0;
+
+            if (data.articles && data.articles.length > 0) {
+                data.articles.forEach(art => addArticle(art));
+            } else {
+                addArticle(); // 빈 블록
+            }
+            
+            loadTimeline(); // 하이라이트 변경
+            document.getElementById('mainContent').scrollTo({top: 0, behavior: 'smooth'});
+        };
+    }
+
+    // 폼 블록 추가
+    function addArticle(data = null) {
+        articleCount++;
+        const id = `article_${articleCount}`;
+        const html = `
+            <div class="article-block" id="${id}">
+                <button class="remove-btn" onclick="document.getElementById('${id}').remove()">삭제</button>
+                <div class="section-tag">뉴스 블록 No. ${articleCount}</div>
+                
+                <div class="form-group">
+                    <label>기사 제목</label>
+                    <input type="text" class="a-title" placeholder="헤드라인을 입력하세요">
+                </div>
+                <div class="form-group">
+                    <label>본문 내용(엔터로 문단 구분)</label>
+                    <textarea class="a-content" placeholder="기사 본문을 입력하세요"></textarea>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <div class="form-group">
+                    <label>💡 쉬운 설명(선택사항)</label>
+                    <textarea class="a-easy" placeholder="어려운 용어를 쉽게 풀어서 작성해주세요"></textarea>
+                </div>
+                
+                <div class="form-group" style="background: white; padding: 16px; border: 1px dashed var(--border); border-radius: var(--radius-md);">
+                    <label>📊 인포그래픽 요약표(선택사항)</label>
+                    <input type="text" class="a-ig-title" placeholder="표 제목" style="margin-bottom: 12px;">
+                    
+                    <div class="flex-row">
+                        <div><input type="text" class="a-ig-k1" placeholder="항목명 1"></div>
+                        <div><input type="text" class="a-ig-v1" placeholder="강조값 1"></div>
+                        <div><input type="text" class="a-ig-d1" placeholder="부가설명 1"></div>
+                    </div>
+                    <div class="flex-row">
+                        <div><input type="text" class="a-ig-k2" placeholder="항목명 2"></div>
+                        <div><input type="text" class="a-ig-v2" placeholder="강조값 2"></div>
+                        <div><input type="text" class="a-ig-d2" placeholder="부가설명 2"></div>
+                    </div>
+                    <div class="flex-row">
+                        <div><input type="text" class="a-ig-k3" placeholder="항목명 3"></div>
+                        <div><input type="text" class="a-ig-v3" placeholder="강조값 3"></div>
+                        <div><input type="text" class="a-ig-d3" placeholder="부가설명 3"></div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 12px; margin-bottom:0;">
+                        <input type="text" class="a-ig-caption" placeholder="하단 캡션">
+                    </div>
+                </div>
+            </div>
+        `;
+        document.getElementById('articlesContainer').insertAdjacentHTML('beforeend', html);
+
+        // 데이터가 넘어왔다면 값 세팅
+        if (data) {
+            const block = document.getElementById(id);
+            block.querySelector('.a-title').value = data.title || '';
+            block.querySelector('.a-content').value = data.content || '';
+            block.querySelector('.a-easy').value = data.easy || '';
+            block.querySelector('.a-ig-title').value = data.igTitle || '';
+            block.querySelector('.a-ig-k1').value = data.igK1 || ''; block.querySelector('.a-ig-v1').value = data.igV1 || ''; block.querySelector('.a-ig-d1').value = data.igD1 || '';
+            block.querySelector('.a-ig-k2').value = data.igK2 || ''; block.querySelector('.a-ig-v2').value = data.igV2 || ''; block.querySelector('.a-ig-d2').value = data.igD2 || '';
+            block.querySelector('.a-ig-k3').value = data.igK3 || ''; block.querySelector('.a-ig-v3').value = data.igV3 || ''; block.querySelector('.a-ig-d3').value = data.igD3 || '';
+            block.querySelector('.a-ig-caption').value = data.igCaption || '';
+        }
+    }
+
+    /* =========================================================
+       3. DB 저장 및 HTML 파일 생성 (단축키 지원)
+       ========================================================= */
+    function showToast(msg) {
+        const toast = document.getElementById("toast");
+        toast.textContent = msg;
+        toast.className = "show";
+        setTimeout(() => toast.className = toast.className.replace("show", ""), 1000);
+    }
+
+    // 날짜 포맷 유틸
+    function getFormattedDates(dateStr) {
+        const date = new Date(dateStr);
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        return {
+            dash: dateStr,
+            dot: dateStr.replace(/-/g, '.'),
+            full: `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`
+        };
+    }
+
+    // 데이터 저장 단독 실행 함수
+    function handleSave() {
+        const data = gatherFormData();
+        if (!data) return alert('발행일자를 선택해주세요.');
+
+        if (db) {
+            const tx = db.transaction("newsletters", "readwrite");
+            const store = tx.objectStore("newsletters");
+            store.put(data);
+            tx.oncomplete = () => {
+                loadTimeline(); // 타임라인 즉시 업데이트
+                showToast("💾 저장이 완료되었습니다.");
+            };
+        }
+    }
+
+    // HTML 다운로드 실행 함수 (저장 후 빌드)
+    function handleDownload() {
+        const data = gatherFormData();
+        if (!data) return alert('발행일자를 선택해주세요.');
+
+        // 1. 자동 저장
+        if (db) {
+            const tx = db.transaction("newsletters", "readwrite");
+            const store = tx.objectStore("newsletters");
+            store.put(data);
+            tx.oncomplete = () => loadTimeline(); 
+        }
+
+        // 2. HTML 템플릿 조립 
+        const dates = getFormattedDates(data.date);
+        
+        let quoteHTML = '';
+        if (data.quoteKo) {
+            quoteHTML = `
+<div class="quote-card">
+    <div class="quote-header">💬 오늘의 한 줄</div>
+    <p class="quote-ko">"${data.quoteKo}"</p>
+    ${data.quoteEn ? `<p class="quote-en">"${data.quoteEn}"</p>` : ''}
+    ${data.quoteAuthor ? `<p class="quote-author">— ${data.quoteAuthor}</p>` : ''}
+    <button class="share-btn" type="button" aria-label="이 명언 공유하기" onclick="shareQuote('${data.quoteKo.replace(/'/g, "\\'")}', '${data.quoteEn.replace(/'/g, "\\'")}', '${data.quoteAuthor.replace(/'/g, "\\'")}')">📤 공유</button>
+</div>
+`;
+        }
+
+        let tocHTML = '';
+        let contentHTML = '';
+
+        data.articles.forEach((art, index) => {
+            const num = index + 1;
+            const contentPs = art.content.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('\n        ');
+            
+            let easyHTML = '';
+            if (art.easy) {
+                const easyPs = art.easy.split('\n').filter(p => p.trim() !== '').map(p => `<p>${p}</p>`).join('\n        ');
+                easyHTML = `\n    <div class="easy-box">\n        <div class="easy-title">💡 쉽게 풀어쓰면</div>\n        ${easyPs}\n    </div>`;
+            }
+
+            let igHTML = '';
+            if (art.igTitle) {
+                let trs = '';
+                if(art.igK1) trs += `<tr><td>${art.igK1}</td><td><strong>${art.igV1}</strong></td><td>${art.igD1}</td></tr>\n                `;
+                if(art.igK2) trs += `<tr><td>${art.igK2}</td><td><strong>${art.igV2}</strong></td><td>${art.igD2}</td></tr>\n                `;
+                if(art.igK3) trs += `<tr><td>${art.igK3}</td><td><strong>${art.igV3}</strong></td><td>${art.igD3}</td></tr>`;
+
+                igHTML = `\n    <div class="infographic">\n        <div class="ig-title">${art.igTitle}</div>\n        <table class="data-table">\n            <tbody>\n                ${trs}\n            </tbody>\n        </table>\n        <div class="ig-caption">${art.igCaption}</div>\n    </div>`;
+            }
+
+            tocHTML += `\n    <a href="#a${num}" class="toc-item"><span class="toc-num">${num}</span><span>${art.title}</span></a>`;
+
+            contentHTML += `
+<article class="article" id="a${num}">
+    <div class="article-header">
+        <span class="num">No. ${num}</span>
+        <h3>${art.title}</h3>
+    </div>
+    <div class="body">
+        ${contentPs}
+    </div>${easyHTML}${igHTML}
+</article>
+`;
+        });
+
+        // 템플릿 합성
+        const cssContent = document.getElementById('original-css').innerHTML;
+        const jsContent = document.getElementById('original-js').innerHTML;
+
+        const finalHTML = `<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#1a3a6c">
+<title>뉴스 · ${dates.dot}</title>
+<meta name="description" content="${dates.full} 발행 — 주요 IT 뉴스 요약">
+<link rel="icon" type="image/png" href="../assets/title.png">
+<link rel="apple-touch-icon" href="../assets/title.png">
+${cssContent}
+</head>
+<body>
+
+<div class="top-bar">
+    <a href="../index.html" class="title">📰 뉴스</a>
+    <div class="top-bar-actions">
+        <button class="share-btn" id="topShareBtn" type="button" style="padding: 4px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.25);">📤 공유</button>
+        <button class="share-btn" style="padding: 4px 10px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.25); pointer-events: none;">${dates.dot}</button>
+    </div>
+</div>
+
+<div class="cover">
+    <div class="label">D A I L Y &nbsp; B R I E F</div>
+    <h1>뉴스</h1>
+    <div class="subtitle">주요 IT 뉴스 한눈에</div>
+    <div class="date-info">${dates.full}</div>
+</div>
+
+<div class="toc">
+    <h2>📑 오늘의 헤드라인</h2>${tocHTML}
+</div>
+
+${quoteHTML}
+
+${contentHTML}
+
+<div class="share-section">
+    <button class="issue-share-btn" type="button" id="shareIssueBtn">📤 이 뉴스 전체 공유하기</button>
+</div>
+
+<div class="footer-note">
+    📰 본 뉴스레터는 ${dates.full}자 신문 기사를<br/>요약·정리한 자료입니다.<br/><br/>
+    개인 학습·기록 목적으로 작성되었으며,<br/>원문 저작권은 각 언론사에 있습니다.
+</div>
+
+${jsContent}
+</body>
+</html>`;
+
+        // 3. 브라우저 단에서 다운로드 실행
+        const blob = new Blob([finalHTML], { type: 'text/html;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `${dates.dash}.html`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        
+        showToast("📥 다운로드가 완료되었습니다.");
+    }
+
+    // 단축키 설정
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+Alt+N : 신규 생성
+        if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'n') {
+            e.preventDefault();
+            createNew();
+        }
+        // Ctrl+S : 저장 단축키로 변경
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+            e.preventDefault();
+            handleSave();
+        }
+    });
+
+    // 앱 초기화 구동
+    window.onload = () => {
+        initDB();
+        createNew(); // 시작 시 오늘 날짜로 빈 폼 세팅
+    };
+</script>
+</body>
+</html>
