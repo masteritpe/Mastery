@@ -47,6 +47,12 @@
         overflow: hidden; 
     }
 
+    /* === 몰입 모드 (Ctrl+H) === */
+    body.immersive aside, 
+    body.immersive .toolbar {
+        display: none !important;
+    }
+
     /* === 전체 레이아웃 === */
     .app-container { display: flex; height: 100vh; width: 100%; }
 
@@ -368,11 +374,13 @@
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('hangul')" title="Ctrl+2">가. (중분류)</button>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('number')" title="Ctrl+3">1) (소분류)</button>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertDash()" title="Ctrl+4">- (세부)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="moveToMain()" title="Ctrl+M">본문 이동</button>
                 
                 <div style="width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px;"></div>
                 
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertEndText()">끝.</button>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertCenterText()">이하 여백</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="document.body.classList.toggle('immersive'); updateStats();" title="Ctrl+H" style="color:var(--primary);">몰입 모드</button>
             </div>
             <div style="font-size:0.95rem; color:var(--text-muted); font-weight: 500;">
                 작성 분량: <span id="statLines" style="font-weight:800; color:var(--primary); font-size:1.2rem;">0</span> 줄 
@@ -477,6 +485,14 @@
             if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key === 's' || e.key === 'S')) {
                 e.preventDefault(); saveRecord(); return;
             }
+            
+            // 몰입 모드 단축키 추가
+            if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key.toLowerCase() === 'h')) {
+                e.preventDefault(); 
+                document.body.classList.toggle('immersive'); 
+                updateStats(); 
+                return;
+            }
 
             if (document.activeElement === editor) {
                 if (e.key === 'Tab') {
@@ -485,11 +501,42 @@
                     updateStats();
                 }
                 
+                // 💡 엔터키 입력 시, 기호(span) 및 서식이 다음 줄로 넘어가는 것을 완벽하게 차단
+                if (e.key === 'Enter') {
+                    setTimeout(() => {
+                        const sel = window.getSelection();
+                        if (!sel.rangeCount) return;
+                        let node = sel.anchorNode;
+                        if (node.nodeType === 3) node = node.parentNode;
+                        const div = node.closest('div');
+                        
+                        if (div && div !== editor) {
+                            const textContent = div.innerText.replace(/\u200B/g, '').trim();
+                            // 새로 생성된 줄이 본문 내용 없이 여백 기호(-)만 복제되어 비어있는 상태일 경우 차단
+                            if (textContent === '' || textContent === '-') { 
+                                const spans = div.querySelectorAll('.indent-span');
+                                if (spans.length > 0) {
+                                    spans.forEach(s => s.remove());
+                                    if(div.innerHTML.trim() === '') div.innerHTML = '<br>'; // 빈 줄로 완전 초기화
+                                }
+                                // 서식 초기화
+                                div.style.textAlign = 'left';
+                                div.style.paddingLeft = '0';
+                                document.execCommand('removeFormat', false, null);
+                                document.execCommand('foreColor', false, '#1e293b');
+                                document.execCommand('backColor', false, 'transparent');
+                            }
+                        }
+                        updateStats();
+                    }, 10);
+                }
+
                 if (e.ctrlKey && !e.altKey && !e.shiftKey) {
                     if (e.key === '1') { e.preventDefault(); insertMarker('roman'); }
                     else if (e.key === '2') { e.preventDefault(); insertMarker('hangul'); }
                     else if (e.key === '3') { e.preventDefault(); insertMarker('number'); }
                     else if (e.key === '4') { e.preventDefault(); insertDash(); }
+                    else if (e.key.toLowerCase() === 'm') { e.preventDefault(); moveToMain(); }
                     else if (e.key.toLowerCase() === 'b') { 
                         e.preventDefault(); document.execCommand('bold', false, null); updateStats(); 
                     }
@@ -528,7 +575,7 @@
             }
         });
 
-        /* ================= 💡 강화된 붙여넣기(Paste) 로직 ================= */
+        /* ================= 강화된 붙여넣기(Paste) 로직 ================= */
         editor.addEventListener('paste', function(e) {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             const htmlData = (e.clipboardData || e.originalEvent.clipboardData).getData('text/html');
@@ -735,15 +782,23 @@
         updateStats();
     }
 
-    function insertText(text) {
-        document.execCommand('insertText', false, text);
+    /* 💡 1px 단위로 보정된 탭(3칸 분량) 없이 위치로 한 번에 이동하는 로직 */
+    function insertDash() {
+        // padding-left 15px를 포함하여 세 번째 선(194px)에 완벽하게 일치하도록 180px 설정
+        const html = `<span class="indent-span" contenteditable="false" style="display:inline-block; width: 180px; box-sizing: border-box; text-align: right; padding-right: 7px; color: #1e293b; font-weight: normal;">-</span>&#8203;`;
+        document.execCommand('insertHTML', false, html);
         updateStats();
     }
 
-    function insertDash() {
-        // 1.5배 스케일업 된 기호 여백
-        const html = `<span contenteditable="false" style="display:inline-block; width: 187px; text-align: right; padding-right: 7px; color: #1e293b;">-</span>&nbsp;`;
+    function moveToMain() {
+        // padding-left 15px를 포함하여 세 번째 선(194px)에 완벽하게 일치하도록 180px 설정
+        const html = `<span class="indent-span" contenteditable="false" style="display:inline-block; width: 180px;"></span>&#8203;`;
         document.execCommand('insertHTML', false, html);
+        updateStats();
+    }
+
+    function insertText(text) {
+        document.execCommand('insertText', false, text);
         updateStats();
     }
 
@@ -757,6 +812,7 @@
         range.insertNode(blockDiv);
 
         const nextLine = document.createElement('div');
+        nextLine.style.textAlign = 'left'; // 다음 줄 서식 강제 초기화
         nextLine.innerHTML = '<br>';
         blockDiv.parentNode.insertBefore(nextLine, blockDiv.nextSibling);
 
@@ -793,7 +849,7 @@
         const el = document.getElementById('toast');
         el.innerText = msg;
         el.style.opacity = '1';
-        setTimeout(() => el.style.opacity = '0', 2500); 
+        setTimeout(() => el.style.opacity = '0', 1000); 
     }
 
     function downloadText() {
@@ -828,7 +884,6 @@
         showToast("✅ 텍스트 파일이 다운로드 되었습니다.");
     }
 
-    /* ================= 💡 1.5배 스케일과 A4 규격을 완벽하게 맞춘 궁극의 PDF 렌더링 ================= */
     function downloadPDF() {
         let title = document.getElementById('qTitle').value.trim();
         if (!title) title = "제목없음";
@@ -839,52 +894,40 @@
         const origTargetCss = target.style.cssText;
         const origEditorCss = editorEl.style.cssText;
 
-        // 💡 1. 렌더링 중 HTML 기본 테두리 및 붉은선 제거
         document.body.classList.add('pdf-export-mode');
 
-        // 💡 2. 내용물의 너비를 1010px로 고정 (화면에 꽉 차는 스케일 유지)
         target.style.width = '1010px';
         target.style.maxWidth = '1010px';
         target.style.padding = '0';
         target.style.boxShadow = 'none';
 
-        // 💡 3. 내용물의 높이를 1254px(57px * 22줄)의 배수로 꽉 채우도록 수학적 보정
-        editorEl.style.height = 'auto'; // 높이 초기화 후 실제 컨텐츠 크기 측정
+        editorEl.style.height = 'auto'; 
         const contentHeight = Math.max(editorEl.scrollHeight, 1254);
         const totalPages = Math.ceil(contentHeight / 1254);
-        editorEl.style.height = (totalPages * 1254) + 'px'; // 22줄 단위로 완벽하게 절단되도록 고정
+        editorEl.style.height = (totalPages * 1254) + 'px'; 
 
-        // 💡 4. A4 100% 완벽 비율 매핑 [가로 1130 x 세로 1598]
-        // - 본문 가로(1010) + 좌우 여백(120) = 총 1130px
-        // - 본문 세로(1254) + 상/하 여백(344) = 총 1598px (A4 1:1.414 완벽 비율)
-        // - 상/하 여백을 172px씩 분배하여 PDF 출력 시 페이지 위/아래가 안정적이고 여유롭게 배치됩니다.
         const opt = {
             margin:       [172, 60, 172, 60], 
             filename:     `${title}.pdf`,
             image:        { type: 'jpeg', quality: 1.0 },
-            html2canvas:  { scale: 3, useCORS: true, logging: false }, // 초고화질 적용
+            html2canvas:  { scale: 3, useCORS: true, logging: false }, 
             jsPDF:        { unit: 'px', format: [1130, 1598], orientation: 'portrait' } 
         };
 
         showToast("⏳ 1.5배 고해상도 및 뚜껑 닫힌 완벽한 PDF를 생성 중입니다...");
 
-        // 💡 5. PDF 엔진을 조작하여 "모든 페이지에 2중선 박스를 강제로 그려 넣기"
         html2pdf().set(opt).from(target).toPdf().get('pdf').then(function(pdf) {
             const pdfPages = pdf.internal.getNumberOfPages();
             
-            // 모든 분할된 페이지를 순회하며 절대로 잘리지 않는 벡터 테두리를 직접 그립니다.
             for (let i = 1; i <= pdfPages; i++) {
                 pdf.setPage(i);
                 pdf.setDrawColor(51, 65, 85); 
                 pdf.setLineWidth(1); 
                 
-                // 외부 박스 띠
                 pdf.rect(57, 169, 1016, 1260); 
-                // 내부 박스 띠 (이중선 구현)
                 pdf.rect(59, 171, 1012, 1256); 
             }
         }).save().then(() => {
-            // 완료 후 화면을 기존 스타일로 원상 복구
             document.body.classList.remove('pdf-export-mode');
             target.style.cssText = origTargetCss;
             editorEl.style.cssText = origEditorCss;
@@ -927,7 +970,7 @@
             await saveRecordToDB(record);
             currentLoadedId = targetId; 
             renderRecords();
-            showToast("✅ 답안이 안전하게 저장되었습니다.");
+            showToast("저장되었습니다.");
         } catch (e) {
             alert("❌ 저장 중 오류가 발생했습니다. 브라우저 저장 공간을 확인해주세요.");
         }
