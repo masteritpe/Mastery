@@ -47,6 +47,12 @@
         overflow: hidden; 
     }
 
+    /* === 몰입 모드 (Ctrl+H) === */
+    body.immersive aside, 
+    body.immersive .toolbar {
+        display: none !important;
+    }
+
     /* === 전체 레이아웃 === */
     .app-container { display: flex; height: 100vh; width: 100%; }
 
@@ -344,7 +350,7 @@
                 <button class="btn" onclick="clearPaper()" title="단축키: Ctrl + Alt + N">✨ 새 문서</button>
                 <button class="btn" onclick="downloadText()">⬇️ 텍스트 다운로드</button>
                 <button class="btn" onclick="downloadPDF()">📄 PDF 다운로드</button>
-                <button class="btn btn-primary" onclick="saveRecord()">💾 문서 저장</button>
+                <button class="btn btn-primary" onclick="saveRecord()" title="Ctrl+S">💾 문서 저장</button>
             </div>
         </div>
 
@@ -364,15 +370,17 @@
                 <span style="font-size:0.85rem; color:var(--text-muted); margin:0 5px; font-weight: 600;">기호/양식 삽입:</span>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertText('개요)\n')">개요)</button>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertText('내용)\n')">내용)</button>
-                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('roman')" title="Ctrl+1">Ⅰ. (대분류)</button>
-                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('hangul')" title="Ctrl+2">가. (중분류)</button>
-                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('number')" title="Ctrl+3">1) (소분류)</button>
-                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertDash()" title="Ctrl+4">- (세부)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('roman')" title="Alt+L">Ⅰ. (대분류)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('hangul')" title="Alt+M">가. (중분류)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertMarker('number')" title="Alt+S">1) (소분류)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertDash()" title="Alt+O">- (세부)</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="moveToMain()" title="Ctrl+M">본문 이동</button>
                 
                 <div style="width: 1px; height: 20px; background: #cbd5e1; margin: 0 4px;"></div>
                 
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertEndText()">끝.</button>
                 <button class="quick-btn" onmousedown="event.preventDefault()" onclick="insertCenterText()">이하 여백</button>
+                <button class="quick-btn" onmousedown="event.preventDefault()" onclick="document.body.classList.toggle('immersive'); updateStats();" title="Ctrl+H" style="color:var(--primary);">몰입 모드</button>
             </div>
             <div style="font-size:0.95rem; color:var(--text-muted); font-weight: 500;">
                 작성 분량: <span id="statLines" style="font-weight:800; color:var(--primary); font-size:1.2rem;">0</span> 줄 
@@ -448,6 +456,51 @@
     const romans = ['Ⅰ', 'Ⅱ', 'Ⅲ', 'Ⅳ', 'Ⅴ', 'Ⅵ', 'Ⅶ', 'Ⅷ', 'Ⅸ', 'Ⅹ'];
     const hanguls = ['가', '나', '다', '라', '마', '바', '사', '아', '자', '차', '카', '타', '파', '하'];
 
+    /* ================= 커스텀 폰트 및 스타일 적용 헬퍼 ================= */
+    function applyCustomStyleToSelection(styleCallback) {
+        const sel = window.getSelection();
+        if (!sel.rangeCount || sel.isCollapsed) return;
+
+        // 임시로 font 태그를 생성하여 선택 영역을 정확히 포착
+        document.execCommand("fontSize", false, "7");
+        const fonts = editor.querySelectorAll('font[size="7"]');
+        
+        fonts.forEach(f => {
+            const span = document.createElement('span');
+            styleCallback(span, f);
+            // 내부 노드 안전하게 이동
+            while(f.firstChild) {
+                span.appendChild(f.firstChild);
+            }
+            f.parentNode.replaceChild(span, f);
+        });
+        updateStats();
+    }
+
+    function increaseFontSize() {
+        applyCustomStyleToSelection((span, originalFontTag) => {
+            let parentEl = originalFontTag.parentNode;
+            let currentSize = parseFloat(window.getComputedStyle(parentEl).fontSize) || 32;
+            span.style.fontSize = (currentSize + 1) + 'px';
+        });
+    }
+
+    function decreaseFontSize() {
+        applyCustomStyleToSelection((span, originalFontTag) => {
+            let parentEl = originalFontTag.parentNode;
+            let currentSize = parseFloat(window.getComputedStyle(parentEl).fontSize) || 32;
+            span.style.fontSize = (currentSize - 1) + 'px';
+        });
+    }
+
+    function applyAcronymHighlight() {
+        applyCustomStyleToSelection((span) => {
+            span.style.backgroundColor = '#0d3a9e';
+            span.style.color = '#ffffff';
+            span.style.fontWeight = 'bold';
+        });
+    }
+
     window.onload = async function() {
         try {
             await initDB();
@@ -458,6 +511,7 @@
         
         updateStats();
 
+        // 실시간 커서 위치 백업
         document.addEventListener('selectionchange', function() {
             const sel = window.getSelection();
             if (sel.rangeCount > 0) {
@@ -476,6 +530,14 @@
             if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key === 's' || e.key === 'S')) {
                 e.preventDefault(); saveRecord(); return;
             }
+            
+            // 몰입 모드 단축키
+            if (e.ctrlKey && !e.altKey && !e.shiftKey && (e.key.toLowerCase() === 'h')) {
+                e.preventDefault(); 
+                document.body.classList.toggle('immersive'); 
+                updateStats(); 
+                return;
+            }
 
             if (document.activeElement === editor) {
                 if (e.key === 'Tab') {
@@ -484,40 +546,89 @@
                     updateStats();
                 }
                 
+                // 💡 엔터키 입력 시 깔끔한 초기화 처리
+                if (e.key === 'Enter') {
+                    setTimeout(() => {
+                        const sel = window.getSelection();
+                        if (!sel.rangeCount) return;
+                        let node = sel.anchorNode;
+                        if (node.nodeType === 3) node = node.parentNode;
+                        const div = node.closest('div');
+                        
+                        if (div && div !== editor) {
+                            const textContent = div.innerText.replace(/\u200B/g, '').trim();
+                            
+                            // 빈 줄이나 빈 세부(-) 줄에서 엔터를 쳤을 때 서식 제거 및 줄 초기화
+                            if (textContent === '' || textContent === '-') { 
+                                const spans = div.querySelectorAll('.indent-span');
+                                if (spans.length > 0) spans.forEach(s => s.remove());
+                                
+                                div.innerHTML = '<br>'; 
+                                div.style.textAlign = 'left';
+                                div.style.paddingLeft = '0';
+                                document.execCommand('removeFormat', false, null);
+                                document.execCommand('foreColor', false, '#1e293b');
+                                document.execCommand('backColor', false, 'transparent');
+                            }
+                        }
+                        updateStats();
+                    }, 10);
+                }
+
+                // --- 💡 1. 폰트 크기 조절 (CTRL+Plus, CTRL+Minus) ---
                 if (e.ctrlKey && !e.altKey && !e.shiftKey) {
-                    if (e.key === '1') { e.preventDefault(); insertMarker('roman'); }
-                    else if (e.key === '2') { e.preventDefault(); insertMarker('hangul'); }
-                    else if (e.key === '3') { e.preventDefault(); insertMarker('number'); }
-                    else if (e.key === '4') { e.preventDefault(); insertDash(); }
-                    else if (e.key.toLowerCase() === 'b') { 
-                        e.preventDefault(); document.execCommand('bold', false, null); updateStats(); 
-                    }
-                    else if (e.key.toLowerCase() === 'i') { 
-                        e.preventDefault(); document.execCommand('italic', false, null); updateStats(); 
-                    }
-                    else if (e.key.toLowerCase() === 'u') { 
-                        e.preventDefault(); document.execCommand('underline', false, null); updateStats(); 
+                    if (e.key === '=' || e.key === '+') { 
+                        e.preventDefault(); increaseFontSize(); 
+                    } else if (e.key === '-' || e.key === '_') { 
+                        e.preventDefault(); decreaseFontSize(); 
                     }
                 }
 
+                // --- 💡 2. 카테고리 단축키 개편 (ALT+L/M/S/O) ---
+                if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                    if (e.key.toLowerCase() === 'l') { e.preventDefault(); insertMarker('roman'); }
+                    else if (e.key.toLowerCase() === 'm') { e.preventDefault(); insertMarker('hangul'); }
+                    else if (e.key.toLowerCase() === 's') { e.preventDefault(); insertMarker('number'); }
+                    else if (e.key.toLowerCase() === 'o') { e.preventDefault(); insertDash(); }
+                }
+
+                // --- 💡 3. 기본 편집 기능 (CTRL+...) ---
+                if (e.ctrlKey && !e.altKey && !e.shiftKey) {
+                    // 볼드, 이탤릭, 밑줄, 취소선
+                    if (e.key.toLowerCase() === 'b') { e.preventDefault(); document.execCommand('bold', false, null); updateStats(); }
+                    else if (e.key.toLowerCase() === 'i') { e.preventDefault(); document.execCommand('italic', false, null); updateStats(); }
+                    else if (e.key.toLowerCase() === 'u') { e.preventDefault(); document.execCommand('underline', false, null); updateStats(); }
+                    else if (e.key === '0') { e.preventDefault(); document.execCommand('strikeThrough', false, null); updateStats(); }
+                    
+                    // 마크(형광펜) 1~7
+                    else if (e.key === '1') { e.preventDefault(); document.execCommand('backColor', false, '#ffedd5'); updateStats(); } // 연한 주황
+                    else if (e.key === '2') { e.preventDefault(); document.execCommand('backColor', false, '#dbeafe'); updateStats(); } // 연한 파랑
+                    else if (e.key === '3') { e.preventDefault(); document.execCommand('backColor', false, '#fef08a'); updateStats(); } // 연한 노랑
+                    else if (e.key === '4') { e.preventDefault(); document.execCommand('backColor', false, '#dcfce7'); updateStats(); } // 연한 녹색
+                    else if (e.key === '5') { e.preventDefault(); document.execCommand('backColor', false, '#fce7f3'); updateStats(); } // 연한 분홍
+                    else if (e.key === '6') { e.preventDefault(); document.execCommand('backColor', false, '#eed5b7'); updateStats(); } // 연한 갈색
+                    else if (e.key === '7') { e.preventDefault(); document.execCommand('backColor', false, '#f1f5f9'); updateStats(); } // 연한 회색
+
+                    // 본문 이동
+                    else if (e.key.toLowerCase() === 'm') { e.preventDefault(); moveToMain(); }
+                }
+
+                // --- 💡 4. 특수 색상 및 강조 (CTRL+ALT+...) ---
                 if (e.ctrlKey && e.altKey && !e.shiftKey) {
-                    if (e.key === '5') {
-                        e.preventDefault(); document.execCommand('strikeThrough', false, null); updateStats();
-                    }
-                    else if (e.key.toLowerCase() === 'r') {
-                        e.preventDefault(); document.execCommand('foreColor', false, '#ef4444'); updateStats();
-                    }
-                    else if (e.key.toLowerCase() === 'b') {
-                        e.preventDefault(); document.execCommand('foreColor', false, '#2563eb'); updateStats();
-                    }
-                    else if (e.key.toLowerCase() === 'm') {
-                        e.preventDefault(); document.execCommand('backColor', false, '#ffedd5'); updateStats();
-                    }
+                    // 텍스트 색상
+                    if (e.key.toLowerCase() === 'r') { e.preventDefault(); document.execCommand('foreColor', false, '#ef4444'); updateStats(); }
+                    else if (e.key.toLowerCase() === 'b') { e.preventDefault(); document.execCommand('foreColor', false, '#2563eb'); updateStats(); }
+                    else if (e.key.toLowerCase() === 'g') { e.preventDefault(); document.execCommand('foreColor', false, '#16a34a'); updateStats(); }
+                    
+                    // 두음 강조 (남색 배경, 흰색, 볼드)
+                    else if (e.key.toLowerCase() === 'm') { e.preventDefault(); applyAcronymHighlight(); }
                 }
                 
+                // --- 💡 5. 서식 지우기 환원 (CTRL+SHIFT+X) ---
                 if (e.ctrlKey && e.shiftKey && !e.altKey) {
                     if (e.key.toLowerCase() === 'x') {
                         e.preventDefault();
+                        // 표준 execCommand 서식 초기화 (굵기, 색상, 배경 등 기본 속성 제거)
                         document.execCommand('removeFormat', false, null);
                         document.execCommand('foreColor', false, '#1e293b');
                         document.execCommand('backColor', false, 'transparent');
@@ -734,15 +845,76 @@
         updateStats();
     }
 
-    function insertText(text) {
-        document.execCommand('insertText', false, text);
+    /* 💡 에러 방지용: 현재 줄(Line)의 탭 개수를 가장 안전하게 계산하는 함수 */
+    function getTabsBeforeCursor() {
+        try {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return 0;
+            
+            const range = sel.getRangeAt(0);
+            let node = range.startContainer;
+            
+            // 현재 위치에서 가장 가까운 줄바꿈(DIV) 요소를 안전하게 찾음
+            let div = node.nodeType === 3 ? node.parentNode : node;
+            while (div && div.nodeName !== 'DIV' && div !== editor) {
+                div = div.parentNode;
+            }
+            if (!div) div = editor;
+
+            const preCaretRange = range.cloneRange();
+            preCaretRange.selectNodeContents(div);
+            preCaretRange.setEnd(range.startContainer, range.startOffset);
+            
+            const text = preCaretRange.textContent || "";
+            return (text.match(/\t/g) || []).length;
+        } catch (e) {
+            console.error("탭 계산 오류 우회 완료:", e);
+            return 0; // 예외 발생 시 에러를 뱉지 않고 0으로 안전하게 반환
+        }
+    }
+
+    /* 💡 세부(-) 삽입 로직
+       - 브라우저 명령 생략이나 충돌을 막기 위해 단일 insertHTML 호출로 수정
+       - 세 번째 칸(60px) 우측 끝에 대시(-)를 예쁘게 배치 (우측 여백 14px 줌)
+       - 직후 글을 타이핑하면 완벽하게 본문 시작점(180px)에서 작성됨 */
+    function insertDash() {
+        let currentTabs = getTabsBeforeCursor();
+        let tabsNeeded = 2 - currentTabs;
+        if (tabsNeeded < 0) tabsNeeded = 0; 
+        
+        let html = '';
+        // 필요한 개수만큼의 탭(HTML 엔티티)을 문자열로 누적
+        for (let i = 0; i < tabsNeeded; i++) {
+            html += '&#9;';
+        }
+        
+        // 3번째 칸을 담당하는 60px 크기의 블록을 삽입. 내부 텍스트는 오른쪽 정렬.
+        html += `<span class="indent-span" contenteditable="false" style="display:inline-block; width: 60px; box-sizing: border-box; text-align: right; padding-right: 14px; color: #1e293b; font-weight: normal; user-select: none;">-</span>&#8203;`;
+        
+        document.execCommand('insertHTML', false, html);
         updateStats();
     }
 
-    function insertDash() {
-        // 1.5배 스케일업 된 기호 여백
-        const html = `<span contenteditable="false" style="display:inline-block; width: 187px; text-align: right; padding-right: 7px; color: #1e293b;">-</span>&nbsp;`;
+    /* 💡 본문 이동 로직
+       - 현재 탭 개수를 파악하여 3번째 줄(본문 시작점)로 가기 위해 부족한 만큼만 채움 */
+    function moveToMain() {
+        let currentTabs = getTabsBeforeCursor();
+        let tabsNeeded = 3 - currentTabs;
+        
+        // 버튼을 누른 경우 제자리걸음 방지 (최소 1칸은 무조건 띄워줌)
+        if (tabsNeeded <= 0) tabsNeeded = 1; 
+        
+        let html = '';
+        for (let i = 0; i < tabsNeeded; i++) {
+            html += '&#9;';
+        }
+        
         document.execCommand('insertHTML', false, html);
+        updateStats();
+    }
+
+    function insertText(text) {
+        document.execCommand('insertText', false, text);
         updateStats();
     }
 
@@ -756,6 +928,7 @@
         range.insertNode(blockDiv);
 
         const nextLine = document.createElement('div');
+        nextLine.style.textAlign = 'left'; // 다음 줄 서식 강제 초기화
         nextLine.innerHTML = '<br>';
         blockDiv.parentNode.insertBefore(nextLine, blockDiv.nextSibling);
 
