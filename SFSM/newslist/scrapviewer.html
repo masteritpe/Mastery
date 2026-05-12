@@ -130,7 +130,7 @@ header .brand i { font-size: 22px; color: var(--accent); }
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-secondary btn-icon" id="btn-zoom-out" title="축소 (Ctrl -)"><i class="fas fa-search-minus"></i></button>
                 <button class="btn btn-secondary btn-icon" id="btn-zoom-in" title="확대 (Ctrl +)"><i class="fas fa-search-plus"></i></button>
-                <button class="btn btn-secondary btn-icon" id="btn-zoom-reset" title="원래 크기(화면 맞춤)"><i class="fas fa-compress"></i></button>
+                <button class="btn btn-secondary btn-icon" id="btn-zoom-reset" title="원래 크기(ESC / 화면 맞춤)"><i class="fas fa-compress"></i></button>
             </div>
         </div>
 
@@ -268,6 +268,13 @@ const App = {
                 return;
             }
 
+            // ★ 원래 크기로 복귀 (ESC)
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                this.setZoom(1);
+                return;
+            }
+
             // 스크롤 상/하
             if (e.key === 'AudioVolumeUp' || e.key === 'VolumeUp' || e.key === 'ArrowUp') {
                 e.preventDefault();
@@ -280,12 +287,36 @@ const App = {
                 return;
             }
 
-            // 이전/다음 파일 이동
-            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+            // 좌우 스크롤 및 파일 이동 (화살표 좌/우)
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                const hasHorizontalScroll = viewer.scrollWidth > viewer.clientWidth + 1; // 오차 보정
+                if (hasHorizontalScroll) {
+                    viewer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                } else {
+                    const nextIndex = this.selectedFileIndex < this.files.length - 1 ? this.selectedFileIndex + 1 : 0;
+                    this.loadImage(nextIndex);
+                }
+                return;
+            }
+            if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                const hasHorizontalScroll = viewer.scrollWidth > viewer.clientWidth + 1; // 오차 보정
+                if (hasHorizontalScroll) {
+                    viewer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                } else {
+                    const prevIndex = this.selectedFileIndex > 0 ? this.selectedFileIndex - 1 : this.files.length - 1;
+                    this.loadImage(prevIndex);
+                }
+                return;
+            }
+
+            // 이전/다음 파일 이동 (스페이스바, PageUp/Down)
+            if (e.key === ' ' || e.key === 'PageDown') {
                 e.preventDefault();
                 const nextIndex = this.selectedFileIndex < this.files.length - 1 ? this.selectedFileIndex + 1 : 0;
                 this.loadImage(nextIndex);
-            } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            } else if (e.key === 'PageUp') {
                 e.preventDefault();
                 const prevIndex = this.selectedFileIndex > 0 ? this.selectedFileIndex - 1 : this.files.length - 1;
                 this.loadImage(prevIndex);
