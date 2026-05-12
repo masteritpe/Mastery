@@ -66,9 +66,9 @@ header { padding: 12px 16px; background: rgba(255, 255, 255, 0.95); backdrop-fil
 
 .item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
 .badge-number { background: var(--primary); color: white; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 13px; font-weight: 700; }
-.item-header-text { font-size: 14px; font-weight: 700; color: var(--primary); }
+.item-header-text { font-size: 16px; font-weight: 700; color: var(--primary); }
 
-.rich-text { font-size: 15px; line-height: 1.6; color: var(--text-main); word-break: break-word; overflow-wrap: break-word; width: 100%; }
+.rich-text { font-size: 18px; line-height: 1.7; color: var(--text-main); word-break: break-word; overflow-wrap: break-word; width: 100%; }
 .rich-text img { max-width: 100% !important; height: auto !important; display: block !important; clear: both; border-radius: 6px; margin: 8px auto 8px 0 !important; border: 1px solid var(--border-base); cursor: zoom-in; }
 .rich-text p:has(img) { text-align: left !important; }
 .rich-text table { max-width: 100% !important; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; border-collapse: collapse; margin: 12px 0; white-space: nowrap; }
@@ -76,7 +76,7 @@ header { padding: 12px 16px; background: rgba(255, 255, 255, 0.95); backdrop-fil
 .rich-text p:last-child { margin-bottom: 0; }
 .rich-text ul, .rich-text ol { padding-left: 20px; margin: 8px 0; }
 
-.section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+.section-label { font-size: 16px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
 
 .box-prob { margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
 .grid-meta { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
@@ -608,7 +608,7 @@ function showDetail(note, isFreshLoad = true, startIdx = 1, endIdx = null) {
         if (viewConfig.showSolution && !isEmptyHTML(item.solution)) {
             html += `
             <div class="box-sol">
-                <div class="section-label" style="color:var(--primary);"><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</div>
+                <div class="section-label" style="color:var(--text-muted);"><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</div>
                 <div class="rich-text">${item.solution}</div>
             </div>`;
         }

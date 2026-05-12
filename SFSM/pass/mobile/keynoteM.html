@@ -64,10 +64,10 @@ header { padding: 12px 16px; background: rgba(255, 255, 255, 0.95); backdrop-fil
 .item-card { background: var(--card); border: 1px solid var(--border-base); border-radius: 12px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); max-width: 100%; }
 .item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
 .badge-number { background: var(--primary); color: white; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 13px; font-weight: 700; }
-.item-header-text { font-size: 14px; font-weight: 700; color: var(--primary); }
+.item-header-text { font-size: 16px; font-weight: 700; color: var(--primary); }
 
 /* 리치 텍스트 제어 및 반응형 설정 */
-.rich-text { font-size: 15px; line-height: 1.6; color: var(--text-main); word-break: break-word; overflow-wrap: break-word; width: 100%; }
+.rich-text { font-size: 18px; line-height: 1.7; color: var(--text-main); word-break: break-word; overflow-wrap: break-word; width: 100%; }
 .rich-text img { 
     max-width: 100% !important; 
     height: auto !important; 
@@ -83,7 +83,9 @@ header { padding: 12px 16px; background: rgba(255, 255, 255, 0.95); backdrop-fil
 .rich-text p { margin: 0 0 0.5em 0; clear: both; }
 .rich-text p:last-child { margin-bottom: 0; }
 .rich-text ul, .rich-text ol { padding-left: 20px; margin: 8px 0; }
-.section-label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
+
+/* 수정: 리드문, 개념, 풀이 라벨 사이즈 추가 증가 (16px) */
+.section-label { font-size: 16px; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 4px; margin-bottom: 6px; }
 
 .box-prob { margin-bottom: 16px; max-width: 100%; overflow-x: auto; }
 .grid-meta { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 16px; }
@@ -309,7 +311,6 @@ function renderList(items) {
     items.forEach(item => {
         const div = document.createElement('div');
         div.className = 'doc-card';
-        // 클릭 시 바로 상세뷰가 아닌 범위 설정 모달 호출
         div.onclick = () => openRangeModal(item);
         
         const itemCount = item.items ? item.items.length : 0;
@@ -340,7 +341,6 @@ function openRangeModal(note) {
     currentSelectedNote = note;
     document.getElementById('range-modal-title').textContent = note.title || '(제목 없음)';
     
-    // 입력창 초기화 (placeholder에 기본값 표시)
     document.getElementById('range-start').value = '';
     document.getElementById('range-start').placeholder = '1';
     document.getElementById('range-end').value = '';
@@ -359,7 +359,6 @@ document.getElementById('btn-study-range').addEventListener('click', () => {
     const startVal = document.getElementById('range-start').value;
     const endVal = document.getElementById('range-end').value;
     
-    // 비어있으면 기본값 적용
     let start = startVal ? parseInt(startVal, 10) : 1;
     let end = endVal ? parseInt(endVal, 10) : total;
 
@@ -388,7 +387,6 @@ function showDetail(note, startIdx = 1, endIdx = null) {
     const total = note.items ? note.items.length : 0;
     const actualEnd = endIdx !== null ? endIdx : total;
     
-    // 지정한 범위가 전체가 아닐 경우 제목 옆에 범위 표기
     const rangeText = (startIdx === 1 && actualEnd === total) 
         ? '' 
         : ` <span style="font-size:14px; color:var(--text-muted); font-weight:500;">(${startIdx}~${actualEnd}번)</span>`;
@@ -399,11 +397,9 @@ function showDetail(note, startIdx = 1, endIdx = null) {
     container.innerHTML = '';
 
     const items = note.items || [];
-    // 선택된 범위만큼 배열 슬라이싱 (1-based index 처리)
     const targetItems = items.slice(startIdx - 1, actualEnd);
     
     targetItems.forEach((item, index) => {
-        // 실제 원래 문항 번호를 뱃지에 표기
         const originalIndex = startIdx + index;
         const card = document.createElement('div');
         card.className = 'item-card';
@@ -415,12 +411,10 @@ function showDetail(note, startIdx = 1, endIdx = null) {
             </div>
         `;
 
-        // 문제
         if (!isEmptyHTML(item.problem)) {
             html += `<div class="box-prob rich-text">${item.problem}</div>`;
         }
 
-        // 리드문 & 개념
         const hasLead = !isEmptyHTML(item.lead);
         const hasConc = !isEmptyHTML(item.concept);
         
@@ -443,11 +437,10 @@ function showDetail(note, startIdx = 1, endIdx = null) {
             html += `</div>`;
         }
 
-        // 풀이
         if (!isEmptyHTML(item.solution)) {
             html += `
             <div class="box-sol">
-                <div class="section-label" style="color:var(--primary);"><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</div>
+                <div class="section-label" style="color:var(--text-muted);"><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</div>
                 <div class="rich-text">${item.solution}</div>
             </div>`;
         } else {
