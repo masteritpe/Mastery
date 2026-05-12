@@ -205,6 +205,18 @@
     body.immersion-mode .top-bar { display: none !important; }
     body.immersion-mode .form-wrapper { padding-top: 50px; } 
 
+    /* ✨ 카드 모드 (Card Mode) ✨ */
+    body.card-mode .sidebar { display: none !important; }
+    body.card-mode .top-bar { display: none !important; }
+    body.card-mode .form-wrapper { padding-top: 50px; } 
+    body.card-mode .keynote-card { display: none; } /* 기본적으로 전체 숨김 */
+    body.card-mode .keynote-card.active-card { display: block; animation: fadeIn 0.3s ease; } /* 활성화된 카드만 표시 */
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     /* 토스트 알림 */
     .toast {
       visibility: hidden;
@@ -242,7 +254,9 @@
       .form-wrapper { padding: 0; max-width: 100%; margin: 0; }
       .edit-ui { display: none !important; }
       .print-ui { display: block !important; }
-      .keynote-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 45px !important; break-inside: avoid; page-break-inside: avoid; }
+      
+      /* ✨ 프린트 시 카드 모드 숨김 해제 ✨ */
+      .keynote-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 45px !important; break-inside: avoid; page-break-inside: avoid; display: block !important; }
 
       .print-lead { font-size: 11.5pt; color: #4B5563; background-color: #F9FAFB !important; border-left: 3px solid #9CA3AF; padding: 10px 14px; margin-bottom: 14px; line-height: 1.4; word-break: keep-all; border-radius: 0 4px 4px 0; }
       .print-prob { font-size: 16pt; font-weight: 700; color: #111827; margin-bottom: 12px; line-height: 1.3; letter-spacing: -0.03em; word-break: keep-all; display: flex; align-items: flex-start; gap: 8px; }
@@ -349,6 +363,7 @@
             <li><b>저장하기:</b> Ctrl + S</li>
             <li><b>문서 검색:</b> Ctrl + E</li>
             <li><b>몰입 모드(UI 숨기기):</b> Ctrl + H</li>
+            <li><b style="color:var(--primary);">카드 모드(1문항씩 보기):</b> Ctrl + M (좌/우 방향키로 이동)</li>
             <li><b>화면 스크롤:</b> 화살표 위/아래 (입력 중이 아닐 때)</li>
             <li><b>글자 확대/축소:</b> Ctrl + ➕ / ➖</li>
             <li><b>두음 강조(남색+흰글씨):</b> Ctrl + Alt + M</li>
@@ -453,6 +468,10 @@
     let editors = [];
     let currentEditorFontSize = 18; /* 수정: JS 초기 폰트 사이즈 18 */
     let activeTargetImage = null;
+
+    // ✨ 카드 모드 관련 전역 변수 ✨
+    let isCardMode = false;
+    let currentCardIndex = 1;
 
     // 🌟 스크롤 맨 위로 올리는 함수 추가
     function scrollToTop() {
@@ -593,6 +612,63 @@
       }, true);
     });
 
+    // ✨ 공통 토스트 메시지 호출 함수 ✨
+    function showToast(msg, icon = 'ph-check') {
+      const toast = document.getElementById('saveToast');
+      toast.innerHTML = `<i class="ph-bold ${icon}"></i> ${msg}`;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 1500);
+    }
+
+    // ✨ 카드 모드 토글 함수 ✨
+    function toggleCardMode() {
+      isCardMode = !isCardMode;
+      const cards = document.querySelectorAll('.keynote-card');
+      
+      if (isCardMode) {
+        document.body.classList.add('card-mode');
+        
+        // 현재 스크롤 위치에서 가장 가까운 카드를 찾아서 시작점으로 설정
+        let closestIndex = 1;
+        let minDistance = Infinity;
+        cards.forEach((card, i) => {
+          const rect = card.getBoundingClientRect();
+          if (Math.abs(rect.top) < minDistance) {
+            minDistance = Math.abs(rect.top);
+            closestIndex = i + 1;
+          }
+        });
+        
+        currentCardIndex = closestIndex;
+        updateCardVisibility();
+        showToast('카드 모드 ON (좌/우 방향키 이동)', 'ph-browsers');
+      } else {
+        document.body.classList.remove('card-mode');
+        cards.forEach(c => c.classList.remove('active-card'));
+        
+        // 기존 뷰로 돌아갈 때 해당 카드로 스크롤 맞춰줌
+        const targetCard = cards[currentCardIndex - 1];
+        if (targetCard) targetCard.scrollIntoView({ behavior: 'auto', block: 'start' });
+        
+        showToast('카드 모드 OFF', 'ph-browsers');
+      }
+    }
+
+    // ✨ 카드 화면 업데이트 함수 ✨
+    function updateCardVisibility() {
+      const cards = document.querySelectorAll('.keynote-card');
+      cards.forEach((card, index) => {
+        if (index === currentCardIndex - 1) {
+          card.classList.add('active-card');
+        } else {
+          card.classList.remove('active-card');
+        }
+      });
+      scrollToTop(); // 카드 이동 시 항상 스크롤 맨 위로
+    }
+
     // ✅ 단축키 처리를 최상위 이벤트로 이관하여 Quill.js API를 직접 호출
     document.addEventListener('keydown', function(e) {
       const isCtrl = e.ctrlKey || e.metaKey;
@@ -614,7 +690,15 @@
         document.body.classList.toggle('immersion-mode');
         return;
       }
-      // 4. 글자 크기 변경 (Ctrl + / - / =)
+      
+      // ✨ 4. 카드 모드 (Ctrl + M) ✨
+      if (isCtrl && !isAlt && (e.key === 'm' || e.key === 'M')) {
+        e.preventDefault(); 
+        toggleCardMode();
+        return;
+      }
+
+      // 5. 글자 크기 변경 (Ctrl + / - / =)
       if (isCtrl && !isAlt && (e.key === '+' || e.key === '=' || e.key === '-')) {
         e.preventDefault(); 
         if (e.key === '+' || e.key === '=') currentEditorFontSize = Math.min(currentEditorFontSize + 1, 32); 
@@ -623,7 +707,7 @@
         return;
       }
 
-      // 5. 두음 강조 (Ctrl + Alt + M) - 에디터 포맷 강제 적용
+      // 6. 두음 강조 (Ctrl + Alt + M) - 에디터 포맷 강제 적용
       if (isCtrl && isAlt && e.key.toLowerCase() === 'm') {
         e.preventDefault(); 
         
@@ -653,7 +737,7 @@
         return;
       }
 
-      // 6. 문서 검색창 포커스 (Ctrl + E)
+      // 7. 문서 검색창 포커스 (Ctrl + E)
       if (isCtrl && !isAlt && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
         const searchInput = document.getElementById('searchInput');
@@ -669,8 +753,8 @@
         closeTopicListModal();
       }
       
-      // 7. 방향키 스크롤 (편집 모드가 아닐 때)
-      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // ✨ 8. 방향키 스크롤 및 카드 이동 (편집 모드가 아닐 때) ✨
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const activeEl = document.activeElement;
         const isEditing = activeEl && (
           activeEl.tagName === 'INPUT' || 
@@ -686,8 +770,27 @@
           
           if (e.key === 'ArrowUp') {
             mainContent.scrollTop -= scrollAmount;
-          } else {
+          } else if (e.key === 'ArrowDown') {
             mainContent.scrollTop += scrollAmount;
+          } 
+          // 카드 모드일 경우 좌/우 이동 기능 활성화
+          else if (isCardMode) {
+            if (e.key === 'ArrowLeft') {
+              if (currentCardIndex > 1) {
+                currentCardIndex--;
+                updateCardVisibility();
+              } else {
+                showToast('첫 번째 문항입니다', 'ph-warning-circle');
+              }
+            } else if (e.key === 'ArrowRight') {
+              const totalCards = parseInt(document.getElementById('itemCount').value);
+              if (currentCardIndex < totalCards) {
+                currentCardIndex++;
+                updateCardVisibility();
+              } else {
+                showToast('마지막 문항입니다', 'ph-warning-circle');
+              }
+            }
           }
         }
       }
@@ -803,19 +906,25 @@
           const div = document.createElement('div');
           div.className = 'topic-modal-item';
           
-          // 항목 클릭 시 해당 카드로 스크롤
+          // 항목 클릭 시 해당 카드로 스크롤 (카드모드 고려)
           div.onclick = () => {
             closeTopicListModal();
             const targetCard = document.getElementById(`prob-${i}`).closest('.keynote-card');
+            
             if (targetCard) {
-              targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              
-              // 시각적 피드백 효과 (반짝임)
-              targetCard.style.transition = 'box-shadow 0.3s ease';
-              targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
-              setTimeout(() => {
-                targetCard.style.boxShadow = 'var(--shadow-md)';
-              }, 1200);
+              if (isCardMode) {
+                currentCardIndex = i;
+                updateCardVisibility();
+              } else {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // 시각적 피드백 효과 (반짝임)
+                targetCard.style.transition = 'box-shadow 0.3s ease';
+                targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
+                setTimeout(() => {
+                  targetCard.style.boxShadow = 'var(--shadow-md)';
+                }, 1200);
+              }
             }
           };
           
@@ -890,6 +999,8 @@
     const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
     function generateForms(count = null) {
+      if (isCardMode) { toggleCardMode(); } // 새로 생성시 카드모드 초기화 해제
+      
       const container = document.getElementById('formContainer');
       const countInput = document.getElementById('itemCount');
       if (count !== null) countInput.value = count;
@@ -1012,6 +1123,7 @@
         const card = document.createElement('div');
         card.className = 'keynote-card';
         // 고유 ID 추가하여 모달에서 스크롤 이동이 용이하도록 함
+        card.id = `card-${i}`;
         card.innerHTML = `
           <div class="edit-ui">
             <div class="card-header"><div class="badge-number">${i}</div></div>
@@ -1135,6 +1247,7 @@
         
         // 🌟 토스트 알림 노출
         const toast = document.getElementById('saveToast');
+        toast.innerHTML = `<i class="ph-bold ph-check"></i> 저장되었습니다`;
         toast.classList.add('show');
         setTimeout(() => {
           toast.classList.remove('show');
@@ -1239,6 +1352,7 @@
     }
 
     function loadNote(note) {
+      if (isCardMode) { toggleCardMode(); } // 새로 불러올때 카드모드 리셋
       currentNoteId = note.id; document.getElementById('docTitle').value = note.title;
       const items = note.items || []; document.getElementById('itemCount').value = items.length || 19;
       generateForms(items.length || 19);
@@ -1262,6 +1376,7 @@
     }
 
     function createNewNote() { 
+      if (isCardMode) { toggleCardMode(); } // 새로 작성시 카드모드 리셋
       currentNoteId = null; 
       document.getElementById('docTitle').value = ''; 
       document.getElementById('itemCount').value = 19; 
