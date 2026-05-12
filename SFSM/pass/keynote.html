@@ -33,7 +33,7 @@
       --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
       --radius-md: 8px;
       --radius-lg: 12px;
-      --editor-font-size: 18px; /* 수정: 기본 폰트 사이즈 18px */
+      --editor-font-size: 18px;
     }
 
     * { box-sizing: border-box; }
@@ -57,7 +57,7 @@
     }
     .app-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; width: 100%; }
     
-    /* ✅ 완료 통계 뱃지 스타일 추가 */
+    /* ✅ 완료 통계 뱃지 스타일 수정 (클릭 및 활성화 상태 추가) */
     .completion-stats {
       display: none;
       align-items: center;
@@ -69,9 +69,23 @@
       border: 1px solid #A7F3D0;
       padding: 3px 8px;
       border-radius: 12px;
-      margin-left: auto; /* 우측으로 밀기 */
+      margin-left: auto;
       line-height: 1;
       white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .completion-stats:hover {
+      background: #D1FAE5;
+    }
+    .completion-stats.active {
+      background: #059669;
+      color: #FFFFFF;
+      border-color: #047857;
+    }
+    .completion-stats.active:hover {
+      background: #047857;
     }
 
     /* 검색창 영역 */
@@ -91,7 +105,7 @@
     .main-content { 
       flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); position: relative; 
       overflow-anchor: none; 
-      scroll-behavior: smooth; /* 부드러운 스크롤 */
+      scroll-behavior: smooth;
     }
     
     /* 탑바 */
@@ -123,7 +137,6 @@
     .edit-ui .badge-number { background: var(--primary); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; font-weight: 700; }
     .edit-ui .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
     
-    /* 수정: 라벨 폰트 18px 및 아이콘 크기 20px로 증가 */
     .edit-ui .form-group label { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
     .edit-ui .form-group label i { font-size: 20px; } 
 
@@ -145,7 +158,7 @@
     .ql-editor img:hover { opacity: 0.85; outline: 2px solid var(--primary); outline-offset: 2px; }
     .ql-editor img.img-highlight { outline: 4px solid #FDBA74 !important; outline-offset: 2px !important; border-radius: 4px !important; }
 
-    /* ✅ 붙여넣기 한 표(Table) 원본 유지용 래퍼 스타일 (Keynote 테마 맞춤) */
+    /* 붙여넣기 한 표(Table) 원본 유지용 래퍼 스타일 */
     .quill-raw-table {
         margin: 1rem 0;
         width: 100%;
@@ -177,7 +190,7 @@
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
     .modal-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
-    /* 🔥 토픽 리스트 모달 전용 스타일 */
+    /* 토픽 리스트 모달 전용 스타일 */
     .topic-modal-item {
       padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; display: flex; align-items: flex-start; gap: 12px; transition: background 0.2s;
     }
@@ -205,12 +218,12 @@
     body.immersion-mode .top-bar { display: none !important; }
     body.immersion-mode .form-wrapper { padding-top: 50px; } 
 
-    /* ✨ 카드 모드 (Card Mode) ✨ */
+    /* 카드 모드 (Card Mode) */
     body.card-mode .sidebar { display: none !important; }
     body.card-mode .top-bar { display: none !important; }
     body.card-mode .form-wrapper { padding-top: 50px; } 
-    body.card-mode .keynote-card { display: none; } /* 기본적으로 전체 숨김 */
-    body.card-mode .keynote-card.active-card { display: block; animation: fadeIn 0.3s ease; } /* 활성화된 카드만 표시 */
+    body.card-mode .keynote-card { display: none; }
+    body.card-mode .keynote-card.active-card { display: block; animation: fadeIn 0.3s ease; }
     
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
@@ -255,7 +268,6 @@
       .edit-ui { display: none !important; }
       .print-ui { display: block !important; }
       
-      /* ✨ 프린트 시 카드 모드 숨김 해제 ✨ */
       .keynote-card { border: none !important; box-shadow: none !important; padding: 0 !important; margin-bottom: 45px !important; break-inside: avoid; page-break-inside: avoid; display: block !important; }
 
       .print-lead { font-size: 11.5pt; color: #4B5563; background-color: #F9FAFB !important; border-left: 3px solid #9CA3AF; padding: 10px 14px; margin-bottom: 14px; line-height: 1.4; word-break: keep-all; border-radius: 0 4px 4px 0; }
@@ -264,7 +276,6 @@
       
       .print-divider { border: 0; border-top: 2px solid #111827; margin-bottom: 16px; margin-top: 8px; }
       
-      /* 출력 시 이미지 정렬(float, margin 등)이 유지되도록 강제 속성 제거 */
       .print-ui img { max-width: 100% !important; page-break-inside: avoid; }
       
       .print-ui p { margin-top: 0; margin-bottom: 0.3em; display: block; }
@@ -282,7 +293,7 @@
     <div class="sidebar-header">
       <div class="app-title">
         <i class="ph-fill ph-notebook"></i> Keynote
-        <div id="completionStats" class="completion-stats"></div>
+        <div id="completionStats" class="completion-stats" onclick="toggleCompletedFilter()" title="완료된 문항만 보기"></div>
       </div>
     </div>
     <div class="sidebar-search">
@@ -404,13 +415,12 @@
   <div id="saveToast" class="toast"><i class="ph-bold ph-check"></i> 저장되었습니다</div>
 
   <script>
-    // ✅ 표(Table) 붙여넣기 원본 보호를 위한 커스텀 모듈 등록
     const BlockEmbed = Quill.import('blots/block/embed');
     class RawTableBlot extends BlockEmbed {
         static create(value) {
             const node = super.create();
             node.innerHTML = value;
-            node.setAttribute('contenteditable', 'false'); // 에디터 내부에서 표 구조 깨짐 방지
+            node.setAttribute('contenteditable', 'false');
             return node;
         }
         static value(node) {
@@ -422,7 +432,6 @@
     RawTableBlot.className = 'quill-raw-table';
     Quill.register(RawTableBlot, true);
 
-    // ✅ 정렬 및 리사이징 속성 유지를 위해 Custom Image Format 확장
     const BaseImageFormat = Quill.import('formats/image');
     class ImageFormat extends BaseImageFormat {
       static formats(domNode) {
@@ -467,14 +476,15 @@
     let leadEditors = [];
     let concEditors = [];
     let editors = [];
-    let currentEditorFontSize = 18; /* 수정: JS 초기 폰트 사이즈 18 */
+    let currentEditorFontSize = 18; 
     let activeTargetImage = null;
 
-    // ✨ 카드 모드 관련 전역 변수 ✨
     let isCardMode = false;
     let currentCardIndex = 1;
 
-    // 🌟 스크롤 맨 위로 올리는 함수 추가
+    // ✨ 완료 항목 필터링용 상태 변수
+    let showOnlyCompleted = false;
+
     function scrollToTop() {
       const mainContent = document.getElementById('mainContent');
       if (mainContent) {
@@ -482,7 +492,18 @@
       }
     }
 
-    // 🌟 테두리 적용 및 해제 버튼 추가 로직 (이미지 리사이즈 툴바 연동)
+    // ✨ 필터링 토글 함수
+    function toggleCompletedFilter() {
+      showOnlyCompleted = !showOnlyCompleted;
+      renderNoteList();
+      
+      if (showOnlyCompleted) {
+        showToast('완료된(_COM) 항목만 봅니다', 'ph-funnel');
+      } else {
+        showToast('모든 항목을 봅니다', 'ph-list');
+      }
+    }
+
     function injectImageHighlightButton() {
       let attempts = 0;
       const interval = setInterval(() => {
@@ -507,24 +528,20 @@
                 toolbar.style.display = 'flex';
                 toolbar.style.alignItems = 'center';
 
-                // 구분선과 버튼들을 담을 그룹 컨테이너 생성
                 const group = document.createElement('div');
                 group.className = 'custom-btn-group';
                 group.style.cssText = 'display: flex; align-items: center; gap: 4px; border-left: 1px solid #D1D5DB; padding-left: 8px; margin-left: 8px; height: 100%;';
 
-                // 1. 테두리 적용 버튼
                 const btnHighlight = document.createElement('div');
                 btnHighlight.title = '테두리 형광펜 적용';
                 btnHighlight.innerHTML = '<i class="ph-bold ph-highlighter"></i>';
                 btnHighlight.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; cursor: pointer; font-size: 16px; border-radius: 4px; transition: 0.1s;';
 
-                // 2. 테두리 지우기 (원복) 버튼
                 const btnClear = document.createElement('div');
                 btnClear.title = '테두리 지우기 (원복)';
                 btnClear.innerHTML = '<i class="ph-bold ph-eraser"></i>';
                 btnClear.style.cssText = 'display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; cursor: pointer; font-size: 16px; border-radius: 4px; transition: 0.1s; color: #4B5563;';
 
-                // 상태 업데이트 함수 (현재 활성화된 이미지의 highlight 여부에 따라 버튼 색상 변경)
                 const updateBtnStates = () => {
                   const isHighlighted = activeTargetImage && activeTargetImage.classList.contains('img-highlight');
                   if (isHighlighted) {
@@ -538,14 +555,12 @@
 
                 updateBtnStates();
 
-                // 호버 효과
                 btnHighlight.onmouseenter = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = '#F3F4F6'; };
                 btnHighlight.onmouseleave = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = 'transparent'; };
                 
                 btnClear.onmouseenter = () => { btnClear.style.background = '#FEE2E2'; btnClear.style.color = '#DC2626'; };
                 btnClear.onmouseleave = () => { btnClear.style.background = 'transparent'; btnClear.style.color = '#4B5563'; };
 
-                // 툴바 닫힘 방지
                 [btnHighlight, btnClear].forEach(btn => {
                   btn.addEventListener('mousedown', (e) => {
                     e.preventDefault();
@@ -553,7 +568,6 @@
                   });
                 });
 
-                // 테두리 적용 이벤트
                 btnHighlight.addEventListener('click', (e) => {
                   e.preventDefault(); e.stopPropagation();
                   if (activeTargetImage) {
@@ -566,7 +580,6 @@
                   }
                 });
 
-                // 테두리 해제(원복) 이벤트
                 btnClear.addEventListener('click', (e) => {
                   e.preventDefault(); e.stopPropagation();
                   if (activeTargetImage) {
@@ -589,7 +602,6 @@
       }, 50);
     }
 
-    // 이미지를 클릭할 때마다 툴바 삽입 함수 실행
     document.addEventListener('mousedown', function(e) {
       if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
         activeTargetImage = e.target;
@@ -613,7 +625,6 @@
       }, true);
     });
 
-    // ✨ 공통 토스트 메시지 호출 함수 ✨
     function showToast(msg, icon = 'ph-check') {
       const toast = document.getElementById('saveToast');
       toast.innerHTML = `<i class="ph-bold ${icon}"></i> ${msg}`;
@@ -623,7 +634,6 @@
       }, 1500);
     }
 
-    // ✨ 카드 모드 토글 함수 ✨
     function toggleCardMode() {
       isCardMode = !isCardMode;
       const cards = document.querySelectorAll('.keynote-card');
@@ -631,7 +641,6 @@
       if (isCardMode) {
         document.body.classList.add('card-mode');
         
-        // 현재 스크롤 위치에서 가장 가까운 카드를 찾아서 시작점으로 설정
         let closestIndex = 1;
         let minDistance = Infinity;
         cards.forEach((card, i) => {
@@ -649,7 +658,6 @@
         document.body.classList.remove('card-mode');
         cards.forEach(c => c.classList.remove('active-card'));
         
-        // 기존 뷰로 돌아갈 때 해당 카드로 스크롤 맞춰줌
         const targetCard = cards[currentCardIndex - 1];
         if (targetCard) targetCard.scrollIntoView({ behavior: 'auto', block: 'start' });
         
@@ -657,7 +665,6 @@
       }
     }
 
-    // ✨ 카드 화면 업데이트 함수 ✨
     function updateCardVisibility() {
       const cards = document.querySelectorAll('.keynote-card');
       cards.forEach((card, index) => {
@@ -667,39 +674,32 @@
           card.classList.remove('active-card');
         }
       });
-      scrollToTop(); // 카드 이동 시 항상 스크롤 맨 위로
+      scrollToTop(); 
     }
 
-    // ✅ 단축키 처리를 최상위 이벤트로 이관하여 Quill.js API를 직접 호출
     document.addEventListener('keydown', function(e) {
       const isCtrl = e.ctrlKey || e.metaKey;
       const isAlt = e.altKey;
 
-      // 1. 저장 (Ctrl + S)
       if (isCtrl && !isAlt && (e.key === 's' || e.key === 'S')) {
         e.preventDefault(); saveCurrentNote();
         return;
       }
-      // 2. 새 문서 (Ctrl + Alt + N)
       if (isCtrl && isAlt && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault(); createNewNote();
         return;
       }
-      // 3. 몰입 모드 (Ctrl + H)
       if (isCtrl && !isAlt && (e.key === 'h' || e.key === 'H')) {
         e.preventDefault(); 
         document.body.classList.toggle('immersion-mode');
         return;
       }
-      
-      // ✨ 4. 카드 모드 (Ctrl + M) ✨
       if (isCtrl && !isAlt && (e.key === 'm' || e.key === 'M')) {
         e.preventDefault(); 
         toggleCardMode();
         return;
       }
 
-      // 5. 글자 크기 변경 (Ctrl + / - / =)
       if (isCtrl && !isAlt && (e.key === '+' || e.key === '=' || e.key === '-')) {
         e.preventDefault(); 
         if (e.key === '+' || e.key === '=') currentEditorFontSize = Math.min(currentEditorFontSize + 1, 32); 
@@ -708,11 +708,9 @@
         return;
       }
 
-      // 6. 두음 강조 (Ctrl + Alt + M) - 에디터 포맷 강제 적용
       if (isCtrl && isAlt && e.key.toLowerCase() === 'm') {
         e.preventDefault(); 
         
-        // 현재 포커스된 에디터 찾기
         let activeQuill = null;
         const allEditors = [...probEditors, ...leadEditors, ...concEditors, ...editors];
         for (const q of allEditors) {
@@ -726,10 +724,8 @@
           const range = activeQuill.getSelection();
           if(range && range.length > 0) {
             const currentFormats = activeQuill.getFormat(range);
-            // 배경색이 현재 파란색인지 확인하여 토글
             const isActive = currentFormats.background === '#0d3a9e';
             
-            // 포맷 적용 (배경색, 글자색, 굵기)
             activeQuill.formatText(range.index, range.length, 'background', isActive ? false : '#0d3a9e');
             activeQuill.formatText(range.index, range.length, 'color', isActive ? false : '#ffffff');
             activeQuill.formatText(range.index, range.length, 'bold', isActive ? false : true);
@@ -738,7 +734,6 @@
         return;
       }
 
-      // 7. 문서 검색창 포커스 (Ctrl + E)
       if (isCtrl && !isAlt && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
         const searchInput = document.getElementById('searchInput');
@@ -753,13 +748,10 @@
         closeImageViewer();
         closeTopicListModal();
 
-        // ✨ 에디터 포커스 아웃 (보기 모드로 빠져나오기) - 이미지 편집 시 제외
         let isImageEditing = false;
         document.querySelectorAll('.ql-container').forEach(container => {
-          // imageResize 모듈이 생성한 오버레이 확인
           const overlays = Array.from(container.children).filter(el => !el.classList.length);
           overlays.forEach(overlay => {
-            // 오버레이가 숨김 처리되지 않았고 내부에 리사이즈 핸들이나 툴바(svg)가 있는 경우
             if (overlay.style.display !== 'none' && overlay.querySelector('svg')) {
               isImageEditing = true;
             }
@@ -776,14 +768,13 @@
           );
           
           if (isEditing) {
-            activeEl.blur(); // 포커스 해제
-            window.getSelection().removeAllRanges(); // 선택 영역 초기화
+            activeEl.blur(); 
+            window.getSelection().removeAllRanges(); 
             showToast('보기 모드로 전환되었습니다', 'ph-eye');
           }
         }
       }
       
-      // ✨ 8. 방향키 스크롤 및 카드 이동 (편집 모드가 아닐 때) ✨
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const activeEl = document.activeElement;
         const isEditing = activeEl && (
@@ -803,7 +794,6 @@
           } else if (e.key === 'ArrowDown') {
             mainContent.scrollTop += scrollAmount;
           } 
-          // 카드 모드일 경우 좌/우 이동 기능 활성화
           else if (isCardMode) {
             if (e.key === 'ArrowLeft') {
               if (currentCardIndex > 1) {
@@ -840,7 +830,6 @@
       }
     }, true);
 
-    // ✅ 검색창 엔터 & 타이핑 이벤트 핸들러
     function handleSearchInput(event) {
       renderNoteList();
       if (event.key === 'Enter') {
@@ -848,18 +837,15 @@
       }
     }
 
-    // ✅ 현재 본문에서 텍스트 찾기 (브라우저 기본 검색 + 강제 스크롤)
     function searchInContent() {
       const searchTerm = document.getElementById('searchInput').value;
       if (!searchTerm) return;
 
       const selection = window.getSelection();
 
-      // 브라우저 내장 검색 실행 (대소문자 무시, 감싸기 허용)
       let found = window.find(searchTerm, false, false, true, false, false, false);
       
       if (!found) {
-        // 끝까지 검색했으면 커서를 초기화하고 처음부터 다시 검색 시도
         selection.removeAllRanges();
         found = window.find(searchTerm, false, false, true, false, false, false);
         
@@ -869,24 +855,20 @@
         }
       }
 
-      // 🌟 핵심: overflow: auto 상태인 메인 영역에서도 화면 중앙으로 강제 스크롤
       if (found && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         let element = range.startContainer;
         
-        // 텍스트 노드인 경우 부모 엘리먼트를 선택
         if (element.nodeType === 3) {
           element = element.parentElement;
         }
         
-        // 해당 엘리먼트 위치로 부드럽게 스크롤
         if (element && element.scrollIntoView) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
       }
     }
 
-    /* 🔥 전체 문항 리스트 모달 제어 및 렌더링 함수 */
     function openTopicListModal() {
       document.getElementById('modalSearchInput').value = '';
       document.getElementById('modalSearchType').value = 'all';
@@ -911,7 +893,6 @@
       for (let i = 1; i <= num; i++) {
         if (!probEditors[i-1]) continue;
         
-        // 각 에디터 영역에서 텍스트만 추출
         const probText = probEditors[i-1].getText().toLowerCase();
         const leadText = leadEditors[i-1].getText().toLowerCase();
         const concText = concEditors[i-1].getText().toLowerCase();
@@ -925,18 +906,16 @@
         else if (searchType === 'title') isMatch = titleMatch;
         else if (searchType === 'content') isMatch = contentMatch;
         
-        if (!keyword) isMatch = true; // 검색어가 없으면 모두 표시
+        if (!keyword) isMatch = true;
 
         if (isMatch) {
           hasResult = true;
-          // 리스트에 보여줄 제목 텍스트 (문제 영역 텍스트 기준)
           let displayTitle = probEditors[i-1].getText().trim();
           if (!displayTitle) displayTitle = '(문제 내용 없음)';
           
           const div = document.createElement('div');
           div.className = 'topic-modal-item';
           
-          // 항목 클릭 시 해당 카드로 스크롤 (카드모드 고려)
           div.onclick = () => {
             closeTopicListModal();
             const targetCard = document.getElementById(`prob-${i}`).closest('.keynote-card');
@@ -948,7 +927,6 @@
               } else {
                 targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
-                // 시각적 피드백 효과 (반짝임)
                 targetCard.style.transition = 'box-shadow 0.3s ease';
                 targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
                 setTimeout(() => {
@@ -970,7 +948,6 @@
         container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">검색 결과가 없습니다.</div>';
       }
     }
-
 
     function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
     function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
@@ -1029,7 +1006,7 @@
     const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
     function generateForms(count = null) {
-      if (isCardMode) { toggleCardMode(); } // 새로 생성시 카드모드 초기화 해제
+      if (isCardMode) { toggleCardMode(); } 
       
       const container = document.getElementById('formContainer');
       const countInput = document.getElementById('itemCount');
@@ -1041,7 +1018,6 @@
       container.innerHTML = '';
       probEditors = []; leadEditors = []; concEditors = []; editors = [];
 
-      // 나머지 단축키 매핑 (두음 강조는 글로벌 이벤트로 이관했으므로 제외)
       const customBindings = {
         customStrike: { 
           key: '0', shortKey: true, 
@@ -1092,35 +1068,30 @@
         }
       };
 
-      // ✅ 표(Table) 붙여넣기 이벤트 가로채기 객체 (표 내부 수식까지 렌더링)
       const Delta = Quill.import('delta');
       const tableMatcher = function(node, delta) {
-        // 1. 표 내부의 모든 텍스트 노드를 샅샅이 찾습니다.
         const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
         const textNodes = [];
         while (walker.nextNode()) textNodes.push(walker.currentNode);
 
-        // 2. 찾은 텍스트 노드 중에 $수식$ 형태가 있으면 KaTeX로 변환해서 끼워넣습니다.
         textNodes.forEach(textNode => {
           const text = textNode.nodeValue;
           if (/\$([^$]+)\$/.test(text)) {
             const span = document.createElement('span');
             span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
               try {
-                return katex.renderToString(formula, { throwOnError: false }); // HTML 수식으로 렌더링
+                return katex.renderToString(formula, { throwOnError: false });
               } catch (e) {
-                return match; // 에러가 나면 원본 유지
+                return match; 
               }
             });
-            textNode.parentNode.replaceChild(span, textNode); // 기존 텍스트 시을 수식이 적용된 span으로 교체
+            textNode.parentNode.replaceChild(span, textNode); 
           }
         });
 
-        // 3. 수식이 모두 예쁘게 변환된 표 전체를 저장합니다.
         return new Delta().insert({ rawTable: node.outerHTML });
       };
 
-      // ✅ $수식$ 텍스트를 수식으로 변환하는 Matcher (일반 텍스트용)
       const mathMatcher = function(node, delta) {
         if (node.nodeType === Node.TEXT_NODE) {
           const text = node.data;
@@ -1135,7 +1106,7 @@
             if (match.index > lastIndex) {
               newDelta.insert(text.substring(lastIndex, match.index));
             }
-            newDelta.insert({ formula: match[1] }); // KaTeX 수식 블록으로 삽입
+            newDelta.insert({ formula: match[1] }); 
             lastIndex = regex.lastIndex;
           }
           
@@ -1152,7 +1123,6 @@
       for (let i = 1; i <= num; i++) {
         const card = document.createElement('div');
         card.className = 'keynote-card';
-        // 고유 ID 추가하여 모달에서 스크롤 이동이 용이하도록 함
         card.id = `card-${i}`;
         card.innerHTML = `
           <div class="edit-ui">
@@ -1190,7 +1160,6 @@
         `;
         container.appendChild(card);
 
-        // ✅ 모든 에디터 영역에 imageResize 정렬 툴바 추가
         const qProb = new Quill(`#prob-${i}`, { 
           theme: 'snow', scrollingContainer: '#mainContent', placeholder: '문제를 입력하세요', 
           modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
@@ -1235,7 +1204,7 @@
             keyboard: { bindings: customBindings },
             imageResize: { 
               displaySize: true,
-              modules: ['Resize', 'DisplaySize', 'Toolbar'] // ✅ 정렬 툴바가 활성화됨
+              modules: ['Resize', 'DisplaySize', 'Toolbar'] 
             }
           }
         });
@@ -1261,7 +1230,6 @@
       return { id: currentNoteId || generateId(), title: title, date: new Date().toISOString(), items: items };
     }
 
-    // ✅ 저장 시 토스트 알림 표시 로직으로 수정
     function saveCurrentNote() {
       const mainContent = document.getElementById('mainContent');
       const currentScroll = mainContent.scrollTop;
@@ -1275,7 +1243,6 @@
         
         renderNoteList(); 
         
-        // 🌟 토스트 알림 노출
         const toast = document.getElementById('saveToast');
         toast.innerHTML = `<i class="ph-bold ph-check"></i> 저장되었습니다`;
         toast.classList.add('show');
@@ -1329,7 +1296,6 @@
           list.innerHTML = '';
           const rawNotes = request.result;
 
-          // ✅ 완료 데이터(_COM) 통계 계산 유지
           let comCount = 0;
           let comProblems = 0;
           rawNotes.forEach(note => {
@@ -1339,29 +1305,38 @@
             }
           });
 
-          // ✅ 계산된 통계 UI 업데이트 유지
           const statsEl = document.getElementById('completionStats');
           if (statsEl) {
             if (comCount > 0) {
               statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`;
               statsEl.style.display = 'inline-flex';
+              
+              // ✨ 토글 상태에 따른 스타일(클래스) 적용
+              if (showOnlyCompleted) {
+                statsEl.classList.add('active');
+              } else {
+                statsEl.classList.remove('active');
+              }
             } else {
               statsEl.style.display = 'none';
+              if(showOnlyCompleted) showOnlyCompleted = false; // 항목이 없으면 필터 해제
             }
           }
 
-          // ✅ 정렬 방식 변경: 제목 기준 오름차순 (자연 정렬)
           const notes = rawNotes.sort((a, b) => {
             return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
           });
           
           notes.forEach(note => {
-            // ✅ 검색 조건: 제목 또는 내용 포함 여부 확인
+            // ✨ 완료 항목 보기 모드일 때 _COM이 아니면 스킵
+            if (showOnlyCompleted && (!note.title || !note.title.endsWith('_COM'))) {
+                return;
+            }
+
             let isMatch = note.title.toLowerCase().includes(searchTerm);
             
             if (!isMatch && note.items) {
               isMatch = note.items.some(item => {
-                // HTML 태그를 제거한 순수 텍스트로 변환하여 검색
                 const textToSearch = [item.problem, item.lead, item.concept, item.solution]
                   .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase())
                   .join(' ');
@@ -1382,13 +1357,12 @@
     }
 
     function loadNote(note) {
-      if (isCardMode) { toggleCardMode(); } // 새로 불러올때 카드모드 리셋
+      if (isCardMode) { toggleCardMode(); } 
       currentNoteId = note.id; document.getElementById('docTitle').value = note.title;
       const items = note.items || []; document.getElementById('itemCount').value = items.length || 19;
       generateForms(items.length || 19);
       
       items.forEach((item, index) => {
-        // 줄바꿈 보존을 위한 HTML 문자열 가공
         const processHtml = (html) => {
           if (html && !html.includes('<p>') && !html.includes('<br>')) return html.replace(/\n/g, '<br>');
           return html || '';
@@ -1401,19 +1375,17 @@
       }); 
       renderNoteList();
 
-      // ✅ 문서 불러온 후 스크롤을 맨 위로만 이동 (포커스는 주지 않음)
       setTimeout(() => { scrollToTop(); }, 50);
     }
 
     function createNewNote() { 
-      if (isCardMode) { toggleCardMode(); } // 새로 작성시 카드모드 리셋
+      if (isCardMode) { toggleCardMode(); } 
       currentNoteId = null; 
       document.getElementById('docTitle').value = ''; 
       document.getElementById('itemCount').value = 19; 
       generateForms(19); 
       renderNoteList(); 
 
-      // ✅ 신규 작성 시 스크롤을 맨 위로만 이동 (포커스는 주지 않음)
       setTimeout(() => { scrollToTop(); }, 50);
     }
     
