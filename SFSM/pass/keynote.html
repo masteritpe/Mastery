@@ -34,6 +34,11 @@
       --radius-md: 8px;
       --radius-lg: 12px;
       --editor-font-size: 18px;
+
+      /* 5R Colors */
+      --5r-active-bg: #EFF6FF;
+      --5r-active-text: #2563EB;
+      --5r-idle-text: #6B7280;
     }
 
     * { box-sizing: border-box; }
@@ -57,7 +62,7 @@
     }
     .app-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; width: 100%; }
     
-    /* ✅ 완료 통계 뱃지 스타일 수정 (클릭 및 활성화 상태 추가) */
+    /* 완료 통계 뱃지 스타일 */
     .completion-stats {
       display: none;
       align-items: center;
@@ -88,11 +93,20 @@
       background: #047857;
     }
 
+    /* 탭 스위치 디자인 */
+    .sidebar-tabs { display: flex; border-bottom: 1px solid var(--border-base); background: #F9FAFB; }
+    .sidebar-tab { flex: 1; text-align: center; padding: 14px 0; font-size: 13px; font-weight: 700; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: 0.2s; user-select: none; }
+    .sidebar-tab:hover { color: var(--primary); }
+    .sidebar-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: var(--bg-surface); }
+
+    .view-container { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+    .hidden { display: none !important; }
+
     /* 검색창 영역 */
-    .sidebar-search { padding: 12px 20px; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
+    .sidebar-search { padding: 16px 20px; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
     .search-box { width: 100%; padding: 8px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-base); font-size: 13px; background: var(--bg-body); outline: none; }
     .search-box:focus { border-color: var(--primary); }
-    
+
     .note-list { flex: 1; overflow-y: auto; padding: 10px; margin: 0; list-style: none; }
     .note-item { padding: 10px 14px; border-radius: var(--radius-md); cursor: pointer; margin-bottom: 4px; transition: background 0.2s; display: flex; flex-direction: column; gap: 4px; }
     .note-item:hover { background: var(--bg-sidebar); }
@@ -117,7 +131,7 @@
       display: flex; justify-content: space-between; align-items: center; z-index: 5; 
       transition: transform 0.3s ease, height 0.3s ease, opacity 0.3s ease;
     }
-    .title-input { font-size: 20px; font-weight: 700; border: none; background: transparent; outline: none; width: 400px; color: var(--text-main); }
+    .title-input { font-size: 20px; font-weight: 700; border: none; background: transparent; outline: none; width: 500px; color: var(--text-main); }
     .title-input::placeholder { color: var(--border-dark); }
     .actions { display: flex; gap: 8px; align-items: center; }
     .divider { width: 1px; height: 20px; background: var(--border-dark); margin: 0 4px; }
@@ -133,8 +147,19 @@
     .form-wrapper { padding: 30px 40px; max-width: 1000px; margin: 0 auto; width: 100%; transition: padding 0.3s ease; }
     .keynote-card { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-md); transition: box-shadow 0.3s; }
     
-    .edit-ui .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
-    .edit-ui .badge-number { background: var(--primary); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; font-weight: 700; }
+    .edit-ui .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .edit-ui .badge-number { background: var(--primary); color: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+    
+    /* 5R Selector 스타일 */
+    .r5-container { display: flex; gap: 8px; margin-left: 8px; flex-wrap: wrap; }
+    .r5-pill { 
+      padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--5r-idle-text); 
+      background: #F3F4F6; cursor: pointer; transition: all 0.2s ease; border: 1px solid transparent;
+      user-select: none; line-height: 1; display: flex; align-items: center;
+    }
+    .r5-pill:hover { background: #E5E7EB; }
+    .r5-pill.active { background: var(--5r-active-bg); color: var(--5r-active-text); border-color: #BFDBFE; }
+
     .edit-ui .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
     
     .edit-ui .form-group label { font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
@@ -296,16 +321,40 @@
         <div id="completionStats" class="completion-stats" onclick="toggleCompletedFilter()" title="완료된 문항만 보기"></div>
       </div>
     </div>
-    <div class="sidebar-search">
-      <div style="display: flex; gap: 8px;">
-        <input type="text" id="searchInput" class="search-box" placeholder="제목 또는 내용 검색..." spellcheck="false" onkeyup="handleSearchInput(event)">
-        <button class="btn btn-outline" style="padding: 0 12px; flex-shrink: 0;" onclick="searchInContent()" onmousedown="event.preventDefault()" title="현재 본문 내 검색">
-          <i class="ph-bold ph-magnifying-glass"></i>
-        </button>
-      </div>
-    </div>
     
-    <ul class="note-list" id="noteList"></ul>
+    <div class="sidebar-tabs">
+      <div class="sidebar-tab active" onclick="switchSidebarTab('notes')" id="tab-notes">키노트 조회</div>
+      <div class="sidebar-tab" onclick="switchSidebarTab('items')" id="tab-items">항목 조회 (5R)</div>
+    </div>
+
+    <div id="view-notes" class="view-container">
+      <div class="sidebar-search">
+        <div style="display: flex; gap: 8px;">
+          <input type="text" id="searchInput" class="search-box" placeholder="제목 또는 내용 검색..." spellcheck="false" onkeyup="handleSearchInput(event)">
+          <button class="btn btn-outline" style="padding: 0 12px; flex-shrink: 0;" onclick="searchInContent()" onmousedown="event.preventDefault()" title="현재 본문 내 검색">
+            <i class="ph-bold ph-magnifying-glass"></i>
+          </button>
+        </div>
+      </div>
+      <ul class="note-list" id="noteList"></ul>
+    </div>
+
+    <div id="view-items" class="view-container hidden">
+      <div class="sidebar-search" style="border-bottom: 1px solid var(--border-base); display: flex; flex-direction: column; gap: 12px; padding: 16px 20px;">
+        <div style="display: flex; gap: 8px; align-items: flex-start;">
+          <label style="font-size: 12px; font-weight: 600; width: 45px; flex-shrink: 0; padding-top: 6px; color: var(--text-muted);">5R 유형</label>
+          <div class="r5-container" id="sidebar5RContainer" style="margin: 0; gap: 6px;">
+            <div class="r5-pill active" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Root')">Root</div>
+            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Regular')">Regular</div>
+            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rule')">Rule</div>
+            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rush')">Rush</div>
+          </div>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted);"><i class="ph-bold ph-info"></i> 완료된(_COM) 문서만 대상입니다.</div>
+      </div>
+      <ul id="itemList" class="note-list"></ul>
+    </div>
+
     <div style="padding: 20px; border-top: 1px solid var(--border-base);">
       <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="createNewNote()">
         <i class="ph ph-plus"></i> 새 키노트 작성
@@ -317,7 +366,7 @@
     <div class="top-bar">
       <input type="text" id="docTitle" class="title-input" placeholder="제목을 입력하세요" spellcheck="false">
       <div class="actions">
-        <button class="btn btn-outline" onclick="openTopicListModal()" title="전체 문항 리스트 보기"><i class="ph ph-list-dashes"></i></button>
+        <button class="btn btn-outline" onclick="openTopicListModal()" title="현재 문서의 전체 문항 리스트 보기"><i class="ph ph-list-dashes"></i></button>
         <button class="btn btn-outline" onclick="openSettings()" title="환경설정"><i class="ph ph-gear"></i></button>
         <div class="divider"></div>
         <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importJSON(event)">
@@ -349,7 +398,7 @@
           <input type="text" id="modalSearchInput" class="search-box" style="background: var(--bg-surface);" placeholder="검색어를 입력하세요..." oninput="filterTopicList()">
         </div>
         <div id="topicListContainer" style="flex: 1; overflow-y: auto; padding: 0;">
-            </div>
+        </div>
       </div>
     </div>
 
@@ -482,21 +531,55 @@
     let isCardMode = false;
     let currentCardIndex = 1;
 
-    // ✨ 완료 항목 필터링용 상태 변수
     let showOnlyCompleted = false;
+    
+    // Refuge가 제외된 새로운 5R 상수
+    const FIVE_R_TYPES = ['Root', 'Regular', 'Rule', 'Rush'];
 
-    function scrollToTop() {
-      const mainContent = document.getElementById('mainContent');
-      if (mainContent) {
-        mainContent.scrollTo({ top: 0, behavior: 'auto' });
+    // 탭 모드 상태 제어
+    let currentSidebarTab = 'notes'; // 'notes' or 'items'
+
+    function switchSidebarTab(tab) {
+      currentSidebarTab = tab;
+      
+      document.getElementById('tab-notes').classList.remove('active');
+      document.getElementById('tab-items').classList.remove('active');
+      document.getElementById(`tab-${tab}`).classList.add('active');
+
+      if (tab === 'notes') {
+        document.getElementById('view-notes').classList.remove('hidden');
+        document.getElementById('view-items').classList.add('hidden');
+        
+        // 이전 노트로 복귀하거나 새 노트 렌더링
+        if (currentNoteId) {
+          const tx = db.transaction(['notes'], 'readonly');
+          const req = tx.objectStore('notes').get(currentNoteId);
+          req.onsuccess = () => { 
+            if(req.result) loadNote(req.result); 
+            else createNewNote(); 
+          };
+        } else {
+          createNewNote();
+        }
+      } else {
+        document.getElementById('view-notes').classList.add('hidden');
+        document.getElementById('view-items').classList.remove('hidden');
+        executeItemFilter();
       }
     }
 
-    // ✨ 필터링 토글 함수
+    function scrollToTop() {
+      const mainContent = document.getElementById('mainContent');
+      if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    function toggle5R(el) { 
+      el.classList.toggle('active'); 
+    }
+
     function toggleCompletedFilter() {
       showOnlyCompleted = !showOnlyCompleted;
       renderNoteList();
-      
       if (showOnlyCompleted) {
         showToast('완료된(_COM) 항목만 봅니다', 'ph-funnel');
       } else {
@@ -508,24 +591,18 @@
       let attempts = 0;
       const interval = setInterval(() => {
         attempts++;
-        if (attempts > 20) {
-          clearInterval(interval);
-          return;
-        }
+        if (attempts > 20) { clearInterval(interval); return; }
 
         const containers = document.querySelectorAll('.ql-container');
         containers.forEach(container => {
           const overlays = Array.from(container.children).filter(el => !el.classList.length);
-          
           overlays.forEach(overlay => {
             const svgs = overlay.querySelectorAll('svg');
             if (svgs.length > 0) {
               const toolbar = svgs[0].parentElement.parentElement;
-              
               if (toolbar && !toolbar.querySelector('.custom-btn-group')) {
                 clearInterval(interval); 
-
-                toolbar.style.display = 'flex';
+                toolbar.style.display = 'flex'; 
                 toolbar.style.alignItems = 'center';
 
                 const group = document.createElement('div');
@@ -544,12 +621,12 @@
 
                 const updateBtnStates = () => {
                   const isHighlighted = activeTargetImage && activeTargetImage.classList.contains('img-highlight');
-                  if (isHighlighted) {
-                    btnHighlight.style.color = '#EA580C';
-                    btnHighlight.style.background = '#FFEDD5';
-                  } else {
-                    btnHighlight.style.color = '#4B5563';
-                    btnHighlight.style.background = 'transparent';
+                  if (isHighlighted) { 
+                    btnHighlight.style.color = '#EA580C'; 
+                    btnHighlight.style.background = '#FFEDD5'; 
+                  } else { 
+                    btnHighlight.style.color = '#4B5563'; 
+                    btnHighlight.style.background = 'transparent'; 
                   }
                 };
 
@@ -557,25 +634,21 @@
 
                 btnHighlight.onmouseenter = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = '#F3F4F6'; };
                 btnHighlight.onmouseleave = () => { if (!activeTargetImage?.classList.contains('img-highlight')) btnHighlight.style.background = 'transparent'; };
-                
                 btnClear.onmouseenter = () => { btnClear.style.background = '#FEE2E2'; btnClear.style.color = '#DC2626'; };
                 btnClear.onmouseleave = () => { btnClear.style.background = 'transparent'; btnClear.style.color = '#4B5563'; };
 
-                [btnHighlight, btnClear].forEach(btn => {
-                  btn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  });
+                [btnHighlight, btnClear].forEach(btn => { 
+                  btn.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); }); 
                 });
 
                 btnHighlight.addEventListener('click', (e) => {
                   e.preventDefault(); e.stopPropagation();
                   if (activeTargetImage) {
-                    const q = Quill.find(activeTargetImage.closest('.ql-container'));
+                    const q = Quill.find(activeTargetImage.closest('.ql-container')); 
                     const blot = Quill.find(activeTargetImage);
-                    if (q && blot) {
-                      q.formatText(q.getIndex(blot), 1, 'imghighlight', true);
-                      updateBtnStates();
+                    if (q && blot) { 
+                      q.formatText(q.getIndex(blot), 1, 'imghighlight', true); 
+                      updateBtnStates(); 
                     }
                   }
                 });
@@ -583,17 +656,17 @@
                 btnClear.addEventListener('click', (e) => {
                   e.preventDefault(); e.stopPropagation();
                   if (activeTargetImage) {
-                    const q = Quill.find(activeTargetImage.closest('.ql-container'));
+                    const q = Quill.find(activeTargetImage.closest('.ql-container')); 
                     const blot = Quill.find(activeTargetImage);
-                    if (q && blot) {
-                      q.formatText(q.getIndex(blot), 1, 'imghighlight', false);
-                      updateBtnStates();
+                    if (q && blot) { 
+                      q.formatText(q.getIndex(blot), 1, 'imghighlight', false); 
+                      updateBtnStates(); 
                     }
                   }
                 });
 
-                group.appendChild(btnHighlight);
-                group.appendChild(btnClear);
+                group.appendChild(btnHighlight); 
+                group.appendChild(btnClear); 
                 toolbar.appendChild(group);
               }
             }
@@ -603,24 +676,24 @@
     }
 
     document.addEventListener('mousedown', function(e) {
-      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
-        activeTargetImage = e.target;
-        injectImageHighlightButton();
+      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) { 
+        activeTargetImage = e.target; 
+        injectImageHighlightButton(); 
       }
     }, true);
 
     ['paste', 'drop'].forEach(evt => {
       document.addEventListener(evt, (e) => {
-        const activeElement = document.activeElement;
+        const activeElement = document.activeElement; 
         if (!activeElement || !activeElement.closest('.ql-editor')) return;
-        const mainContent = document.getElementById('mainContent');
+        const mainContent = document.getElementById('mainContent'); 
         if (!mainContent) return;
-        const currentScroll = mainContent.scrollTop;
+        const currentScroll = mainContent.scrollTop; 
         const lockScroll = () => { mainContent.scrollTop = currentScroll; };
-        requestAnimationFrame(lockScroll);
-        setTimeout(lockScroll, 10);
-        setTimeout(lockScroll, 50);
-        setTimeout(lockScroll, 150);
+        requestAnimationFrame(lockScroll); 
+        setTimeout(lockScroll, 10); 
+        setTimeout(lockScroll, 50); 
+        setTimeout(lockScroll, 150); 
         setTimeout(lockScroll, 300); 
       }, true);
     });
@@ -629,9 +702,7 @@
       const toast = document.getElementById('saveToast');
       toast.innerHTML = `<i class="ph-bold ${icon}"></i> ${msg}`;
       toast.classList.add('show');
-      setTimeout(() => {
-        toast.classList.remove('show');
-      }, 1500);
+      setTimeout(() => { toast.classList.remove('show'); }, 1500);
     }
 
     function toggleCardMode() {
@@ -640,27 +711,23 @@
       
       if (isCardMode) {
         document.body.classList.add('card-mode');
-        
-        let closestIndex = 1;
+        let closestIndex = 1; 
         let minDistance = Infinity;
         cards.forEach((card, i) => {
           const rect = card.getBoundingClientRect();
-          if (Math.abs(rect.top) < minDistance) {
-            minDistance = Math.abs(rect.top);
-            closestIndex = i + 1;
+          if (Math.abs(rect.top) < minDistance) { 
+            minDistance = Math.abs(rect.top); 
+            closestIndex = i + 1; 
           }
         });
-        
-        currentCardIndex = closestIndex;
-        updateCardVisibility();
+        currentCardIndex = closestIndex; 
+        updateCardVisibility(); 
         showToast('카드 모드 ON (좌/우 방향키 이동)', 'ph-browsers');
       } else {
         document.body.classList.remove('card-mode');
         cards.forEach(c => c.classList.remove('active-card'));
-        
         const targetCard = cards[currentCardIndex - 1];
         if (targetCard) targetCard.scrollIntoView({ behavior: 'auto', block: 'start' });
-        
         showToast('카드 모드 OFF', 'ph-browsers');
       }
     }
@@ -668,38 +735,36 @@
     function updateCardVisibility() {
       const cards = document.querySelectorAll('.keynote-card');
       cards.forEach((card, index) => {
-        if (index === currentCardIndex - 1) {
-          card.classList.add('active-card');
-        } else {
-          card.classList.remove('active-card');
-        }
+        if (index === currentCardIndex - 1) card.classList.add('active-card');
+        else card.classList.remove('active-card');
       });
       scrollToTop(); 
     }
 
     document.addEventListener('keydown', function(e) {
-      const isCtrl = e.ctrlKey || e.metaKey;
+      const isCtrl = e.ctrlKey || e.metaKey; 
       const isAlt = e.altKey;
 
-      if (isCtrl && !isAlt && (e.key === 's' || e.key === 'S')) {
-        e.preventDefault(); saveCurrentNote();
-        return;
-      }
-      if (isCtrl && isAlt && (e.key === 'n' || e.key === 'N')) {
-        e.preventDefault(); createNewNote();
-        return;
-      }
-      if (isCtrl && !isAlt && (e.key === 'h' || e.key === 'H')) {
+      if (isCtrl && !isAlt && (e.key === 's' || e.key === 'S')) { 
         e.preventDefault(); 
-        document.body.classList.toggle('immersion-mode');
-        return;
+        saveCurrentNote(); 
+        return; 
       }
-      if (isCtrl && !isAlt && (e.key === 'm' || e.key === 'M')) {
+      if (isCtrl && isAlt && (e.key === 'n' || e.key === 'N')) { 
         e.preventDefault(); 
-        toggleCardMode();
-        return;
+        createNewNote(); 
+        return; 
       }
-
+      if (isCtrl && !isAlt && (e.key === 'h' || e.key === 'H')) { 
+        e.preventDefault(); 
+        document.body.classList.toggle('immersion-mode'); 
+        return; 
+      }
+      if (isCtrl && !isAlt && (e.key === 'm' || e.key === 'M')) { 
+        e.preventDefault(); 
+        toggleCardMode(); 
+        return; 
+      }
       if (isCtrl && !isAlt && (e.key === '+' || e.key === '=' || e.key === '-')) {
         e.preventDefault(); 
         if (e.key === '+' || e.key === '=') currentEditorFontSize = Math.min(currentEditorFontSize + 1, 32); 
@@ -710,22 +775,16 @@
 
       if (isCtrl && isAlt && e.key.toLowerCase() === 'm') {
         e.preventDefault(); 
-        
         let activeQuill = null;
         const allEditors = [...probEditors, ...leadEditors, ...concEditors, ...editors];
-        for (const q of allEditors) {
-          if (q && q.hasFocus()) { 
-              activeQuill = q; 
-              break; 
-          }
+        for (const q of allEditors) { 
+          if (q && q.hasFocus()) { activeQuill = q; break; } 
         }
-
         if(activeQuill) {
           const range = activeQuill.getSelection();
           if(range && range.length > 0) {
-            const currentFormats = activeQuill.getFormat(range);
+            const currentFormats = activeQuill.getFormat(range); 
             const isActive = currentFormats.background === '#0d3a9e';
-            
             activeQuill.formatText(range.index, range.length, 'background', isActive ? false : '#0d3a9e');
             activeQuill.formatText(range.index, range.length, 'color', isActive ? false : '#ffffff');
             activeQuill.formatText(range.index, range.length, 'bold', isActive ? false : true);
@@ -736,77 +795,60 @@
 
       if (isCtrl && !isAlt && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
-        const searchInput = document.getElementById('searchInput');
-        if (searchInput) {
-          searchInput.focus();
+        if (currentSidebarTab === 'notes') { 
+          const searchInput = document.getElementById('searchInput'); 
+          if (searchInput) searchInput.focus(); 
         }
         return;
       }
 
       if (e.key === 'Escape') {
-        closeSettings();
-        closeImageViewer();
+        closeSettings(); 
+        closeImageViewer(); 
         closeTopicListModal();
-
         let isImageEditing = false;
         document.querySelectorAll('.ql-container').forEach(container => {
           const overlays = Array.from(container.children).filter(el => !el.classList.length);
-          overlays.forEach(overlay => {
-            if (overlay.style.display !== 'none' && overlay.querySelector('svg')) {
-              isImageEditing = true;
-            }
+          overlays.forEach(overlay => { 
+            if (overlay.style.display !== 'none' && overlay.querySelector('svg')) isImageEditing = true; 
           });
         });
-
         if (!isImageEditing) {
           const activeEl = document.activeElement;
-          const isEditing = activeEl && (
-            activeEl.tagName === 'INPUT' || 
-            activeEl.tagName === 'TEXTAREA' || 
-            activeEl.isContentEditable || 
-            activeEl.closest('.ql-editor')
-          );
-          
-          if (isEditing) {
+          const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable || activeEl.closest('.ql-editor'));
+          if (isEditing) { 
             activeEl.blur(); 
             window.getSelection().removeAllRanges(); 
-            showToast('보기 모드로 전환되었습니다', 'ph-eye');
+            showToast('보기 모드로 전환되었습니다', 'ph-eye'); 
           }
         }
       }
       
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
         const activeEl = document.activeElement;
-        const isEditing = activeEl && (
-          activeEl.tagName === 'INPUT' || 
-          activeEl.tagName === 'TEXTAREA' || 
-          activeEl.isContentEditable || 
-          activeEl.closest('.ql-editor')
-        );
-
+        const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable || activeEl.closest('.ql-editor'));
         if (!isEditing) {
           e.preventDefault(); 
-          const mainContent = document.getElementById('mainContent');
+          const mainContent = document.getElementById('mainContent'); 
           const scrollAmount = 150; 
           
           if (e.key === 'ArrowUp') {
             mainContent.scrollTop -= scrollAmount;
           } else if (e.key === 'ArrowDown') {
             mainContent.scrollTop += scrollAmount;
-          } 
-          else if (isCardMode) {
+          } else if (isCardMode) {
             if (e.key === 'ArrowLeft') {
-              if (currentCardIndex > 1) {
-                currentCardIndex--;
-                updateCardVisibility();
+              if (currentCardIndex > 1) { 
+                currentCardIndex--; 
+                updateCardVisibility(); 
               } else {
                 showToast('첫 번째 문항입니다', 'ph-warning-circle');
               }
             } else if (e.key === 'ArrowRight') {
               const totalCards = parseInt(document.getElementById('itemCount').value);
-              if (currentCardIndex < totalCards) {
-                currentCardIndex++;
-                updateCardVisibility();
+              if (currentCardIndex < totalCards) { 
+                currentCardIndex++; 
+                updateCardVisibility(); 
               } else {
                 showToast('마지막 문항입니다', 'ph-warning-circle');
               }
@@ -817,191 +859,276 @@
     });
 
     document.addEventListener('dblclick', function(e) {
-      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) {
-        openImageViewer(e.target.src);
-        window.getSelection().removeAllRanges();
-        return;
+      if (e.target.tagName === 'IMG' && e.target.closest('.ql-editor')) { 
+        openImageViewer(e.target.src); 
+        window.getSelection().removeAllRanges(); 
+        return; 
       }
-      const elements = document.elementsFromPoint(e.clientX, e.clientY);
+      const elements = document.elementsFromPoint(e.clientX, e.clientY); 
       const img = elements.find(el => el.tagName === 'IMG');
-      if (img && img.closest('.ql-editor')) {
-        openImageViewer(img.src);
-        window.getSelection().removeAllRanges();
+      if (img && img.closest('.ql-editor')) { 
+        openImageViewer(img.src); 
+        window.getSelection().removeAllRanges(); 
       }
     }, true);
 
     function handleSearchInput(event) {
-      renderNoteList();
-      if (event.key === 'Enter') {
-        searchInContent();
-      }
+      renderNoteList(); 
+      if (event.key === 'Enter') searchInContent();
     }
 
     function searchInContent() {
-      const searchTerm = document.getElementById('searchInput').value;
+      const searchTerm = document.getElementById('searchInput').value; 
       if (!searchTerm) return;
-
       const selection = window.getSelection();
-
       let found = window.find(searchTerm, false, false, true, false, false, false);
-      
       if (!found) {
-        selection.removeAllRanges();
+        selection.removeAllRanges(); 
         found = window.find(searchTerm, false, false, true, false, false, false);
-        
-        if (!found) {
-          alert("현재 열려있는 문서에서 해당 검색어를 찾을 수 없습니다.");
-          return;
+        if (!found) { 
+          alert("현재 열려있는 문서에서 해당 검색어를 찾을 수 없습니다."); 
+          return; 
         }
       }
-
       if (found && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
+        const range = selection.getRangeAt(0); 
         let element = range.startContainer;
-        
-        if (element.nodeType === 3) {
-          element = element.parentElement;
-        }
-        
-        if (element && element.scrollIntoView) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        if (element.nodeType === 3) element = element.parentElement;
+        if (element && element.scrollIntoView) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     }
 
     function openTopicListModal() {
-      document.getElementById('modalSearchInput').value = '';
+      document.getElementById('modalSearchInput').value = ''; 
       document.getElementById('modalSearchType').value = 'all';
-      filterTopicList();
+      filterTopicList(); 
       document.getElementById('topicListModal').style.display = 'flex';
     }
-
-    function closeTopicListModal() {
-      document.getElementById('topicListModal').style.display = 'none';
+    
+    function closeTopicListModal() { 
+      document.getElementById('topicListModal').style.display = 'none'; 
     }
 
     function filterTopicList() {
-      const container = document.getElementById('topicListContainer');
+      const container = document.getElementById('topicListContainer'); 
       container.innerHTML = '';
-      
       const searchType = document.getElementById('modalSearchType').value;
       const keyword = document.getElementById('modalSearchInput').value.toLowerCase().trim();
       const num = parseInt(document.getElementById('itemCount').value) || 0;
-      
       let hasResult = false;
 
       for (let i = 1; i <= num; i++) {
         if (!probEditors[i-1]) continue;
-        
-        const probText = probEditors[i-1].getText().toLowerCase();
+        const probText = probEditors[i-1].getText().toLowerCase(); 
         const leadText = leadEditors[i-1].getText().toLowerCase();
-        const concText = concEditors[i-1].getText().toLowerCase();
+        const concText = concEditors[i-1].getText().toLowerCase(); 
         const solText = editors[i-1].getText().toLowerCase();
         
-        const titleMatch = probText.includes(keyword);
+        const titleMatch = probText.includes(keyword); 
         const contentMatch = leadText.includes(keyword) || concText.includes(keyword) || solText.includes(keyword);
         
         let isMatch = false;
-        if (searchType === 'all') isMatch = titleMatch || contentMatch;
-        else if (searchType === 'title') isMatch = titleMatch;
+        if (searchType === 'all') isMatch = titleMatch || contentMatch; 
+        else if (searchType === 'title') isMatch = titleMatch; 
         else if (searchType === 'content') isMatch = contentMatch;
-        
         if (!keyword) isMatch = true;
 
         if (isMatch) {
           hasResult = true;
-          let displayTitle = probEditors[i-1].getText().trim();
+          let displayTitle = probEditors[i-1].getText().trim(); 
           if (!displayTitle) displayTitle = '(문제 내용 없음)';
           
-          const div = document.createElement('div');
+          const div = document.createElement('div'); 
           div.className = 'topic-modal-item';
-          
           div.onclick = () => {
             closeTopicListModal();
             const targetCard = document.getElementById(`prob-${i}`).closest('.keynote-card');
-            
             if (targetCard) {
-              if (isCardMode) {
-                currentCardIndex = i;
-                updateCardVisibility();
+              if (isCardMode) { 
+                currentCardIndex = i; 
+                updateCardVisibility(); 
               } else {
                 targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                
-                targetCard.style.transition = 'box-shadow 0.3s ease';
+                targetCard.style.transition = 'box-shadow 0.3s ease'; 
                 targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
-                setTimeout(() => {
-                  targetCard.style.boxShadow = 'var(--shadow-md)';
-                }, 1200);
+                setTimeout(() => { targetCard.style.boxShadow = 'var(--shadow-md)'; }, 1200);
               }
             }
           };
-          
-          div.innerHTML = `
-            <div class="topic-modal-num">${i}</div>
-            <div class="topic-modal-text">${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-          `;
+          div.innerHTML = `<div class="topic-modal-num">${i}</div><div class="topic-modal-text">${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
           container.appendChild(div);
         }
       }
-
       if (!hasResult) {
         container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">검색 결과가 없습니다.</div>';
       }
     }
 
-    function openSettings() { document.getElementById('settingsModal').style.display = 'flex'; }
-    function closeSettings() { document.getElementById('settingsModal').style.display = 'none'; }
-    function confirmRegenerate() {
-      if(confirm('정말 폼을 재생성하시겠습니까? 작성 중인 내용은 지워집니다.')) { generateForms(); closeSettings(); }
+    // ✨ 사이드바 5R 항목 조회 최적화 로직
+    let currentSidebar5R = 'Root'; // 기본값 Root로 변경
+
+    function selectSidebar5R(element, type) {
+      document.querySelectorAll('#sidebar5RContainer .r5-pill').forEach(el => el.classList.remove('active'));
+      element.classList.add('active');
+      currentSidebar5R = type;
+      executeItemFilter(); // 즉시 필터링
     }
 
-    function openImageViewer(src) {
-      document.getElementById('imageViewerImg').src = src;
-      document.getElementById('imageViewerModal').classList.add('show');
+    function executeItemFilter() {
+      const target5R = currentSidebar5R;
+      const container = document.getElementById('itemList');
+      container.innerHTML = '';
+      let gatheredItems = [];
+
+      const transaction = db.transaction(['notes'], 'readonly');
+      const request = transaction.objectStore('notes').getAll();
+
+      request.onsuccess = () => {
+        let rawNotes = request.result;
+        rawNotes.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
+
+        rawNotes.forEach(note => {
+          // 오직 완료건(_COM) 만 필터링 대상
+          if (!note.title || !note.title.endsWith('_COM')) return;
+          
+          if (note.items && note.items.length > 0) {
+            note.items.forEach((item, index) => {
+              const saved5R = item.type5r || ['Root']; // 기본값 Root
+              if (saved5R.includes(target5R)) {
+                gatheredItems.push({ noteId: note.id, noteTitle: note.title, itemIndex: index, data: item });
+              }
+            });
+          }
+        });
+
+        // 메모리 최적화를 위해 원본 노트를 불러오고 스크롤 이동하는 방식 적용
+        if (gatheredItems.length === 0) {
+          container.innerHTML = '<div style="padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 13px;">조건에 맞는 문항이 없습니다.</div>';
+          return;
+        }
+
+        gatheredItems.forEach((gItem, vIndex) => {
+          let displayTitle = gItem.data.problem ? gItem.data.problem.replace(/<[^>]+>/g, ' ').trim() : '';
+          if (!displayTitle) displayTitle = '(문제 내용 없음)';
+
+          const li = document.createElement('li');
+          li.className = 'note-item';
+          li.style.padding = '12px 14px';
+          li.style.borderBottom = '1px solid var(--border-light)';
+          
+          li.onclick = () => {
+            loadNoteAndScroll(gItem.noteId, gItem.itemIndex);
+          };
+
+          li.innerHTML = `
+            <div style="font-size: 11px; color: #3B82F6; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <i class="ph-fill ph-folder-open"></i> ${gItem.noteTitle} (Q${gItem.itemIndex + 1})
+            </div>
+            <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                ${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+            </div>
+          `;
+          container.appendChild(li);
+        });
+      };
+    }
+
+    // 목록 클릭시 메모리를 아끼기 위해 원본 노트를 로드하고 스크롤 이동
+    function loadNoteAndScroll(noteId, itemIndex) {
+      const executeScroll = () => {
+        setTimeout(() => {
+          const targetCard = document.getElementById(`card-${itemIndex + 1}`);
+          if (targetCard) {
+            if (isCardMode) { 
+              currentCardIndex = itemIndex + 1; 
+              updateCardVisibility(); 
+            } else {
+              targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              targetCard.style.transition = 'box-shadow 0.3s ease'; 
+              targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
+              setTimeout(() => { targetCard.style.boxShadow = 'var(--shadow-md)'; }, 1200);
+            }
+          }
+        }, 200);
+      };
+
+      if (currentNoteId !== noteId) {
+        const transaction = db.transaction(['notes'], 'readonly');
+        const request = transaction.objectStore('notes').get(noteId);
+        request.onsuccess = () => {
+          if (request.result) {
+            loadNote(request.result);
+            executeScroll();
+          }
+        };
+      } else {
+        executeScroll();
+      }
+    }
+
+    function openSettings() { 
+      document.getElementById('settingsModal').style.display = 'flex'; 
+    }
+    function closeSettings() { 
+      document.getElementById('settingsModal').style.display = 'none'; 
+    }
+    function confirmRegenerate() {
+      if(confirm('정말 폼을 재생성하시겠습니까? 작성 중인 내용은 지워집니다.')) { 
+        generateForms(); 
+        closeSettings(); 
+      }
+    }
+
+    function openImageViewer(src) { 
+      document.getElementById('imageViewerImg').src = src; 
+      document.getElementById('imageViewerModal').classList.add('show'); 
     }
     
-    function closeImageViewer() {
-      const modal = document.getElementById('imageViewerModal');
-      modal.classList.remove('show');
+    function closeImageViewer() { 
+      const modal = document.getElementById('imageViewerModal'); 
+      modal.classList.remove('show'); 
       setTimeout(() => { document.getElementById('imageViewerImg').removeAttribute('src'); }, 200); 
     }
 
     async function copyImageToClipboard() {
       const imgUrl = document.getElementById('imageViewerImg').src;
       try {
-        const response = await fetch(imgUrl);
+        const response = await fetch(imgUrl); 
         const blob = await response.blob();
-        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]); 
         alert('이미지가 클립보드에 복사되었습니다.');
-      } catch (err) {
-        console.error('복사 실패:', err);
-        alert('이미지 복사에 실패했습니다. (보안 정책 등으로 제한될 수 있습니다.)');
+      } catch (err) { 
+        alert('이미지 복사에 실패했습니다. (보안 정책 등으로 제한될 수 있습니다.)'); 
       }
     }
 
     function downloadImageView() {
-      const imgUrl = document.getElementById('imageViewerImg').src;
+      const imgUrl = document.getElementById('imageViewerImg').src; 
       const a = document.createElement('a');
-      a.href = imgUrl;
-      a.download = 'keynote_image_' + new Date().getTime() + '.png';
-      document.body.appendChild(a);
-      a.click();
+      a.href = imgUrl; 
+      a.download = 'keynote_image_' + new Date().getTime() + '.png'; 
+      document.body.appendChild(a); 
+      a.click(); 
       document.body.removeChild(a);
     }
 
     const initDB = () => {
       return new Promise((resolve, reject) => {
         const request = indexedDB.open('StudyNoteDB', 1);
-        request.onupgradeneeded = (e) => {
-          const database = e.target.result;
-          if (!database.objectStoreNames.contains('notes')) database.createObjectStore('notes', { keyPath: 'id' });
+        request.onupgradeneeded = (e) => { 
+          const database = e.target.result; 
+          if (!database.objectStoreNames.contains('notes')) database.createObjectStore('notes', { keyPath: 'id' }); 
         };
         request.onsuccess = (e) => { db = e.target.result; resolve(); };
         request.onerror = (e) => reject('DB Error');
       });
     };
 
-    window.onload = async () => { await initDB(); await renderNoteList(); createNewNote(); };
+    window.onload = async () => { 
+      await initDB(); 
+      await renderNoteList(); 
+      switchSidebarTab('notes'); 
+    };
 
     const generateId = () => '_' + Math.random().toString(36).substr(2, 9);
 
@@ -1012,121 +1139,87 @@
       const countInput = document.getElementById('itemCount');
       if (count !== null) countInput.value = count;
       let num = parseInt(countInput.value);
-      if (num < 1) num = 1; if (num > 100) num = 100;
+      if (num < 1) num = 1; 
+      if (num > 100) num = 100;
       countInput.value = num; 
 
       container.innerHTML = '';
       probEditors = []; leadEditors = []; concEditors = []; editors = [];
 
       const customBindings = {
-        customStrike: { 
-          key: '0', shortKey: true, 
-          handler: function(range, context) { this.quill.format('strike', !context.format.strike); } 
-        },
-        customRed: { 
-          key: 'R', shortKey: true, altKey: true, 
-          handler: function(range, context) { this.quill.format('color', context.format.color === 'red' ? false : 'red'); } 
-        },
-        customBlue: { 
-          key: 'B', shortKey: true, altKey: true, 
-          handler: function(range, context) { this.quill.format('color', context.format.color === 'blue' ? false : 'blue'); } 
-        },
-        customClear: { 
-          key: 'X', shortKey: true, shiftKey: true, 
-          handler: function(range, context) { 
-            if (range.length > 0) this.quill.removeFormat(range.index, range.length); 
-            else { const formats = this.quill.getFormat(range); for (let f in formats) this.quill.format(f, false); }
-          } 
-        },
-        customHighlight1: { 
-          key: '1', shortKey: true, 
-          handler: function(range, context) { const color = '#ffedd5'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight2: { 
-          key: '2', shortKey: true, 
-          handler: function(range, context) { const color = '#e0f2fe'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight3: { 
-          key: '3', shortKey: true, 
-          handler: function(range, context) { const color = '#fef08a'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight4: { 
-          key: '4', shortKey: true, 
-          handler: function(range, context) { const color = '#dcfce7'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight5: { 
-          key: '5', shortKey: true, 
-          handler: function(range, context) { const color = '#fce7f3'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight6: { 
-          key: '6', shortKey: true, 
-          handler: function(range, context) { const color = '#e6d5c3'; this.quill.format('background', context.format.background === color ? false : color); } 
-        },
-        customHighlight7: { 
-          key: '7', shortKey: true, 
-          handler: function(range, context) { const color = '#e5e7eb'; this.quill.format('background', context.format.background === color ? false : color); } 
-        }
+        customStrike: { key: '0', shortKey: true, handler: function(range, context) { this.quill.format('strike', !context.format.strike); } },
+        customRed: { key: 'R', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'red' ? false : 'red'); } },
+        customBlue: { key: 'B', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'blue' ? false : 'blue'); } },
+        customClear: { key: 'X', shortKey: true, shiftKey: true, handler: function(range, context) { if (range.length > 0) this.quill.removeFormat(range.index, range.length); else { const formats = this.quill.getFormat(range); for (let f in formats) this.quill.format(f, false); } } },
+        customHighlight1: { key: '1', shortKey: true, handler: function(range, context) { const color = '#ffedd5'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight2: { key: '2', shortKey: true, handler: function(range, context) { const color = '#e0f2fe'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight3: { key: '3', shortKey: true, handler: function(range, context) { const color = '#fef08a'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight4: { key: '4', shortKey: true, handler: function(range, context) { const color = '#dcfce7'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight5: { key: '5', shortKey: true, handler: function(range, context) { const color = '#fce7f3'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight6: { key: '6', shortKey: true, handler: function(range, context) { const color = '#e6d5c3'; this.quill.format('background', context.format.background === color ? false : color); } },
+        customHighlight7: { key: '7', shortKey: true, handler: function(range, context) { const color = '#e5e7eb'; this.quill.format('background', context.format.background === color ? false : color); } }
       };
 
       const Delta = Quill.import('delta');
       const tableMatcher = function(node, delta) {
-        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false);
+        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false); 
         const textNodes = [];
         while (walker.nextNode()) textNodes.push(walker.currentNode);
-
+        
         textNodes.forEach(textNode => {
           const text = textNode.nodeValue;
           if (/\$([^$]+)\$/.test(text)) {
             const span = document.createElement('span');
-            span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => {
-              try {
-                return katex.renderToString(formula, { throwOnError: false });
-              } catch (e) {
-                return match; 
-              }
+            span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => { 
+              try { return katex.renderToString(formula, { throwOnError: false }); } 
+              catch (e) { return match; } 
             });
             textNode.parentNode.replaceChild(span, textNode); 
           }
         });
-
         return new Delta().insert({ rawTable: node.outerHTML });
       };
 
       const mathMatcher = function(node, delta) {
         if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.data;
-          const regex = /\$([^$]+)\$/g;
-          let match;
-          let lastIndex = 0;
-          const newDelta = new Delta();
+          const text = node.data; 
+          const regex = /\$([^$]+)\$/g; 
+          let match; 
+          let lastIndex = 0; 
+          const newDelta = new Delta(); 
           let hasMath = false;
           
           while ((match = regex.exec(text)) !== null) {
-            hasMath = true;
-            if (match.index > lastIndex) {
-              newDelta.insert(text.substring(lastIndex, match.index));
+            hasMath = true; 
+            if (match.index > lastIndex) { 
+              newDelta.insert(text.substring(lastIndex, match.index)); 
             }
             newDelta.insert({ formula: match[1] }); 
             lastIndex = regex.lastIndex;
           }
-          
-          if (hasMath) {
-            if (lastIndex < text.length) {
-              newDelta.insert(text.substring(lastIndex));
-            }
-            return newDelta;
+          if (hasMath) { 
+            if (lastIndex < text.length) { 
+              newDelta.insert(text.substring(lastIndex)); 
+            } 
+            return newDelta; 
           }
-        }
+        } 
         return delta;
       };
 
       for (let i = 1; i <= num; i++) {
-        const card = document.createElement('div');
-        card.className = 'keynote-card';
+        const card = document.createElement('div'); 
+        card.className = 'keynote-card'; 
         card.id = `card-${i}`;
+        
         card.innerHTML = `
           <div class="edit-ui">
-            <div class="card-header"><div class="badge-number">${i}</div></div>
+            <div class="card-header">
+              <div class="badge-number">${i}</div>
+              <div class="r5-container" data-index="${i-1}">
+                ${FIVE_R_TYPES.map(type => `<div class="r5-pill ${type === 'Root' ? 'active' : ''}" onclick="toggle5R(this)">${type}</div>`).join('')}
+              </div>
+            </div>
             <div class="form-group">
               <label><i class="ph-fill ph-question"></i> 문제(Problem)</label>
               <div id="prob-${i}" class="simple-editor"></div>
@@ -1146,13 +1239,9 @@
               <div id="editor-${i}" class="solution-editor"></div>
             </div>
           </div>
-          
           <div class="print-ui">
             <div id="print-lead-${i}" class="print-lead ql-editor"></div>
-            <div class="print-prob">
-              <div style="min-width: 28px;">${i}.</div>
-              <div id="print-prob-${i}" class="ql-editor" style="padding:0; flex:1;"></div>
-            </div>
+            <div class="print-prob"><div style="min-width: 28px;">${i}.</div><div id="print-prob-${i}" class="ql-editor" style="padding:0; flex:1;"></div></div>
             <div id="print-conc-${i}" class="print-conc ql-editor"></div>
             <hr class="print-divider">
             <div id="print-sol-${i}" class="print-sol ql-editor"></div>
@@ -1161,53 +1250,71 @@
         container.appendChild(card);
 
         const qProb = new Quill(`#prob-${i}`, { 
-          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '문제를 입력하세요', 
-          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
-        });
+          theme: 'snow', 
+          scrollingContainer: '#mainContent', 
+          placeholder: '문제를 입력하세요', 
+          modules: { 
+            toolbar: false, 
+            formula: true, 
+            keyboard: { bindings: customBindings }, 
+            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
+          }
+        }); 
         qProb.root.setAttribute('spellcheck', false); 
         qProb.clipboard.addMatcher('TABLE', tableMatcher); 
         qProb.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
         probEditors.push(qProb);
 
         const qLead = new Quill(`#lead-${i}`, { 
-          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '핵심 리드문 입력', 
-          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
-        });
+          theme: 'snow', 
+          scrollingContainer: '#mainContent', 
+          placeholder: '핵심 리드문 입력', 
+          modules: { 
+            toolbar: false, 
+            formula: true, 
+            keyboard: { bindings: customBindings }, 
+            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
+          }
+        }); 
         qLead.root.setAttribute('spellcheck', false); 
         qLead.clipboard.addMatcher('TABLE', tableMatcher); 
         qLead.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
         leadEditors.push(qLead);
 
         const qConc = new Quill(`#conc-${i}`, { 
-          theme: 'snow', scrollingContainer: '#mainContent', placeholder: '관련 개념 입력', 
-          modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } }
-        });
+          theme: 'snow', 
+          scrollingContainer: '#mainContent', 
+          placeholder: '관련 개념 입력', 
+          modules: { 
+            toolbar: false, 
+            formula: true, 
+            keyboard: { bindings: customBindings }, 
+            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
+          }
+        }); 
         qConc.root.setAttribute('spellcheck', false); 
         qConc.clipboard.addMatcher('TABLE', tableMatcher); 
         qConc.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
         concEditors.push(qConc);
 
-        const qSol = new Quill(`#editor-${i}`, {
+        const qSol = new Quill(`#editor-${i}`, { 
           theme: 'snow', 
-          scrollingContainer: '#mainContent',
-          placeholder: '상세 내용을 작성하거나 이미지를 붙여넣으세요...',
+          scrollingContainer: '#mainContent', 
+          placeholder: '상세 내용을 작성하거나 이미지를 붙여넣으세요...', 
           modules: { 
-            formula: true,
+            formula: true, 
             toolbar: [ 
-                [{ 'header': [1, 2, false] }], 
-                ['bold', 'italic', 'underline', 'strike'], 
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
-                [{ 'color': [] }, { 'background': [] }], 
-                ['formula', 'image', 'code-block'], 
-                ['clean'] 
+              [{ 'header': [1, 2, false] }], 
+              ['bold', 'italic', 'underline', 'strike'], 
+              [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
+              [{ 'color': [] }, { 'background': [] }], 
+              ['formula', 'image', 'code-block'], 
+              ['clean'] 
             ], 
-            keyboard: { bindings: customBindings },
-            imageResize: { 
-              displaySize: true,
-              modules: ['Resize', 'DisplaySize', 'Toolbar'] 
-            }
+            keyboard: { bindings: customBindings }, 
+            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
           }
-        });
+        }); 
         qSol.root.setAttribute('spellcheck', false); 
         qSol.clipboard.addMatcher('TABLE', tableMatcher); 
         qSol.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
@@ -1220,11 +1327,14 @@
       const num = parseInt(document.getElementById('itemCount').value);
       const items = [];
       for (let i = 1; i <= num; i++) {
-        items.push({
-          problem: probEditors[i-1].root.innerHTML,
-          lead: leadEditors[i-1].root.innerHTML,
-          concept: concEditors[i-1].root.innerHTML,
-          solution: editors[i-1].root.innerHTML
+        const card = document.getElementById(`card-${i}`);
+        const selected5R = card ? Array.from(card.querySelectorAll('.r5-pill.active')).map(p => p.innerText.trim()) : ['Root'];
+        items.push({ 
+          type5r: selected5R, 
+          problem: probEditors[i-1].root.innerHTML, 
+          lead: leadEditors[i-1].root.innerHTML, 
+          concept: concEditors[i-1].root.innerHTML, 
+          solution: editors[i-1].root.innerHTML 
         });
       }
       return { id: currentNoteId || generateId(), title: title, date: new Date().toISOString(), items: items };
@@ -1240,48 +1350,53 @@
       
       transaction.oncomplete = () => {
         currentNoteId = note.id; 
-        
         renderNoteList(); 
         
-        const toast = document.getElementById('saveToast');
-        toast.innerHTML = `<i class="ph-bold ph-check"></i> 저장되었습니다`;
-        toast.classList.add('show');
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 1000);
-
+        showToast('저장되었습니다');
         requestAnimationFrame(() => { mainContent.scrollTop = currentScroll; });
       };
     }
 
     function exportJSON() {
-      const note = getCurrentNoteData();
+      const note = getCurrentNoteData(); 
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(note, null, 2));
-      const now = new Date();
+      const now = new Date(); 
       const dateString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
       const safeTitle = note.title.replace(/[^a-z0-9가-힣_\-]/gi, '_').replace(/_+/g, '_');
-      const downloadAnchorNode = document.createElement('a');
-      downloadAnchorNode.setAttribute("href", dataStr); downloadAnchorNode.setAttribute("download", `${safeTitle}_${dateString}_backup.json`);
-      document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
+      const downloadAnchorNode = document.createElement('a'); 
+      downloadAnchorNode.setAttribute("href", dataStr); 
+      downloadAnchorNode.setAttribute("download", `${safeTitle}_${dateString}_backup.json`);
+      document.body.appendChild(downloadAnchorNode); 
+      downloadAnchorNode.click(); 
+      downloadAnchorNode.remove();
     }
 
     function importJSON(event) {
-      const file = event.target.files[0]; if (!file) return;
+      const file = event.target.files[0]; 
+      if (!file) return;
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
           const importedNote = JSON.parse(e.target.result);
-          if (!importedNote.items || !Array.isArray(importedNote.items)) { alert("유효한 키노트 백업 파일이 아닙니다."); return; }
-          importedNote.id = generateId(); importedNote.date = new Date().toISOString();
-          const transaction = db.transaction(['notes'], 'readwrite');
+          if (!importedNote.items || !Array.isArray(importedNote.items)) { 
+            alert("유효한 키노트 백업 파일이 아닙니다."); 
+            return; 
+          }
+          importedNote.id = generateId(); 
+          importedNote.date = new Date().toISOString();
+          const transaction = db.transaction(['notes'], 'readwrite'); 
           transaction.objectStore('notes').put(importedNote);
-          transaction.oncomplete = () => {
-            alert('키노트가 성공적으로 복원되었습니다.'); currentNoteId = importedNote.id;
-            renderNoteList().then(() => { loadNote(importedNote); });
+          transaction.oncomplete = () => { 
+            alert('키노트가 성공적으로 복원되었습니다.'); 
+            currentNoteId = importedNote.id; 
+            renderNoteList().then(() => { loadNote(importedNote); }); 
           };
-        } catch (err) { alert("파일을 읽는 중 오류가 발생했습니다: " + err.message); }
+        } catch (err) { 
+          alert("파일을 읽는 중 오류가 발생했습니다: " + err.message); 
+        } 
         event.target.value = ''; 
-      }; reader.readAsText(file);
+      }; 
+      reader.readAsText(file);
     }
 
     function renderNoteList() {
@@ -1296,106 +1411,113 @@
           list.innerHTML = '';
           const rawNotes = request.result;
 
-          let comCount = 0;
+          let comCount = 0; 
           let comProblems = 0;
-          rawNotes.forEach(note => {
-            if (note.title && note.title.endsWith('_COM')) {
-              comCount++;
-              if (note.items) comProblems += note.items.length;
-            }
+          rawNotes.forEach(note => { 
+            if (note.title && note.title.endsWith('_COM')) { 
+              comCount++; 
+              if (note.items) comProblems += note.items.length; 
+            } 
           });
-
+          
           const statsEl = document.getElementById('completionStats');
           if (statsEl) {
             if (comCount > 0) {
-              statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`;
+              statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`; 
               statsEl.style.display = 'inline-flex';
-              
-              // ✨ 토글 상태에 따른 스타일(클래스) 적용
-              if (showOnlyCompleted) {
-                statsEl.classList.add('active');
-              } else {
-                statsEl.classList.remove('active');
-              }
-            } else {
-              statsEl.style.display = 'none';
-              if(showOnlyCompleted) showOnlyCompleted = false; // 항목이 없으면 필터 해제
+              if (showOnlyCompleted) statsEl.classList.add('active'); 
+              else statsEl.classList.remove('active');
+            } else { 
+              statsEl.style.display = 'none'; 
+              if(showOnlyCompleted) showOnlyCompleted = false; 
             }
           }
 
-          const notes = rawNotes.sort((a, b) => {
-            return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
+          const notes = rawNotes.sort((a, b) => { 
+            return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }); 
           });
           
           notes.forEach(note => {
-            // ✨ 완료 항목 보기 모드일 때 _COM이 아니면 스킵
-            if (showOnlyCompleted && (!note.title || !note.title.endsWith('_COM'))) {
-                return;
-            }
-
-            let isMatch = note.title.toLowerCase().includes(searchTerm);
+            if (showOnlyCompleted && (!note.title || !note.title.endsWith('_COM'))) return;
             
+            let isMatch = note.title.toLowerCase().includes(searchTerm);
             if (!isMatch && note.items) {
               isMatch = note.items.some(item => {
                 const textToSearch = [item.problem, item.lead, item.concept, item.solution]
-                  .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase())
-                  .join(' ');
+                  .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase()).join(' '); 
                 return textToSearch.includes(searchTerm);
               });
             }
-
+            
             if (isMatch) {
-              const li = document.createElement('li');
+              const li = document.createElement('li'); 
               li.className = `note-item ${note.id === currentNoteId ? 'active' : ''}`;
               const dateStr = new Date(note.date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
               li.innerHTML = `<span class="note-title">${note.title}</span><span class="note-date">${dateStr}</span>`;
-              li.onclick = () => loadNote(note); list.appendChild(li);
+              li.onclick = () => loadNote(note); 
+              list.appendChild(li);
             }
-          }); resolve();
+          }); 
+          resolve();
         };
       });
     }
 
     function loadNote(note) {
       if (isCardMode) { toggleCardMode(); } 
-      currentNoteId = note.id; document.getElementById('docTitle').value = note.title;
-      const items = note.items || []; document.getElementById('itemCount').value = items.length || 19;
+
+      currentNoteId = note.id; 
+      document.getElementById('docTitle').value = note.title;
+      const items = note.items || []; 
+      document.getElementById('itemCount').value = items.length || 19;
       generateForms(items.length || 19);
       
       items.forEach((item, index) => {
-        const processHtml = (html) => {
-          if (html && !html.includes('<p>') && !html.includes('<br>')) return html.replace(/\n/g, '<br>');
-          return html || '';
+        const processHtml = (html) => { 
+          if (html && !html.includes('<p>') && !html.includes('<br>')) return html.replace(/\n/g, '<br>'); 
+          return html || ''; 
         };
-
-        probEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.problem));
-        leadEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.lead));
-        concEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.concept));
+        
+        probEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.problem)); 
+        leadEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.lead)); 
+        concEditors[index].clipboard.dangerouslyPasteHTML(processHtml(item.concept)); 
         editors[index].clipboard.dangerouslyPasteHTML(processHtml(item.solution));
+        
+        const card = document.getElementById(`card-${index+1}`);
+        if (card) {
+          const pills = card.querySelectorAll('.r5-pill'); 
+          const saved5R = item.type5r || ['Root']; 
+          pills.forEach(p => { 
+            if (saved5R.includes(p.innerText.trim())) { p.classList.add('active'); } 
+            else { p.classList.remove('active'); } 
+          });
+        }
       }); 
+      
       renderNoteList();
-
       setTimeout(() => { scrollToTop(); }, 50);
     }
 
     function createNewNote() { 
       if (isCardMode) { toggleCardMode(); } 
+
       currentNoteId = null; 
       document.getElementById('docTitle').value = ''; 
       document.getElementById('itemCount').value = 19; 
       generateForms(19); 
       renderNoteList(); 
-
       setTimeout(() => { scrollToTop(); }, 50);
     }
     
     function deleteCurrentNote() {
       if (!currentNoteId) return alert('저장된 문서가 아닙니다.');
       if (confirm('이 키노트를 정말 삭제하시겠습니까?')) {
-        const transaction = db.transaction(['notes'], 'readwrite'); transaction.objectStore('notes').delete(currentNoteId);
+        const transaction = db.transaction(['notes'], 'readwrite'); 
+        transaction.objectStore('notes').delete(currentNoteId);
         transaction.oncomplete = () => { createNewNote(); };
       }
     }
+
     function prepareAndPrint() {
       const num = parseInt(document.getElementById('itemCount').value);
       for (let i = 1; i <= num; i++) {
@@ -1403,7 +1525,8 @@
         document.getElementById(`print-lead-${i}`).innerHTML = leadEditors[i-1].root.innerHTML;
         document.getElementById(`print-conc-${i}`).innerHTML = concEditors[i-1].root.innerHTML;
         document.getElementById(`print-sol-${i}`).innerHTML = editors[i-1].root.innerHTML;
-      } window.print();
+      } 
+      window.print();
     }
   </script>
 </body>
