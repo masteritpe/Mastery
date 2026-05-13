@@ -223,6 +223,9 @@
     .topic-modal-num {
       background: var(--primary); color: white; border-radius: 4px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;
     }
+    .topic-modal-num.clickable { cursor: pointer; transition: background 0.2s, transform 0.1s; }
+    .topic-modal-num.clickable:hover { background: var(--primary-hover); transform: scale(1.05); }
+
     .topic-modal-text {
       font-size: 14px; color: var(--text-main); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-top: 2px;
     }
@@ -366,6 +369,7 @@
       <input type="text" id="docTitle" class="title-input" placeholder="제목을 입력하세요" spellcheck="false">
       <div class="actions">
         <button class="btn btn-outline" onclick="openTopicListModal()" title="현재 문서의 전체 문항 리스트 보기"><i class="ph ph-list-dashes"></i></button>
+        <button class="btn btn-outline" id="btnMnemonicList" onclick="openMnemonicListModal()" title="두음 강조 내역 모아보기 (Alt+I)"><i class="ph ph-highlighter"></i></button>
         <button class="btn btn-outline" onclick="openSettings()" title="환경설정"><i class="ph ph-gear"></i></button>
         <div class="divider"></div>
         <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importJSON(event)">
@@ -401,6 +405,17 @@
       </div>
     </div>
 
+    <div id="mnemonicListModal" class="modal-overlay" onclick="if(event.target===this) closeMnemonicListModal()">
+      <div class="modal-content" style="width: 500px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; padding: 0;">
+        <div class="modal-header" style="padding: 20px 24px; margin-bottom: 0; border-bottom: 1px solid var(--border-base);">
+          <div class="modal-title"><i class="ph-fill ph-highlighter" style="font-size: 20px; color: #0d3a9e;"></i> 두음 강조 모아보기</div>
+          <button class="btn" style="padding: 4px; border: none; background: transparent;" onclick="closeMnemonicListModal()"><i class="ph ph-x" style="font-size: 18px;"></i></button>
+        </div>
+        <div id="mnemonicListContainer" style="flex: 1; overflow-y: auto; padding: 0; background: var(--bg-body);">
+        </div>
+      </div>
+    </div>
+
     <div id="settingsModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
@@ -427,6 +442,7 @@
             <li><b>화면 스크롤:</b> 화살표 위/아래 (입력 중이 아닐 때)</li>
             <li><b>글자 확대/축소:</b> Ctrl + ➕ / ➖</li>
             <li><b>두음 강조(남색+흰글씨):</b> Ctrl + Alt + M</li>
+            <li><b style="color:#0d3a9e;">두음 강조 모아보기:</b> Alt + I</li>
             <li><b>이미지 정렬 및 크기:</b> 이미지를 클릭하면 사이즈 조절 및 정렬 툴바가 표시됩니다.</li>
             <li><b>이미지 크게 보기:</b> 에디터 내 이미지 <b>더블클릭</b></li>
             <li><b>에디터 서식:</b> 취소선(Ctrl+0) | 빨강(Ctrl+Alt+R) | 파랑(Ctrl+Alt+B)</li>
@@ -545,9 +561,12 @@
       document.getElementById('tab-items').classList.remove('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
 
+      const btnMnemonic = document.getElementById('btnMnemonicList');
+
       if (tab === 'notes') {
         document.getElementById('view-notes').classList.remove('hidden');
         document.getElementById('view-items').classList.add('hidden');
+        if (btnMnemonic) btnMnemonic.style.display = 'inline-flex'; // 버튼 보이기
         
         // 이전 노트로 복귀하거나 새 노트 렌더링
         if (currentNoteId) {
@@ -563,6 +582,7 @@
       } else {
         document.getElementById('view-notes').classList.add('hidden');
         document.getElementById('view-items').classList.remove('hidden');
+        if (btnMnemonic) btnMnemonic.style.display = 'none'; // 항목조회 시 두음 버튼 숨기기
         executeItemFilter();
       }
     }
@@ -570,6 +590,22 @@
     function scrollToTop() {
       const mainContent = document.getElementById('mainContent');
       if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    // 공통 스크롤/카드 포커싱 함수
+    function focusCard(index) {
+      const targetCard = document.getElementById(`card-${index}`);
+      if (targetCard) {
+        if (isCardMode) {
+          currentCardIndex = index;
+          updateCardVisibility();
+        } else {
+          targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          targetCard.style.transition = 'box-shadow 0.3s ease';
+          targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
+          setTimeout(() => { targetCard.style.boxShadow = 'var(--shadow-md)'; }, 1200);
+        }
+      }
     }
 
     function toggle5R(el) { 
@@ -731,15 +767,6 @@
       }
     }
 
-    function updateCardVisibility() {
-      const cards = document.querySelectorAll('.keynote-card');
-      cards.forEach((card, index) => {
-        if (index === currentCardIndex - 1) card.classList.add('active-card');
-        else card.classList.remove('active-card');
-      });
-      scrollToTop(); 
-    }
-
     document.addEventListener('keydown', function(e) {
       const isCtrl = e.ctrlKey || e.metaKey; 
       const isAlt = e.altKey;
@@ -792,6 +819,18 @@
         return;
       }
 
+      // ✨ Alt + I 단축키 추가 (두음 강조 모아보기 토글)
+      if (!isCtrl && isAlt && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        const modal = document.getElementById('mnemonicListModal');
+        if (modal.style.display === 'flex') {
+          closeMnemonicListModal();
+        } else {
+          openMnemonicListModal();
+        }
+        return;
+      }
+
       if (isCtrl && !isAlt && (e.key === 'e' || e.key === 'E')) {
         e.preventDefault();
         if (currentSidebarTab === 'notes') { 
@@ -805,6 +844,7 @@
         closeSettings(); 
         closeImageViewer(); 
         closeTopicListModal();
+        closeMnemonicListModal();
         let isImageEditing = false;
         document.querySelectorAll('.ql-container').forEach(container => {
           const overlays = Array.from(container.children).filter(el => !el.classList.length);
@@ -941,18 +981,7 @@
           div.className = 'topic-modal-item';
           div.onclick = () => {
             closeTopicListModal();
-            const targetCard = document.getElementById(`prob-${i}`).closest('.keynote-card');
-            if (targetCard) {
-              if (isCardMode) { 
-                currentCardIndex = i; 
-                updateCardVisibility(); 
-              } else {
-                targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                targetCard.style.transition = 'box-shadow 0.3s ease'; 
-                targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
-                setTimeout(() => { targetCard.style.boxShadow = 'var(--shadow-md)'; }, 1200);
-              }
-            }
+            focusCard(i);
           };
           div.innerHTML = `<div class="topic-modal-num">${i}</div><div class="topic-modal-text">${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`;
           container.appendChild(div);
@@ -960,6 +989,90 @@
       }
       if (!hasResult) {
         container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">검색 결과가 없습니다.</div>';
+      }
+    }
+
+    // ✨ 두음 강조 리스트 보기 모달 로직 추가
+    function openMnemonicListModal() {
+      if (currentSidebarTab !== 'notes') return; // 항목 조회 탭에서는 동작 제한
+      renderMnemonicList();
+      document.getElementById('mnemonicListModal').style.display = 'flex';
+    }
+
+    function closeMnemonicListModal() {
+      document.getElementById('mnemonicListModal').style.display = 'none';
+    }
+
+    function renderMnemonicList() {
+      const container = document.getElementById('mnemonicListContainer');
+      container.innerHTML = '';
+      const num = parseInt(document.getElementById('itemCount').value) || 0;
+      let hasResult = false;
+
+      for (let i = 1; i <= num; i++) {
+        const editorsForCard = [
+          { name: '문제', instance: probEditors[i-1] },
+          { name: '리드', instance: leadEditors[i-1] },
+          { name: '개념', instance: concEditors[i-1] },
+          { name: '풀이', instance: editors[i-1] }
+        ];
+
+        let cardMnemonics = [];
+
+        editorsForCard.forEach(ed => {
+          if (!ed.instance) return;
+          const contents = ed.instance.getContents();
+          if (contents && contents.ops) {
+            let currentMnemonic = '';
+            contents.ops.forEach(op => {
+              // 두음 강조 포맷 (background: #0d3a9e) 판별
+              if (op.attributes && op.attributes.background === '#0d3a9e' && typeof op.insert === 'string') {
+                currentMnemonic += op.insert;
+              } else {
+                if (currentMnemonic.trim().length > 0) {
+                  cardMnemonics.push({ type: ed.name, text: currentMnemonic.trim() });
+                }
+                currentMnemonic = '';
+              }
+            });
+            if (currentMnemonic.trim().length > 0) {
+              cardMnemonics.push({ type: ed.name, text: currentMnemonic.trim() });
+            }
+          }
+        });
+
+        if (cardMnemonics.length > 0) {
+          hasResult = true;
+          
+          let displayTitle = probEditors[i-1].getText().trim(); 
+          if (!displayTitle) displayTitle = '(문제 내용 없음)';
+          
+          const div = document.createElement('div');
+          div.className = 'topic-modal-item';
+          div.style.cssText = 'padding: 16px 20px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; cursor: default; background: var(--bg-surface);';
+          
+          // 타이틀 영역 수정 (문항 번호 클릭 이벤트 추가 및 스타일 변경)
+          const titleHtml = `<div style="display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+              <div class="topic-modal-num clickable" onclick="closeMnemonicListModal(); focusCard(${i});" title="${i}번 문항으로 이동">${i}</div>
+              문항
+            </div>
+            <div style="font-size: 13px; font-weight: 500; color: var(--text-muted); padding-left: 30px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+              ${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+            </div>
+          </div>`;
+          
+          const listHtml = `<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-left: 30px; margin-top: 2px;">
+            ${cardMnemonics.map(m => `<span style="background: #0d3a9e; color: #ffffff; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 13px; box-shadow: var(--shadow-sm);"><span style="font-size: 10px; color: #93c5fd; margin-right: 4px;">[${m.type}]</span>${m.text}</span>`).join('')}
+          </div>`;
+          
+          div.innerHTML = titleHtml + listHtml;
+          container.appendChild(div);
+        }
+      }
+
+      if (!hasResult) {
+        container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px; background: var(--bg-surface); height: 100%;">두음 강조(Ctrl+Alt+M)가 적용된 텍스트가 없습니다.</div>';
       }
     }
 
@@ -1036,18 +1149,7 @@
     function loadNoteAndScroll(noteId, itemIndex) {
       const executeScroll = () => {
         setTimeout(() => {
-          const targetCard = document.getElementById(`card-${itemIndex + 1}`);
-          if (targetCard) {
-            if (isCardMode) { 
-              currentCardIndex = itemIndex + 1; 
-              updateCardVisibility(); 
-            } else {
-              targetCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              targetCard.style.transition = 'box-shadow 0.3s ease'; 
-              targetCard.style.boxShadow = '0 0 0 3px var(--primary)';
-              setTimeout(() => { targetCard.style.boxShadow = 'var(--shadow-md)'; }, 1200);
-            }
-          }
+          focusCard(itemIndex + 1);
         }, 200);
       };
 
