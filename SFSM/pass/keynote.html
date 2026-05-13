@@ -542,6 +542,7 @@
     let editors = [];
     let currentEditorFontSize = 18; 
     let activeTargetImage = null;
+    let highlightIntervalId = null; 
 
     let isCardMode = false;
     let currentCardIndex = 1;
@@ -603,7 +604,6 @@
         }
       });
 
-      // 🔥 추가: 카드 모드에서는 항상 카드의 최상단(문제 시작부분)이 보이도록 스크롤 리셋
       if (isCardMode) {
         const mainContent = document.getElementById('mainContent');
         if (mainContent) {
@@ -644,9 +644,12 @@
 
     function injectImageHighlightButton() {
       let attempts = 0;
-      const interval = setInterval(() => {
+      
+      if (highlightIntervalId) clearInterval(highlightIntervalId);
+
+      highlightIntervalId = setInterval(() => {
         attempts++;
-        if (attempts > 20) { clearInterval(interval); return; }
+        if (attempts > 20) { clearInterval(highlightIntervalId); return; }
 
         const containers = document.querySelectorAll('.ql-container');
         containers.forEach(container => {
@@ -656,7 +659,7 @@
             if (svgs.length > 0) {
               const toolbar = svgs[0].parentElement.parentElement;
               if (toolbar && !toolbar.querySelector('.custom-btn-group')) {
-                clearInterval(interval); 
+                clearInterval(highlightIntervalId); // 생성 완료 시 타이머 즉시 종료
                 toolbar.style.display = 'flex'; 
                 toolbar.style.alignItems = 'center';
 
@@ -1102,14 +1105,13 @@
       }
     }
 
-    // ✨ 사이드바 5R 항목 조회 최적화 로직
-    let currentSidebar5R = null; // 기본값 아무것도 없음
+    let currentSidebar5R = null; 
 
     function selectSidebar5R(element, type) {
       document.querySelectorAll('#sidebar5RContainer .r5-pill').forEach(el => el.classList.remove('active'));
       element.classList.add('active');
       currentSidebar5R = type;
-      executeItemFilter(); // 즉시 필터링
+      executeItemFilter(); 
     }
 
     function executeItemFilter() {
@@ -1119,59 +1121,61 @@
       let gatheredItems = [];
 
       const transaction = db.transaction(['notes'], 'readonly');
-      const request = transaction.objectStore('notes').getAll();
+      const request = transaction.objectStore('notes').openCursor(); 
 
-      request.onsuccess = () => {
-        let rawNotes = request.result;
-        rawNotes.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
-
-        rawNotes.forEach(note => {
-          // 오직 완료건(_COM) 만 필터링 대상
-          if (!note.title || !note.title.endsWith('_COM')) return;
-          
-          if (note.items && note.items.length > 0) {
-            note.items.forEach((item, index) => {
-              const saved5R = item.type5r || []; // 기본값 없음으로 변경
-              if (target5R && saved5R.includes(target5R)) {
-                gatheredItems.push({ noteId: note.id, noteTitle: note.title, itemIndex: index, data: item });
-              }
-            });
+      request.onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (cursor) {
+          const note = cursor.value;
+          if (note.title && note.title.endsWith('_COM')) {
+            if (note.items && note.items.length > 0) {
+              note.items.forEach((item, index) => {
+                const saved5R = item.type5r || []; 
+                if (target5R && saved5R.includes(target5R)) {
+                  let displayTitle = item.problem ? item.problem.replace(/<[^>]+>/g, ' ').trim() : '';
+                  if (!displayTitle) displayTitle = '(문제 내용 없음)';
+                  
+                  gatheredItems.push({ 
+                      noteId: note.id, 
+                      noteTitle: note.title, 
+                      itemIndex: index, 
+                      displayTitle: displayTitle 
+                  });
+                }
+              });
+            }
           }
-        });
+          cursor.continue();
+        } else {
+          gatheredItems.sort((a, b) => a.noteTitle.localeCompare(b.noteTitle, undefined, { numeric: true, sensitivity: 'base' }));
 
-        // 메모리 최적화를 위해 원본 노트를 불러오고 스크롤 이동하는 방식 적용
-        if (gatheredItems.length === 0) {
-          container.innerHTML = '<div style="padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 13px;">조건에 맞는 문항이 없습니다.</div>';
-          return;
+          if (gatheredItems.length === 0) {
+            container.innerHTML = '<div style="padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 13px;">조건에 맞는 문항이 없습니다.</div>';
+            return;
+          }
+
+          gatheredItems.forEach((gItem) => {
+            const li = document.createElement('li');
+            li.className = 'note-item';
+            li.style.padding = '12px 14px';
+            li.style.borderBottom = '1px solid var(--border-light)';
+            
+            li.onclick = () => loadNoteAndScroll(gItem.noteId, gItem.itemIndex);
+
+            li.innerHTML = `
+              <div style="font-size: 11px; color: #3B82F6; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  <i class="ph-fill ph-folder-open"></i> ${gItem.noteTitle} (Q${gItem.itemIndex + 1})
+              </div>
+              <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+                  ${gItem.displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+              </div>
+            `;
+            container.appendChild(li);
+          });
         }
-
-        gatheredItems.forEach((gItem, vIndex) => {
-          let displayTitle = gItem.data.problem ? gItem.data.problem.replace(/<[^>]+>/g, ' ').trim() : '';
-          if (!displayTitle) displayTitle = '(문제 내용 없음)';
-
-          const li = document.createElement('li');
-          li.className = 'note-item';
-          li.style.padding = '12px 14px';
-          li.style.borderBottom = '1px solid var(--border-light)';
-          
-          li.onclick = () => {
-            loadNoteAndScroll(gItem.noteId, gItem.itemIndex);
-          };
-
-          li.innerHTML = `
-            <div style="font-size: 11px; color: #3B82F6; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                <i class="ph-fill ph-folder-open"></i> ${gItem.noteTitle} (Q${gItem.itemIndex + 1})
-            </div>
-            <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                ${displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
-            </div>
-          `;
-          container.appendChild(li);
-        });
       };
     }
 
-    // 목록 클릭시 메모리를 아끼기 위해 원본 노트를 로드하고 스크롤 이동
     function loadNoteAndScroll(noteId, itemIndex) {
       const executeScroll = () => {
         setTimeout(() => {
@@ -1180,14 +1184,8 @@
       };
 
       if (currentNoteId !== noteId) {
-        const transaction = db.transaction(['notes'], 'readonly');
-        const request = transaction.objectStore('notes').get(noteId);
-        request.onsuccess = () => {
-          if (request.result) {
-            loadNote(request.result);
-            executeScroll();
-          }
-        };
+        loadNoteById(noteId); 
+        setTimeout(() => executeScroll(), 100); 
       } else {
         executeScroll();
       }
@@ -1270,182 +1268,138 @@
       if (num > 100) num = 100;
       countInput.value = num; 
 
-      container.innerHTML = '';
-      probEditors = []; leadEditors = []; concEditors = []; editors = [];
+      const currentCount = probEditors.length;
 
-      const customBindings = {
-        customStrike: { key: '0', shortKey: true, handler: function(range, context) { this.quill.format('strike', !context.format.strike); } },
-        customRed: { key: 'R', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'red' ? false : 'red'); } },
-        customBlue: { key: 'B', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'blue' ? false : 'blue'); } },
-        customClear: { key: 'X', shortKey: true, shiftKey: true, handler: function(range, context) { if (range.length > 0) this.quill.removeFormat(range.index, range.length); else { const formats = this.quill.getFormat(range); for (let f in formats) this.quill.format(f, false); } } },
-        customHighlight1: { key: '1', shortKey: true, handler: function(range, context) { const color = '#ffedd5'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight2: { key: '2', shortKey: true, handler: function(range, context) { const color = '#e0f2fe'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight3: { key: '3', shortKey: true, handler: function(range, context) { const color = '#fef08a'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight4: { key: '4', shortKey: true, handler: function(range, context) { const color = '#dcfce7'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight5: { key: '5', shortKey: true, handler: function(range, context) { const color = '#fce7f3'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight6: { key: '6', shortKey: true, handler: function(range, context) { const color = '#e6d5c3'; this.quill.format('background', context.format.background === color ? false : color); } },
-        customHighlight7: { key: '7', shortKey: true, handler: function(range, context) { const color = '#e5e7eb'; this.quill.format('background', context.format.background === color ? false : color); } }
-      };
+      if (num > currentCount) {
+        const customBindings = {
+          customStrike: { key: '0', shortKey: true, handler: function(range, context) { this.quill.format('strike', !context.format.strike); } },
+          customRed: { key: 'R', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'red' ? false : 'red'); } },
+          customBlue: { key: 'B', shortKey: true, altKey: true, handler: function(range, context) { this.quill.format('color', context.format.color === 'blue' ? false : 'blue'); } },
+          customClear: { key: 'X', shortKey: true, shiftKey: true, handler: function(range, context) { if (range.length > 0) this.quill.removeFormat(range.index, range.length); else { const formats = this.quill.getFormat(range); for (let f in formats) this.quill.format(f, false); } } },
+          customHighlight1: { key: '1', shortKey: true, handler: function(range, context) { const color = '#ffedd5'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight2: { key: '2', shortKey: true, handler: function(range, context) { const color = '#e0f2fe'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight3: { key: '3', shortKey: true, handler: function(range, context) { const color = '#fef08a'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight4: { key: '4', shortKey: true, handler: function(range, context) { const color = '#dcfce7'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight5: { key: '5', shortKey: true, handler: function(range, context) { const color = '#fce7f3'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight6: { key: '6', shortKey: true, handler: function(range, context) { const color = '#e6d5c3'; this.quill.format('background', context.format.background === color ? false : color); } },
+          customHighlight7: { key: '7', shortKey: true, handler: function(range, context) { const color = '#e5e7eb'; this.quill.format('background', context.format.background === color ? false : color); } }
+        };
 
-      const Delta = Quill.import('delta');
-      const tableMatcher = function(node, delta) {
-        const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false); 
-        const textNodes = [];
-        while (walker.nextNode()) textNodes.push(walker.currentNode);
-        
-        textNodes.forEach(textNode => {
-          const text = textNode.nodeValue;
-          if (/\$([^$]+)\$/.test(text)) {
-            const span = document.createElement('span');
-            span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => { 
-              try { return katex.renderToString(formula, { throwOnError: false }); } 
-              catch (e) { return match; } 
-            });
-            textNode.parentNode.replaceChild(span, textNode); 
-          }
-        });
-        return new Delta().insert({ rawTable: node.outerHTML });
-      };
-
-      const mathMatcher = function(node, delta) {
-        if (node.nodeType === Node.TEXT_NODE) {
-          const text = node.data; 
-          const regex = /\$([^$]+)\$/g; 
-          let match; 
-          let lastIndex = 0; 
-          const newDelta = new Delta(); 
-          let hasMath = false;
-          
-          while ((match = regex.exec(text)) !== null) {
-            hasMath = true; 
-            if (match.index > lastIndex) { 
-              newDelta.insert(text.substring(lastIndex, match.index)); 
+        const Delta = Quill.import('delta');
+        const tableMatcher = function(node, delta) {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null, false); 
+          const textNodes = [];
+          while (walker.nextNode()) textNodes.push(walker.currentNode);
+          textNodes.forEach(textNode => {
+            const text = textNode.nodeValue;
+            if (/\$([^$]+)\$/.test(text)) {
+              const span = document.createElement('span');
+              span.innerHTML = text.replace(/\$([^$]+)\$/g, (match, formula) => { 
+                try { return katex.renderToString(formula, { throwOnError: false }); } catch (e) { return match; } 
+              });
+              textNode.parentNode.replaceChild(span, textNode); 
             }
-            newDelta.insert({ formula: match[1] }); 
-            lastIndex = regex.lastIndex;
-          }
-          if (hasMath) { 
-            if (lastIndex < text.length) { 
-              newDelta.insert(text.substring(lastIndex)); 
-            } 
-            return newDelta; 
-          }
-        } 
-        return delta;
-      };
+          });
+          return new Delta().insert({ rawTable: node.outerHTML });
+        };
 
-      for (let i = 1; i <= num; i++) {
-        const card = document.createElement('div'); 
-        card.className = 'keynote-card'; 
-        card.id = `card-${i}`;
-        
-        card.innerHTML = `
-          <div class="edit-ui">
-            <div class="card-header">
-              <div class="badge-number">${i}</div>
-              <div class="r5-container" data-index="${i-1}">
-                ${FIVE_R_TYPES.map(type => `<div class="r5-pill" onclick="toggle5R(this)">${type}</div>`).join('')}
+        const mathMatcher = function(node, delta) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.data; const regex = /\$([^$]+)\$/g; let match; let lastIndex = 0; const newDelta = new Delta(); let hasMath = false;
+            while ((match = regex.exec(text)) !== null) {
+              hasMath = true; 
+              if (match.index > lastIndex) newDelta.insert(text.substring(lastIndex, match.index)); 
+              newDelta.insert({ formula: match[1] }); 
+              lastIndex = regex.lastIndex;
+            }
+            if (hasMath) { 
+              if (lastIndex < text.length) newDelta.insert(text.substring(lastIndex)); 
+              return newDelta; 
+            }
+          } 
+          return delta;
+        };
+
+        for (let i = currentCount + 1; i <= num; i++) {
+          const card = document.createElement('div'); 
+          card.className = 'keynote-card'; 
+          card.id = `card-${i}`;
+          
+          card.innerHTML = `
+            <div class="edit-ui">
+              <div class="card-header">
+                <div class="badge-number">${i}</div>
+                <div class="r5-container" data-index="${i-1}">
+                  ${FIVE_R_TYPES.map(type => `<div class="r5-pill" onclick="toggle5R(this)">${type}</div>`).join('')}
+                </div>
               </div>
-            </div>
-            <div class="form-group">
-              <label><i class="ph-fill ph-question"></i> 문제(Problem)</label>
-              <div id="prob-${i}" class="simple-editor"></div>
-            </div>
-            <div class="grid-2">
               <div class="form-group">
-                <label><i class="ph-fill ph-text-align-left"></i> 리드문(Lead)</label>
-                <div id="lead-${i}" class="simple-editor"></div>
+                <label><i class="ph-fill ph-question"></i> 문제(Problem)</label>
+                <div id="prob-${i}" class="simple-editor"></div>
               </div>
-              <div class="form-group">
-                <label><i class="ph-fill ph-lightbulb"></i> 개념(Concept)</label>
-                <div id="conc-${i}" class="simple-editor"></div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label><i class="ph-fill ph-text-align-left"></i> 리드문(Lead)</label>
+                  <div id="lead-${i}" class="simple-editor"></div>
+                </div>
+                <div class="form-group">
+                  <label><i class="ph-fill ph-lightbulb"></i> 개념(Concept)</label>
+                  <div id="conc-${i}" class="simple-editor"></div>
+                </div>
+              </div>
+              <div class="form-group" style="margin-top: 10px;">
+                <label><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</label>
+                <div id="editor-${i}" class="solution-editor"></div>
               </div>
             </div>
-            <div class="form-group" style="margin-top: 10px;">
-              <label><i class="ph-fill ph-check-circle"></i> 풀이(Solution)</label>
-              <div id="editor-${i}" class="solution-editor"></div>
+            <div class="print-ui">
+              <div id="print-lead-${i}" class="print-lead ql-editor"></div>
+              <div class="print-prob"><div style="min-width: 28px;">${i}.</div><div id="print-prob-${i}" class="ql-editor" style="padding:0; flex:1;"></div></div>
+              <div id="print-conc-${i}" class="print-conc ql-editor"></div>
+              <hr class="print-divider">
+              <div id="print-sol-${i}" class="print-sol ql-editor"></div>
             </div>
-          </div>
-          <div class="print-ui">
-            <div id="print-lead-${i}" class="print-lead ql-editor"></div>
-            <div class="print-prob"><div style="min-width: 28px;">${i}.</div><div id="print-prob-${i}" class="ql-editor" style="padding:0; flex:1;"></div></div>
-            <div id="print-conc-${i}" class="print-conc ql-editor"></div>
-            <hr class="print-divider">
-            <div id="print-sol-${i}" class="print-sol ql-editor"></div>
-          </div>
-        `;
-        container.appendChild(card);
+          `;
+          container.appendChild(card);
 
-        const qProb = new Quill(`#prob-${i}`, { 
-          theme: 'snow', 
-          scrollingContainer: '#mainContent', 
-          placeholder: '문제를 입력하세요', 
-          modules: { 
-            toolbar: false, 
-            formula: true, 
-            keyboard: { bindings: customBindings }, 
-            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
-          }
-        }); 
-        qProb.root.setAttribute('spellcheck', false); 
-        qProb.clipboard.addMatcher('TABLE', tableMatcher); 
-        qProb.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
-        probEditors.push(qProb);
+          const qProb = new Quill(`#prob-${i}`, { theme: 'snow', scrollingContainer: '#mainContent', placeholder: '문제를 입력하세요', modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } } }); 
+          qProb.root.setAttribute('spellcheck', false); qProb.clipboard.addMatcher('TABLE', tableMatcher); qProb.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); probEditors.push(qProb);
 
-        const qLead = new Quill(`#lead-${i}`, { 
-          theme: 'snow', 
-          scrollingContainer: '#mainContent', 
-          placeholder: '핵심 리드문 입력', 
-          modules: { 
-            toolbar: false, 
-            formula: true, 
-            keyboard: { bindings: customBindings }, 
-            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
-          }
-        }); 
-        qLead.root.setAttribute('spellcheck', false); 
-        qLead.clipboard.addMatcher('TABLE', tableMatcher); 
-        qLead.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
-        leadEditors.push(qLead);
+          const qLead = new Quill(`#lead-${i}`, { theme: 'snow', scrollingContainer: '#mainContent', placeholder: '핵심 리드문 입력', modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } } }); 
+          qLead.root.setAttribute('spellcheck', false); qLead.clipboard.addMatcher('TABLE', tableMatcher); qLead.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); leadEditors.push(qLead);
 
-        const qConc = new Quill(`#conc-${i}`, { 
-          theme: 'snow', 
-          scrollingContainer: '#mainContent', 
-          placeholder: '관련 개념 입력', 
-          modules: { 
-            toolbar: false, 
-            formula: true, 
-            keyboard: { bindings: customBindings }, 
-            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
-          }
-        }); 
-        qConc.root.setAttribute('spellcheck', false); 
-        qConc.clipboard.addMatcher('TABLE', tableMatcher); 
-        qConc.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
-        concEditors.push(qConc);
+          const qConc = new Quill(`#conc-${i}`, { theme: 'snow', scrollingContainer: '#mainContent', placeholder: '관련 개념 입력', modules: { toolbar: false, formula: true, keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } } }); 
+          qConc.root.setAttribute('spellcheck', false); qConc.clipboard.addMatcher('TABLE', tableMatcher); qConc.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); concEditors.push(qConc);
 
-        const qSol = new Quill(`#editor-${i}`, { 
-          theme: 'snow', 
-          scrollingContainer: '#mainContent', 
-          placeholder: '상세 내용을 작성하거나 이미지를 붙여넣으세요...', 
-          modules: { 
-            formula: true, 
-            toolbar: [ 
-              [{ 'header': [1, 2, false] }], 
-              ['bold', 'italic', 'underline', 'strike'], 
-              [{ 'list': 'ordered'}, { 'list': 'bullet' }], 
-              [{ 'color': [] }, { 'background': [] }], 
-              ['formula', 'image', 'code-block'], 
-              ['clean'] 
-            ], 
-            keyboard: { bindings: customBindings }, 
-            imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } 
-          }
-        }); 
-        qSol.root.setAttribute('spellcheck', false); 
-        qSol.clipboard.addMatcher('TABLE', tableMatcher); 
-        qSol.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); 
-        editors.push(qSol);
+          const qSol = new Quill(`#editor-${i}`, { theme: 'snow', scrollingContainer: '#mainContent', placeholder: '상세 내용을 작성하거나 이미지를 붙여넣으세요...', modules: { formula: true, toolbar: [ [{ 'header': [1, 2, false] }], ['bold', 'italic', 'underline', 'strike'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], [{ 'color': [] }, { 'background': [] }], ['formula', 'image', 'code-block'], ['clean'] ], keyboard: { bindings: customBindings }, imageResize: { displaySize: true, modules: ['Resize', 'DisplaySize', 'Toolbar'] } } }); 
+          qSol.root.setAttribute('spellcheck', false); qSol.clipboard.addMatcher('TABLE', tableMatcher); qSol.clipboard.addMatcher(Node.TEXT_NODE, mathMatcher); editors.push(qSol);
+        }
+      }
+
+      // 화면 제어 및 데이터/히스토리 강제 초기화
+      for (let i = 0; i < probEditors.length; i++) {
+        const card = document.getElementById(`card-${i+1}`);
+        if (!card) continue;
+
+        if (i < num) {
+          // 🔥 [수정된 부분] CSS가 작동할 수 있도록 인라인 스타일(block)을 제거(빈 문자열 처리)합니다.
+          card.style.display = ''; 
+          
+          probEditors[i].setContents([]);
+          leadEditors[i].setContents([]);
+          concEditors[i].setContents([]);
+          editors[i].setContents([]);
+
+          if(probEditors[i].history) probEditors[i].history.clear();
+          if(leadEditors[i].history) leadEditors[i].history.clear();
+          if(concEditors[i].history) concEditors[i].history.clear();
+          if(editors[i].history) editors[i].history.clear();
+
+          const pills = card.querySelectorAll('.r5-pill');
+          pills.forEach(p => p.classList.remove('active'));
+        } else {
+          card.style.display = 'none';
+        }
       }
     }
 
@@ -1531,63 +1485,82 @@
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
         const transaction = db.transaction(['notes'], 'readonly');
         const store = transaction.objectStore('notes');
-        const request = store.getAll();
-        
-        request.onsuccess = () => {
-          const list = document.getElementById('noteList'); 
-          list.innerHTML = '';
-          const rawNotes = request.result;
+        const request = store.openCursor(); 
 
-          let comCount = 0; 
-          let comProblems = 0;
-          rawNotes.forEach(note => { 
+        const list = document.getElementById('noteList'); 
+        list.innerHTML = '';
+
+        let comCount = 0; 
+        let comProblems = 0;
+        const matchedNotes = []; 
+
+        request.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            const note = cursor.value;
+
             if (note.title && note.title.endsWith('_COM')) { 
               comCount++; 
               if (note.items) comProblems += note.items.length; 
-            } 
-          });
-          
-          const statsEl = document.getElementById('completionStats');
-          if (statsEl) {
-            if (comCount > 0) {
-              statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`; 
-              statsEl.style.display = 'inline-flex';
-              if (showOnlyCompleted) statsEl.classList.add('active'); 
-              else statsEl.classList.remove('active');
-            } else { 
-              statsEl.style.display = 'none'; 
-              if(showOnlyCompleted) showOnlyCompleted = false; 
             }
-          }
 
-          const notes = rawNotes.sort((a, b) => { 
-            return a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }); 
-          });
-          
-          notes.forEach(note => {
-            if (showOnlyCompleted && (!note.title || !note.title.endsWith('_COM'))) return;
-            
-            let isMatch = note.title.toLowerCase().includes(searchTerm);
-            if (!isMatch && note.items) {
-              isMatch = note.items.some(item => {
-                const textToSearch = [item.problem, item.lead, item.concept, item.solution]
-                  .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase()).join(' '); 
-                return textToSearch.includes(searchTerm);
-              });
+            let passFilter = true;
+            if (showOnlyCompleted && (!note.title || !note.title.endsWith('_COM'))) passFilter = false;
+
+            if (passFilter) {
+                let isMatch = note.title.toLowerCase().includes(searchTerm);
+                if (!isMatch && note.items) {
+                  isMatch = note.items.some(item => {
+                    const textToSearch = [item.problem, item.lead, item.concept, item.solution]
+                      .map(html => (html || '').replace(/<[^>]+>/g, '').toLowerCase()).join(' '); 
+                    return textToSearch.includes(searchTerm);
+                  });
+                }
+                
+                if (isMatch) {
+                  matchedNotes.push({ id: note.id, title: note.title, date: note.date });
+                }
             }
+            cursor.continue(); 
+          } else {
+            const statsEl = document.getElementById('completionStats');
+            if (statsEl) {
+              if (comCount > 0) {
+                statsEl.innerHTML = `<i class="ph-fill ph-check-circle"></i> ${comCount}건 (${comProblems}제)`; 
+                statsEl.style.display = 'inline-flex';
+                if (showOnlyCompleted) statsEl.classList.add('active'); 
+                else statsEl.classList.remove('active');
+              } else { 
+                statsEl.style.display = 'none'; 
+                if(showOnlyCompleted) showOnlyCompleted = false; 
+              }
+            }
+
+            matchedNotes.sort((a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' }));
             
-            if (isMatch) {
+            matchedNotes.forEach(meta => {
               const li = document.createElement('li'); 
-              li.className = `note-item ${note.id === currentNoteId ? 'active' : ''}`;
-              const dateStr = new Date(note.date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-              li.innerHTML = `<span class="note-title">${note.title}</span><span class="note-date">${dateStr}</span>`;
-              li.onclick = () => loadNote(note); 
+              li.className = `note-item ${meta.id === currentNoteId ? 'active' : ''}`;
+              const dateStr = new Date(meta.date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+              li.innerHTML = `<span class="note-title">${meta.title}</span><span class="note-date">${dateStr}</span>`;
+              
+              li.onclick = () => loadNoteById(meta.id); 
+              
               list.appendChild(li);
-            }
-          }); 
-          resolve();
+            });
+            resolve();
+          }
         };
       });
+    }
+
+    function loadNoteById(noteId) {
+      if (isCardMode) { toggleCardMode(); } 
+      const transaction = db.transaction(['notes'], 'readonly');
+      const request = transaction.objectStore('notes').get(noteId);
+      request.onsuccess = () => {
+        if (request.result) loadNote(request.result);
+      };
     }
 
     function loadNote(note) {
