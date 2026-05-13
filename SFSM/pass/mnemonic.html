@@ -42,7 +42,7 @@
 
     /* 사이드바 */
     .sidebar { width: 300px; background: var(--bg-surface); border-right: 1px solid var(--border-base); display: flex; flex-direction: column; z-index: 10; }
-    .sidebar-header { height: 72px; min-height: 72px; padding: 0 20px; border-bottom: 1px solid var(--border-base); display: flex; align-items: center; }
+    .sidebar-header { height: 72px; min-height: 72px; padding: 0 20px; border-bottom: 1px solid var(--border-base); display: flex; align-items: center; justify-content: space-between; }
     .app-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; color: var(--mn-bg); }
     
     .sidebar-search { padding: 16px 20px; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
@@ -64,6 +64,8 @@
     .divider { width: 1px; height: 24px; background: var(--border-dark); margin: 0 6px; }
 
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+    .btn-icon-only { padding: 8px; font-size: 18px; color: var(--text-muted); background: transparent; }
+    .btn-icon-only:hover { background: var(--bg-sidebar); color: var(--text-main); }
     .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
     .btn-mnemonic { background: var(--mn-bg); color: white; box-shadow: var(--shadow-sm); }
     .btn-mnemonic:hover { background: #0b2e80; transform: translateY(-1px); }
@@ -136,6 +138,15 @@
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="app-title"><i class="ph-fill ph-highlighter"></i> 두음마스터</div>
+      <div style="display: flex; gap: 2px;">
+        <button class="btn btn-icon-only" onclick="exportJSON()" title="JSON 백업 (전체 내보내기)">
+          <i class="ph ph-download-simple"></i>
+        </button>
+        <button class="btn btn-icon-only" onclick="document.getElementById('importFile').click()" title="JSON 복원 (가져오기)">
+          <i class="ph ph-upload-simple"></i>
+        </button>
+        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
+      </div>
     </div>
     
     <div class="sidebar-search">
@@ -235,6 +246,60 @@
   </div>
 
   <script>
+    // --- IndexedDB Setup ---
+    const DB_NAME = 'MnemonicDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'mnemonics';
+    let db;
+
+    function initDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const database = e.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+          }
+        };
+        request.onsuccess = (e) => {
+          db = e.target.result;
+          resolve(db);
+        };
+        request.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    function getAllFromDB() {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function putToDB(item) {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.put(item); // .put() 은 동일 ID 존재 시 업데이트, 없으면 추가
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function deleteFromDB(id) {
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+    // -----------------------
+
     const initialData = [
       { id: 1, source: 'Keynote', title: '행정행위의 기본적 효력', keyword: '공정확강', desc: '*공*정력, *정*당성(존속력), *확*정력, *강*제력' },
       { id: 2, source: '5RChecklist', title: '신뢰보호의 원칙 요건', keyword: '공신인반', desc: '행정청의 *공*적 견해표명, 개인의 *신*뢰, *인*과관계, *반*하는 처분' },
@@ -245,20 +310,29 @@
     let currentCategory = 'All';
     let isLearningMode = false;
 
-    function init() {
-      const stored = localStorage.getItem('mnemonics_db');
-      if (stored) {
-        mnemonics = JSON.parse(stored);
-      } else {
-        mnemonics = initialData;
-        saveToLocalStorage();
+    async function init() {
+      try {
+        await initDB();
+        mnemonics = await getAllFromDB();
+        
+        // 기존 localStorage 마이그레이션 혹은 초기 데이터 세팅
+        if (mnemonics.length === 0) {
+          const stored = localStorage.getItem('mnemonics_db');
+          if (stored) {
+            const localData = JSON.parse(stored);
+            for (const item of localData) await putToDB(item);
+            localStorage.removeItem('mnemonics_db'); // 마이그레이션 후 기존 스토리지 삭제
+          } else {
+            for (const item of initialData) await putToDB(item);
+          }
+          mnemonics = await getAllFromDB();
+        }
+        
+        renderGrid();
+        updateCounts();
+      } catch (error) {
+        console.error("데이터베이스 초기화 실패:", error);
       }
-      renderGrid();
-      updateCounts();
-    }
-
-    function saveToLocalStorage() {
-      localStorage.setItem('mnemonics_db', JSON.stringify(mnemonics));
     }
 
     function setCategory(cat, element) {
@@ -364,7 +438,7 @@
 
     function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
 
-    function saveMnemonic() {
+    async function saveMnemonic() {
       const editId = document.getElementById('editId').value;
       const source = document.getElementById('mnSource').value;
       const title = document.getElementById('mnTitle').value.trim();
@@ -373,32 +447,75 @@
 
       if (!title || !keyword || !desc) { alert('모든 항목을 입력해주세요.'); return; }
 
+      let itemToSave;
+
       if (editId) {
         // 수정 모드
-        const index = mnemonics.findIndex(m => m.id === parseInt(editId));
-        if (index !== -1) {
-          mnemonics[index] = { ...mnemonics[index], source, title, keyword, desc };
-        }
+        itemToSave = { id: parseInt(editId), source, title, keyword, desc };
       } else {
         // 신규 추가 모드
         const newId = mnemonics.length > 0 ? Math.max(...mnemonics.map(m => m.id)) + 1 : 1;
-        mnemonics.push({ id: newId, source, title, keyword, desc });
+        itemToSave = { id: newId, source, title, keyword, desc };
       }
 
-      saveToLocalStorage();
+      await putToDB(itemToSave);
+      mnemonics = await getAllFromDB();
+      
       updateCounts();
       renderGrid(document.getElementById('searchInput').value);
       closeAddModal();
     }
 
-    function deleteMnemonic(id) {
+    async function deleteMnemonic(id) {
       if (confirm('이 두음을 삭제하시겠습니까?')) {
-        mnemonics = mnemonics.filter(m => m.id !== id);
-        saveToLocalStorage();
+        await deleteFromDB(id);
+        mnemonics = await getAllFromDB();
         updateCounts();
         renderGrid(document.getElementById('searchInput').value);
       }
     }
+
+    // --- 백업 / 복원 기능 ---
+    function exportJSON() {
+      const dataStr = JSON.stringify(mnemonics, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `두음마스터_백업_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData)) {
+            for (const item of importedData) {
+              if (item.id && item.keyword && item.desc) {
+                await putToDB(item);
+              }
+            }
+            mnemonics = await getAllFromDB();
+            updateCounts();
+            renderGrid(document.getElementById('searchInput').value);
+            alert('데이터 복원(업데이트 및 추가)이 완료되었습니다.');
+          } else {
+            alert('올바른 백업 파일 형식이 아닙니다.');
+          }
+        } catch (err) {
+          alert('파일을 읽는 중 오류가 발생했습니다.');
+        }
+        event.target.value = ''; // 파일 입력값 초기화
+      };
+      reader.readAsText(file);
+    }
+    // ----------------------
 
     function prepareAndPrint() {
       const categoryTitle = currentCategory === 'All' ? '전체' : currentCategory;
