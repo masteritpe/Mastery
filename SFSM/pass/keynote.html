@@ -592,6 +592,18 @@
       if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'auto' });
     }
 
+    // 카드 가시성 갱신 함수 복원
+    function updateCardVisibility() {
+      const cards = document.querySelectorAll('.keynote-card');
+      cards.forEach((card, index) => {
+        if (index + 1 === currentCardIndex) {
+          card.classList.add('active-card');
+        } else {
+          card.classList.remove('active-card');
+        }
+      });
+    }
+
     // 공통 스크롤/카드 포커싱 함수
     function focusCard(index) {
       const targetCard = document.getElementById(`card-${index}`);
@@ -819,7 +831,6 @@
         return;
       }
 
-      // ✨ Alt + I 단축키 추가 (두음 강조 모아보기 토글)
       if (!isCtrl && isAlt && (e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
         const modal = document.getElementById('mnemonicListModal');
@@ -992,7 +1003,6 @@
       }
     }
 
-    // ✨ 두음 강조 리스트 보기 모달 로직 추가
     function openMnemonicListModal() {
       if (currentSidebarTab !== 'notes') return; // 항목 조회 탭에서는 동작 제한
       renderMnemonicList();
