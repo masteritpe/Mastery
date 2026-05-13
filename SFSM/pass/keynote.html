@@ -592,7 +592,7 @@
       if (mainContent) mainContent.scrollTo({ top: 0, behavior: 'auto' });
     }
 
-    // 카드 가시성 갱신 함수 복원
+    // 카드 가시성 갱신 함수 복원 및 스크롤 초기화 처리
     function updateCardVisibility() {
       const cards = document.querySelectorAll('.keynote-card');
       cards.forEach((card, index) => {
@@ -602,6 +602,14 @@
           card.classList.remove('active-card');
         }
       });
+
+      // 🔥 추가: 카드 모드에서는 항상 카드의 최상단(문제 시작부분)이 보이도록 스크롤 리셋
+      if (isCardMode) {
+        const mainContent = document.getElementById('mainContent');
+        if (mainContent) {
+          mainContent.scrollTop = 0;
+        }
+      }
     }
 
     // 공통 스크롤/카드 포커싱 함수
@@ -757,24 +765,32 @@
       const cards = document.querySelectorAll('.keynote-card');
       
       if (isCardMode) {
-        document.body.classList.add('card-mode');
         let closestIndex = 1; 
         let minDistance = Infinity;
+        const viewportCenter = window.innerHeight / 2;
         cards.forEach((card, i) => {
           const rect = card.getBoundingClientRect();
-          if (Math.abs(rect.top) < minDistance) { 
-            minDistance = Math.abs(rect.top); 
+          const cardCenter = rect.top + (rect.height / 2);
+          const distance = Math.abs(cardCenter - viewportCenter);
+          if (distance < minDistance) { 
+            minDistance = distance; 
             closestIndex = i + 1; 
           }
         });
         currentCardIndex = closestIndex; 
+        
+        document.body.classList.add('card-mode');
         updateCardVisibility(); 
         showToast('카드 모드 ON (좌/우 방향키 이동)', 'ph-browsers');
       } else {
         document.body.classList.remove('card-mode');
         cards.forEach(c => c.classList.remove('active-card'));
         const targetCard = cards[currentCardIndex - 1];
-        if (targetCard) targetCard.scrollIntoView({ behavior: 'auto', block: 'start' });
+        if (targetCard) {
+            setTimeout(() => {
+                targetCard.scrollIntoView({ behavior: 'auto', block: 'start' });
+            }, 10);
+        }
         showToast('카드 모드 OFF', 'ph-browsers');
       }
     }
