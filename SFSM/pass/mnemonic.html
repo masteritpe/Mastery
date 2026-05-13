@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>두음마스터 (Mnemonic Master)</title>
+  <title>두음마스터</title>
   
   <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
@@ -27,7 +27,6 @@
       --radius-md: 8px;
       --radius-lg: 12px;
 
-      /* Mnemonic Brand Colors (From Keynote) */
       --mn-bg: #0d3a9e;
       --mn-text: #ffffff;
       --mn-light-bg: #EFF6FF;
@@ -42,93 +41,101 @@
     }
 
     /* 사이드바 */
-    .sidebar { width: 280px; background: var(--bg-surface); border-right: 1px solid var(--border-base); display: flex; flex-direction: column; z-index: 10; }
-    .sidebar-header { height: 64px; min-height: 64px; padding: 0 20px; border-bottom: 1px solid var(--border-base); display: flex; align-items: center; }
-    .app-title { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; color: var(--mn-bg); }
+    .sidebar { width: 300px; background: var(--bg-surface); border-right: 1px solid var(--border-base); display: flex; flex-direction: column; z-index: 10; }
+    .sidebar-header { height: 72px; min-height: 72px; padding: 0 20px; border-bottom: 1px solid var(--border-base); display: flex; align-items: center; }
+    .app-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0; color: var(--mn-bg); }
     
-    /* 검색창 영역 */
     .sidebar-search { padding: 16px 20px; border-bottom: 1px solid var(--border-light); background: var(--bg-surface); }
-    .search-box { width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--border-base); font-size: 13px; background: var(--bg-body); outline: none; transition: 0.2s; }
+    .search-box { width: 100%; padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid var(--border-base); font-size: 15px; background: var(--bg-body); outline: none; transition: 0.2s; }
     .search-box:focus { border-color: var(--mn-bg); box-shadow: 0 0 0 3px rgba(13, 58, 158, 0.1); }
 
-    /* 카테고리(출처) 리스트 */
     .category-list { flex: 1; overflow-y: auto; padding: 12px; margin: 0; list-style: none; }
-    .category-item { padding: 10px 14px; border-radius: var(--radius-md); cursor: pointer; margin-bottom: 4px; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--text-muted); }
+    .category-item { padding: 12px 16px; border-radius: var(--radius-md); cursor: pointer; margin-bottom: 4px; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 600; color: var(--text-muted); }
     .category-item:hover { background: var(--bg-sidebar); color: var(--text-main); }
     .category-item.active { background: var(--mn-light-bg); color: var(--mn-bg); }
-    .category-count { background: var(--border-base); color: var(--text-muted); padding: 2px 8px; border-radius: 12px; font-size: 11px; }
+    .category-count { background: var(--border-base); color: var(--text-muted); padding: 4px 10px; border-radius: 12px; font-size: 13px; }
     .category-item.active .category-count { background: var(--mn-bg); color: var(--mn-text); }
 
-    /* 메인 콘텐츠 */
     .main-content { flex: 1; display: flex; flex-direction: column; overflow-y: auto; background: var(--bg-body); position: relative; scroll-behavior: smooth; }
     
-    /* 탑바 */
-    .top-bar { position: sticky; top: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); height: 64px; min-height: 64px; padding: 0 30px; border-bottom: 1px solid var(--border-base); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
-    .page-title { font-size: 20px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
+    .top-bar { position: sticky; top: 0; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px); height: 72px; min-height: 72px; padding: 0 30px; border-bottom: 1px solid var(--border-base); display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+    .page-title { font-size: 24px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
     .actions { display: flex; gap: 8px; align-items: center; }
-    .divider { width: 1px; height: 20px; background: var(--border-dark); margin: 0 4px; }
+    .divider { width: 1px; height: 24px; background: var(--border-dark); margin: 0 6px; }
 
-    /* 버튼 스타일 */
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 16px; border-radius: var(--radius-md); font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
     .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
     .btn-mnemonic { background: var(--mn-bg); color: white; box-shadow: var(--shadow-sm); }
     .btn-mnemonic:hover { background: #0b2e80; transform: translateY(-1px); }
     .btn-outline { background: var(--secondary); color: var(--text-main); border-color: var(--border-base); }
     .btn-outline:hover { background: var(--secondary-hover); border-color: #D1D5DB; }
     .btn-outline.active { background: var(--mn-light-bg); border-color: #BFDBFE; color: var(--mn-bg); }
 
-    /* 두음 카드 그리드 */
-    .grid-container { padding: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; max-width: 1400px; margin: 0 auto; width: 100%; }
+    .grid-container { padding: 30px; display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
     
-    .mn-card { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
+    .mn-card { background: var(--bg-surface); border: 1px solid var(--border-base); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-md); display: flex; flex-direction: column; transition: transform 0.2s, box-shadow 0.2s; position: relative; }
     .mn-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); border-color: #D1D5DB; }
     
-    .mn-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; }
-    .mn-keyword { font-size: 22px; font-weight: 800; color: var(--mn-text); background: var(--mn-bg); padding: 6px 12px; border-radius: 6px; letter-spacing: 2px; display: inline-block; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2); }
-    .mn-source { font-size: 12px; font-weight: 600; color: var(--text-muted); background: var(--bg-sidebar); padding: 4px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; }
+    .mn-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; border-bottom: 1px solid var(--border-light); padding-bottom: 14px; }
+    .mn-keyword { font-size: 26px; font-weight: 800; color: var(--mn-text); background: var(--mn-bg); padding: 8px 14px; border-radius: 8px; letter-spacing: 2px; display: inline-block; box-shadow: inset 0 -2px 0 rgba(0,0,0,0.2); }
+    .mn-source { font-size: 14px; font-weight: 600; color: var(--text-muted); background: var(--bg-sidebar); padding: 6px 10px; border-radius: 6px; display: flex; align-items: center; gap: 6px; }
     
-    .mn-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
-    .mn-title { font-size: 15px; font-weight: 700; color: var(--text-main); line-height: 1.4; margin-bottom: 4px; }
-    .mn-desc { font-size: 14px; color: var(--text-muted); line-height: 1.6; word-break: keep-all; }
+    .mn-body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+    .mn-title { font-size: 18px; font-weight: 700; color: var(--text-main); line-height: 1.4; margin-bottom: 6px; }
+    .mn-desc { font-size: 16px; color: var(--text-muted); line-height: 1.6; word-break: keep-all; }
     .mn-desc strong { color: var(--mn-bg); background: var(--mn-light-bg); padding: 0 4px; border-radius: 2px; }
 
-    .mn-footer { margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
-    .mn-icon-btn { color: var(--text-muted); cursor: pointer; transition: 0.2s; font-size: 18px; padding: 4px; display: flex; align-items: center; justify-content: center; border-radius: 4px; }
+    .mn-footer { margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px; }
+    .mn-icon-btn { color: var(--text-muted); cursor: pointer; transition: 0.2s; font-size: 20px; padding: 6px; display: flex; align-items: center; justify-content: center; border-radius: 6px; }
     .mn-icon-btn:hover { background: var(--bg-sidebar); color: var(--text-main); }
+    .mn-icon-btn.edit:hover { background: #EFF6FF; color: var(--mn-bg); }
     .mn-icon-btn.delete:hover { background: #FEE2E2; color: #DC2626; }
 
-    /* 블라인드(학습) 모드 스타일 */
     body.learning-mode .mn-body-content { filter: blur(6px); opacity: 0.4; cursor: pointer; transition: all 0.3s ease; user-select: none; }
-    body.learning-mode .mn-body-content:hover { filter: blur(4px); opacity: 0.6; }
     body.learning-mode .mn-body-content.revealed { filter: blur(0); opacity: 1; cursor: default; }
 
-    /* 모달 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.4); backdrop-filter: blur(2px); display: none; justify-content: center; align-items: center; z-index: 50; }
-    .modal-content { background: var(--bg-surface); width: 500px; padding: 24px; border-radius: var(--radius-lg); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); border: 1px solid var(--border-base); }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--mn-bg); }
+    .modal-content { background: var(--bg-surface); width: 540px; padding: 28px; border-radius: var(--radius-lg); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1); border: 1px solid var(--border-base); }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .modal-title { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 8px; color: var(--mn-bg); }
     
-    .form-group { margin-bottom: 16px; }
-    .form-group label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
-    .form-control { width: 100%; padding: 10px 12px; border: 1px solid var(--border-base); border-radius: var(--radius-md); font-size: 14px; font-family: inherit; transition: 0.2s; outline: none; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-size: 15px; font-weight: 700; margin-bottom: 10px; color: var(--text-main); }
+    .form-control { width: 100%; padding: 12px 14px; border: 1px solid var(--border-base); border-radius: var(--radius-md); font-size: 16px; font-family: inherit; transition: 0.2s; outline: none; }
     .form-control:focus { border-color: var(--mn-bg); }
-    textarea.form-control { resize: vertical; min-height: 80px; }
-    
-    .hint-text { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block; }
+    textarea.form-control { resize: vertical; min-height: 100px; }
+    .hint-text { font-size: 14px; color: var(--text-muted); margin-top: 6px; display: block; }
 
-    /* 텅 빈 상태 */
-    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-muted); gap: 16px; }
-    .empty-state i { font-size: 48px; color: var(--border-dark); }
+    .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-muted); gap: 16px; font-size: 16px; }
+    .empty-state i { font-size: 56px; color: var(--border-dark); }
+
+    .print-only { display: none; }
+
+    @media print {
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+      @page { size: A4; } 
+      body { display: block; overflow: visible; background: white; height: auto; font-family: 'Pretendard', sans-serif; color: #000; }
+      .sidebar, .top-bar, .modal-overlay, .mn-footer, .empty-state { display: none !important; }
+      .main-content { overflow: visible; background: white; padding: 0; display: block; }
+      .print-only { display: block !important; margin-top: 10px; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+      .print-header-title { font-size: 24pt; font-weight: 800; color: var(--mn-bg); }
+      .grid-container { display: block !important; padding: 0 !important; max-width: 100% !important; }
+      .mn-card { page-break-inside: avoid; break-inside: avoid; border: none !important; border-bottom: 1px solid #E5E7EB !important; box-shadow: none !important; border-radius: 0 !important; margin-bottom: 20px !important; padding: 10px 0 !important; display: block !important; transform: none !important; }
+      .mn-header { border-bottom: none !important; margin-bottom: 8px !important; padding-bottom: 0 !important; justify-content: flex-start !important; gap: 15px; }
+      .mn-keyword { font-size: 18pt !important; background: var(--mn-bg) !important; color: #fff !important; padding: 6px 12px !important; border-radius: 4px !important; }
+      .mn-source { background: transparent !important; color: #6B7280 !important; font-size: 12pt !important; padding: 0 !important; }
+      .mn-title { font-size: 15pt !important; font-weight: 700 !important; color: #111827 !important; margin-bottom: 6px !important; }
+      .mn-desc { font-size: 13pt !important; color: #374151 !important; line-height: 1.5 !important; }
+      .mn-body-content { filter: none !important; opacity: 1 !important; }
+      .mn-desc strong { color: var(--mn-bg) !important; background: transparent !important; text-decoration: underline; padding: 0 !important; }
+    }
   </style>
 </head>
 <body>
 
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="app-title">
-        <i class="ph-fill ph-highlighter"></i> 두음마스터
-      </div>
+      <div class="app-title"><i class="ph-fill ph-highlighter"></i> 두음마스터</div>
     </div>
     
     <div class="sidebar-search">
@@ -156,36 +163,44 @@
 
     <div style="padding: 20px; border-top: 1px solid var(--border-base);">
       <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="openAddModal()">
-        <i class="ph ph-plus"></i> 새 두음 추가
+        <i class="ph ph-plus"></i> 새 두음 추가 <span style="font-size:12px; color:var(--text-muted); margin-left:4px;">(Ctrl+Alt+N)</span>
       </button>
     </div>
   </aside>
 
   <main class="main-content" id="mainContent">
     <div class="top-bar">
-      <div class="page-title" id="pageTitle">전체 두음 컬렉션</div>
+      <div class="page-title" id="pageTitle">전체 두음</div>
       <div class="actions">
         <button class="btn btn-outline" id="btnLearning" onclick="toggleLearningMode()" title="내용을 가리고 두음만 보여줍니다">
           <i class="ph-fill ph-brain"></i> 학습(블라인드) 모드
+        </button>
+        <button class="btn btn-outline" onclick="prepareAndPrint()" title="리스트 형태 PDF 인쇄">
+          <i class="ph ph-printer"></i> PDF 출력
         </button>
         <div class="divider"></div>
         <button class="btn btn-mnemonic" onclick="openAddModal()"><i class="ph ph-plus"></i> 추가</button>
       </div>
     </div>
 
-    <div class="grid-container" id="mnemonicGrid">
-      </div>
+    <div class="print-only">
+      <div class="print-header-title" id="printHeaderTitle">두음마스터</div>
+    </div>
+
+    <div class="grid-container" id="mnemonicGrid"></div>
   </main>
 
   <div id="addModal" class="modal-overlay" onclick="if(event.target===this) closeAddModal()">
     <div class="modal-content">
       <div class="modal-header">
-        <div class="modal-title"><i class="ph-bold ph-plus-circle"></i> 새로운 두음 등록</div>
+        <div class="modal-title" id="modalTitle"><i class="ph-bold ph-plus-circle"></i> 새로운 두음 등록</div>
         <button class="btn" style="padding: 4px; border: none; background: transparent;" onclick="closeAddModal()">
-          <i class="ph ph-x" style="font-size: 18px;"></i>
+          <i class="ph ph-x" style="font-size: 20px;"></i>
         </button>
       </div>
       
+      <input type="hidden" id="editId" value="">
+
       <div class="form-group">
         <label>출처 (Source)</label>
         <select id="mnSource" class="form-control">
@@ -214,13 +229,12 @@
 
       <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px;">
         <button class="btn btn-outline" onclick="closeAddModal()">취소</button>
-        <button class="btn btn-mnemonic" onclick="saveMnemonic()">저장하기</button>
+        <button class="btn btn-mnemonic" id="saveBtn" onclick="saveMnemonic()" title="단축키: Ctrl + S">저장하기</button>
       </div>
     </div>
   </div>
 
   <script>
-    // 초기 더미 데이터 (로컬 스토리지에 저장됨)
     const initialData = [
       { id: 1, source: 'Keynote', title: '행정행위의 기본적 효력', keyword: '공정확강', desc: '*공*정력, *정*당성(존속력), *확*정력, *강*제력' },
       { id: 2, source: '5RChecklist', title: '신뢰보호의 원칙 요건', keyword: '공신인반', desc: '행정청의 *공*적 견해표명, 개인의 *신*뢰, *인*과관계, *반*하는 처분' },
@@ -231,7 +245,6 @@
     let currentCategory = 'All';
     let isLearningMode = false;
 
-    // 초기화
     function init() {
       const stored = localStorage.getItem('mnemonics_db');
       if (stored) {
@@ -244,34 +257,23 @@
       updateCounts();
     }
 
-    // 로컬스토리지 저장
     function saveToLocalStorage() {
       localStorage.setItem('mnemonics_db', JSON.stringify(mnemonics));
     }
 
-    // 카테고리 설정
     function setCategory(cat, element) {
       currentCategory = cat;
       document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
       element.classList.add('active');
-      
-      const titleMap = {
-        'All': '전체 두음 컬렉션',
-        'Keynote': 'Keynote 출처 두음',
-        '5RChecklist': '5RChecklist 출처 두음',
-        'Etc': '기타 두음 모음'
-      };
+      const titleMap = { 'All': '전체 두음', 'Keynote': 'Keynote 출처 두음', '5RChecklist': '5RChecklist 출처 두음', 'Etc': '기타 두음 모음' };
       document.getElementById('pageTitle').innerText = titleMap[cat];
-      
       document.getElementById('searchInput').value = '';
       renderGrid();
     }
 
-    // 학습 모드 토글
     function toggleLearningMode() {
       isLearningMode = !isLearningMode;
       const btn = document.getElementById('btnLearning');
-      
       if (isLearningMode) {
         document.body.classList.add('learning-mode');
         btn.classList.add('active');
@@ -280,47 +282,25 @@
         document.body.classList.remove('learning-mode');
         btn.classList.remove('active');
         btn.innerHTML = `<i class="ph-fill ph-brain"></i> 학습(블라인드) 모드`;
-        // 열려있는 블라인드 모두 리셋
         document.querySelectorAll('.mn-body-content').forEach(el => el.classList.remove('revealed'));
       }
     }
 
-    // 블라인드 요소 클릭 시 보이기
-    function revealContent(element) {
-      if (isLearningMode) {
-        element.classList.toggle('revealed');
-      }
-    }
+    function revealContent(element) { if (isLearningMode) element.classList.toggle('revealed'); }
+    function parseHighlights(text) { return text.replace(/\*(.*?)\*/g, '<strong>$1</strong>'); }
 
-    // 텍스트 강조 파싱 (*단어* -> <strong>단어</strong>)
-    function parseHighlights(text) {
-      return text.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
-    }
-
-    // 렌더링
     function renderGrid(searchTerm = '') {
       const grid = document.getElementById('mnemonicGrid');
       grid.innerHTML = '';
-
       let filtered = mnemonics.filter(m => currentCategory === 'All' || m.source === currentCategory);
-      
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
-        filtered = filtered.filter(m => 
-          m.keyword.toLowerCase().includes(term) || 
-          m.title.toLowerCase().includes(term) || 
-          m.desc.toLowerCase().includes(term)
-        );
+        filtered = filtered.filter(m => m.keyword.toLowerCase().includes(term) || m.title.toLowerCase().includes(term) || m.desc.toLowerCase().includes(term));
       }
 
       if (filtered.length === 0) {
         grid.style.display = 'block';
-        grid.innerHTML = `
-          <div class="empty-state">
-            <i class="ph-thin ph-ghost"></i>
-            <div>해당 조건에 등록된 두음이 없습니다.</div>
-          </div>
-        `;
+        grid.innerHTML = `<div class="empty-state"><i class="ph-thin ph-ghost"></i><div>해당 조건에 등록된 두음이 없습니다.</div></div>`;
         return;
       }
       grid.style.display = 'grid';
@@ -332,27 +312,21 @@
           <div class="mn-header">
             <div class="mn-keyword">${m.keyword}</div>
             <div class="mn-source">
-              <i class="ph-fill ${m.source === 'Keynote' ? 'ph-notebook' : m.source === '5RChecklist' ? 'ph-check-square-offset' : 'ph-folder'}"></i>
-              ${m.source}
+              <i class="ph-fill ${m.source === 'Keynote' ? 'ph-notebook' : m.source === '5RChecklist' ? 'ph-check-square-offset' : 'ph-folder'}"></i> ${m.source}
             </div>
           </div>
           <div class="mn-body">
             <div class="mn-title">${m.title}</div>
-            <div class="mn-body-content mn-desc" onclick="revealContent(this)">
-              ${parseHighlights(m.desc)}
-            </div>
+            <div class="mn-body-content mn-desc" onclick="revealContent(this)">${parseHighlights(m.desc)}</div>
           </div>
           <div class="mn-footer">
-            <div class="mn-icon-btn delete" onclick="deleteMnemonic(${m.id})" title="삭제">
-              <i class="ph ph-trash"></i>
-            </div>
-          </div>
-        `;
+            <div class="mn-icon-btn edit" onclick="openEditModal(${m.id})" title="수정"><i class="ph ph-pencil-simple"></i></div>
+            <div class="mn-icon-btn delete" onclick="deleteMnemonic(${m.id})" title="삭제"><i class="ph ph-trash"></i></div>
+          </div>`;
         grid.appendChild(card);
       });
     }
 
-    // 카운트 업데이트
     function updateCounts() {
       document.getElementById('countAll').innerText = mnemonics.length;
       document.getElementById('countKeynote').innerText = mnemonics.filter(m => m.source === 'Keynote').length;
@@ -360,45 +334,56 @@
       document.getElementById('countEtc').innerText = mnemonics.filter(m => m.source === 'Etc').length;
     }
 
-    // 검색
-    function filterMnemonics() {
-      const term = document.getElementById('searchInput').value;
-      renderGrid(term);
-    }
+    function filterMnemonics() { renderGrid(document.getElementById('searchInput').value); }
 
-    // 모달 관리
     function openAddModal() {
+      document.getElementById('modalTitle').innerHTML = '<i class="ph-bold ph-plus-circle"></i> 새로운 두음 등록';
+      document.getElementById('saveBtn').innerText = '저장하기';
+      document.getElementById('editId').value = '';
       document.getElementById('mnTitle').value = '';
       document.getElementById('mnKeyword').value = '';
       document.getElementById('mnDesc').value = '';
       document.getElementById('addModal').style.display = 'flex';
+      document.getElementById('mnSource').focus();
     }
 
-    function closeAddModal() {
-      document.getElementById('addModal').style.display = 'none';
+    function openEditModal(id) {
+      const item = mnemonics.find(m => m.id === id);
+      if (!item) return;
+
+      document.getElementById('modalTitle').innerHTML = '<i class="ph-bold ph-pencil-simple"></i> 두음 수정하기';
+      document.getElementById('saveBtn').innerText = '수정완료';
+      document.getElementById('editId').value = id;
+      document.getElementById('mnSource').value = item.source;
+      document.getElementById('mnTitle').value = item.title;
+      document.getElementById('mnKeyword').value = item.keyword;
+      document.getElementById('mnDesc').value = item.desc;
+      
+      document.getElementById('addModal').style.display = 'flex';
     }
 
-    // 저장
+    function closeAddModal() { document.getElementById('addModal').style.display = 'none'; }
+
     function saveMnemonic() {
+      const editId = document.getElementById('editId').value;
       const source = document.getElementById('mnSource').value;
       const title = document.getElementById('mnTitle').value.trim();
       const keyword = document.getElementById('mnKeyword').value.trim();
       const desc = document.getElementById('mnDesc').value.trim();
 
-      if (!title || !keyword || !desc) {
-        alert('모든 항목을 입력해주세요.');
-        return;
-      }
+      if (!title || !keyword || !desc) { alert('모든 항목을 입력해주세요.'); return; }
 
-      const newId = mnemonics.length > 0 ? Math.max(...mnemonics.map(m => m.id)) + 1 : 1;
-      
-      mnemonics.push({
-        id: newId,
-        source: source,
-        title: title,
-        keyword: keyword,
-        desc: desc
-      });
+      if (editId) {
+        // 수정 모드
+        const index = mnemonics.findIndex(m => m.id === parseInt(editId));
+        if (index !== -1) {
+          mnemonics[index] = { ...mnemonics[index], source, title, keyword, desc };
+        }
+      } else {
+        // 신규 추가 모드
+        const newId = mnemonics.length > 0 ? Math.max(...mnemonics.map(m => m.id)) + 1 : 1;
+        mnemonics.push({ id: newId, source, title, keyword, desc });
+      }
 
       saveToLocalStorage();
       updateCounts();
@@ -406,7 +391,6 @@
       closeAddModal();
     }
 
-    // 삭제
     function deleteMnemonic(id) {
       if (confirm('이 두음을 삭제하시겠습니까?')) {
         mnemonics = mnemonics.filter(m => m.id !== id);
@@ -415,6 +399,28 @@
         renderGrid(document.getElementById('searchInput').value);
       }
     }
+
+    function prepareAndPrint() {
+      const categoryTitle = currentCategory === 'All' ? '전체' : currentCategory;
+      document.getElementById('printHeaderTitle').innerText = `두음마스터(${categoryTitle})`;
+      window.print();
+    }
+
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        openAddModal();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        const addModal = document.getElementById('addModal');
+        if (addModal.style.display === 'flex') {
+          e.preventDefault();
+          saveMnemonic();
+        } else {
+          e.preventDefault(); 
+        }
+      }
+    });
 
     window.onload = init;
   </script>
