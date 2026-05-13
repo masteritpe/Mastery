@@ -84,7 +84,7 @@
     
     .mn-body { flex: 1; display: flex; flex-direction: column; gap: 10px; }
     .mn-title { font-size: 18px; font-weight: 700; color: var(--text-main); line-height: 1.4; margin-bottom: 6px; }
-    .mn-desc { font-size: 16px; color: var(--text-muted); line-height: 1.6; word-break: keep-all; white-space: pre-wrap; } /* white-space 추가 */
+    .mn-desc { font-size: 16px; color: var(--text-muted); line-height: 1.6; word-break: keep-all; white-space: pre-wrap; }
     .mn-desc strong { color: var(--mn-bg); background: var(--mn-light-bg); padding: 0 4px; border-radius: 2px; }
 
     .mn-footer { margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px; }
@@ -111,7 +111,6 @@
     .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; color: var(--text-muted); gap: 16px; font-size: 16px; }
     .empty-state i { font-size: 56px; color: var(--border-dark); }
 
-    /* 환경설정 리스트 아이템 */
     .settings-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border-light); background: var(--bg-body); border-radius: var(--radius-md); margin-bottom: 8px; font-weight: 600; }
 
     .print-only { display: none; }
@@ -130,7 +129,7 @@
       .mn-keyword { font-size: 18pt !important; background: var(--mn-bg) !important; color: #fff !important; padding: 6px 12px !important; border-radius: 4px !important; white-space: pre-wrap !important; word-break: keep-all !important; line-height: 1.4 !important; }
       .mn-source { background: transparent !important; color: #6B7280 !important; font-size: 12pt !important; padding: 0 !important; }
       .mn-title { font-size: 15pt !important; font-weight: 700 !important; color: #111827 !important; margin-bottom: 6px !important; }
-      .mn-desc { font-size: 13pt !important; color: #374151 !important; line-height: 1.5 !important; white-space: pre-wrap !important; } /* white-space 추가 */
+      .mn-desc { font-size: 13pt !important; color: #374151 !important; line-height: 1.5 !important; white-space: pre-wrap !important; }
       .mn-body-content { filter: none !important; opacity: 1 !important; }
       .mn-desc strong { color: var(--mn-bg) !important; background: transparent !important; text-decoration: underline; padding: 0 !important; }
     }
@@ -148,7 +147,7 @@
         <button class="btn btn-icon-only" onclick="exportJSON()" title="JSON 백업 (전체 내보내기)">
           <i class="ph ph-download-simple"></i>
         </button>
-        <button class="btn btn-icon-only" onclick="document.getElementById('importFile').click()" title="JSON 복원 (가져오기)">
+        <button class="btn btn-icon-only" onclick="document.getElementById('importFile').click()" title="JSON 복원 (가져오기 병합)">
           <i class="ph ph-upload-simple"></i>
         </button>
         <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importJSON(event)">
@@ -160,7 +159,7 @@
     </div>
 
     <ul class="category-list" id="categoryList">
-      </ul>
+    </ul>
 
     <div style="padding: 20px; border-top: 1px solid var(--border-base);">
       <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="openAddModal()">
@@ -205,7 +204,7 @@
       <div class="form-group">
         <label>출처 (Source)</label>
         <select id="mnSource" class="form-control">
-          </select>
+        </select>
       </div>
 
       <div class="form-group">
@@ -251,7 +250,7 @@
       <div class="form-group">
         <label>등록된 출처 목록</label>
         <ul id="settingsSourceList" style="list-style:none; padding:0; margin:0; max-height: 300px; overflow-y: auto;">
-          </ul>
+        </ul>
       </div>
     </div>
   </div>
@@ -329,13 +328,12 @@
         await initDB();
         mnemonics = await getAllFromDB();
         
-        // 기존 localStorage 마이그레이션 혹은 초기 데이터 세팅
         if (mnemonics.length === 0) {
           const stored = localStorage.getItem('mnemonics_db');
           if (stored) {
             const localData = JSON.parse(stored);
             for (const item of localData) {
-              if(item.source === 'Etc') item.source = '기타'; // 기존 영문 표기 한글화 마이그레이션
+              if(item.source === 'Etc') item.source = '기타';
               await putToDB(item);
             }
             localStorage.removeItem('mnemonics_db');
@@ -344,7 +342,6 @@
           }
           mnemonics = await getAllFromDB();
         } else {
-          // 이미 DB가 있더라도 'Etc'가 있다면 마이그레이션 수행
           let migrated = false;
           for (let m of mnemonics) {
             if (m.source === 'Etc') {
@@ -363,11 +360,10 @@
       }
     }
 
-    // --- 환경설정 / UI 동적 렌더링 함수 ---
     function getIconForSource(src) {
       if (src.toLowerCase() === 'keynote') return 'ph-notebook';
       if (src.toLowerCase() === '5rchecklist') return 'ph-check-square-offset';
-      return 'ph-folder'; // 기타 및 추가된 출처들의 기본 아이콘
+      return 'ph-folder';
     }
 
     function initSourcesUI() {
@@ -458,14 +454,13 @@
       if (confirm(`'${src}' 출처를 목록에서 삭제하시겠습니까?\n(해당 출처로 등록된 기존 두음 데이터는 삭제되지 않습니다)`)) {
         sources = sources.filter(s => s !== src);
         if (currentCategory === src) {
-           currentCategory = 'All'; // 현재 보고있던 카테고리가 지워지면 '전체 보기'로 이동
+           currentCategory = 'All';
         }
         saveSources();
         renderSettingsSources();
         renderGrid();
       }
     }
-    // -------------------------------------
 
     function setCategory(cat, element) {
       currentCategory = cat;
@@ -555,7 +550,6 @@
       document.getElementById('saveBtn').innerText = '수정완료';
       document.getElementById('editId').value = id;
       
-      // 만약 데이터의 출처가 현재 환경설정 목록에 없다면 임시로 추가해줍니다.
       if (!sources.includes(item.source)) {
          const select = document.getElementById('mnSource');
          select.innerHTML += `<option value="${item.source}">${item.source}</option>`;
@@ -628,13 +622,36 @@
           const importedData = JSON.parse(e.target.result);
           if (Array.isArray(importedData)) {
             let newSourceFound = false;
+            let currentMnemonics = await getAllFromDB();
+            let maxId = currentMnemonics.length > 0 ? Math.max(...currentMnemonics.map(m => m.id)) : 0;
 
             for (const item of importedData) {
-              if (item.id && item.keyword && item.desc) {
-                if (item.source === 'Etc') item.source = '기타'; // 마이그레이션 적용
-                await putToDB(item);
-                
-                // 가져온 데이터 중 환경설정 목록에 없는 출처가 있다면 자동으로 추가해줌
+              if (item.keyword && item.desc && item.title) {
+                if (item.source === 'Etc') item.source = '기타'; 
+
+                // 1. 기존 데이터 중 '출처'와 '대상 주제(title)'가 같은 항목 찾기
+                const existingByTitle = currentMnemonics.find(m => 
+                  m.source === item.source && 
+                  m.title === item.title
+                );
+
+                if (existingByTitle) {
+                  // 2-A. 주제가 일치하는 항목이 있다면, 기존 ID를 유지하며 덮어쓰기 (업데이트)
+                  item.id = existingByTitle.id;
+                  await putToDB(item);
+                  
+                  // 내부 비교용 배열도 업데이트
+                  const index = currentMnemonics.findIndex(m => m.id === item.id);
+                  if(index !== -1) currentMnemonics[index] = item;
+                } else {
+                  // 2-B. 일치하는 주제가 없으면 새 ID 발급하여 추가
+                  maxId++;
+                  item.id = maxId;
+                  await putToDB(item);
+                  currentMnemonics.push(item);
+                }
+
+                // 가져온 데이터 중 환경설정 목록에 없는 출처 자동 등록
                 if(item.source && !sources.includes(item.source)) {
                   sources.push(item.source);
                   newSourceFound = true;
@@ -642,7 +659,7 @@
               }
             }
             
-            if(newSourceFound) saveSources(); // 새 출처가 등록된 경우 저장 반영
+            if(newSourceFound) saveSources(); 
 
             mnemonics = await getAllFromDB();
             updateCounts();
