@@ -324,7 +324,7 @@
     
     <div class="sidebar-tabs">
       <div class="sidebar-tab active" onclick="switchSidebarTab('notes')" id="tab-notes">키노트 조회</div>
-      <div class="sidebar-tab" onclick="switchSidebarTab('items')" id="tab-items">항목 조회 (5R)</div>
+      <div class="sidebar-tab" onclick="switchSidebarTab('items')" id="tab-items">항목 조회</div>
     </div>
 
     <div id="view-notes" class="view-container">
@@ -342,15 +342,14 @@
     <div id="view-items" class="view-container hidden">
       <div class="sidebar-search" style="border-bottom: 1px solid var(--border-base); display: flex; flex-direction: column; gap: 12px; padding: 16px 20px;">
         <div style="display: flex; gap: 8px; align-items: flex-start;">
-          <label style="font-size: 12px; font-weight: 600; width: 45px; flex-shrink: 0; padding-top: 6px; color: var(--text-muted);">5R 유형</label>
           <div class="r5-container" id="sidebar5RContainer" style="margin: 0; gap: 6px;">
-            <div class="r5-pill active" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Root')">Root</div>
-            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Regular')">Regular</div>
-            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rule')">Rule</div>
-            <div class="r5-pill" style="padding: 4px 8px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rush')">Rush</div>
+            <div class="r5-pill active" style="padding: 4px 7.5px; font-size: 11px;" onclick="selectSidebar5R(this, 'Refuge')">Refuge</div>
+            <div class="r5-pill" style="padding: 4px 7.5px; font-size: 11px;" onclick="selectSidebar5R(this, 'Root')">Root</div>
+            <div class="r5-pill" style="padding: 4px 7.5px; font-size: 11px;" onclick="selectSidebar5R(this, 'Regular')">Regular</div>
+            <div class="r5-pill" style="padding: 4px 7.5px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rule')">Rule</div>
+            <div class="r5-pill" style="padding: 4px 7.5px; font-size: 11px;" onclick="selectSidebar5R(this, 'Rush')">Rush</div>
           </div>
         </div>
-        <div style="font-size: 11px; color: var(--text-muted);"><i class="ph-bold ph-info"></i> 완료된(_COM) 문서만 대상입니다.</div>
       </div>
       <ul id="itemList" class="note-list"></ul>
     </div>
@@ -533,8 +532,8 @@
 
     let showOnlyCompleted = false;
     
-    // Refuge가 제외된 새로운 5R 상수
-    const FIVE_R_TYPES = ['Root', 'Regular', 'Rule', 'Rush'];
+    // 5R 상수에 Refuge 추가 및 Root를 포함한 전체 항목 정의
+    const FIVE_R_TYPES = ['Refuge', 'Root', 'Regular', 'Rule', 'Rush'];
 
     // 탭 모드 상태 제어
     let currentSidebarTab = 'notes'; // 'notes' or 'items'
@@ -965,7 +964,7 @@
     }
 
     // ✨ 사이드바 5R 항목 조회 최적화 로직
-    let currentSidebar5R = 'Root'; // 기본값 Root로 변경
+    let currentSidebar5R = 'Refuge'; // 기본값 Refuge로 변경
 
     function selectSidebar5R(element, type) {
       document.querySelectorAll('#sidebar5RContainer .r5-pill').forEach(el => el.classList.remove('active'));
@@ -993,7 +992,7 @@
           
           if (note.items && note.items.length > 0) {
             note.items.forEach((item, index) => {
-              const saved5R = item.type5r || ['Root']; // 기본값 Root
+              const saved5R = item.type5r || ['Refuge']; // 기본값 Refuge
               if (saved5R.includes(target5R)) {
                 gatheredItems.push({ noteId: note.id, noteTitle: note.title, itemIndex: index, data: item });
               }
@@ -1217,7 +1216,7 @@
             <div class="card-header">
               <div class="badge-number">${i}</div>
               <div class="r5-container" data-index="${i-1}">
-                ${FIVE_R_TYPES.map(type => `<div class="r5-pill ${type === 'Root' ? 'active' : ''}" onclick="toggle5R(this)">${type}</div>`).join('')}
+                ${FIVE_R_TYPES.map(type => `<div class="r5-pill ${type === 'Refuge' ? 'active' : ''}" onclick="toggle5R(this)">${type}</div>`).join('')}
               </div>
             </div>
             <div class="form-group">
@@ -1328,7 +1327,7 @@
       const items = [];
       for (let i = 1; i <= num; i++) {
         const card = document.getElementById(`card-${i}`);
-        const selected5R = card ? Array.from(card.querySelectorAll('.r5-pill.active')).map(p => p.innerText.trim()) : ['Root'];
+        const selected5R = card ? Array.from(card.querySelectorAll('.r5-pill.active')).map(p => p.innerText.trim()) : ['Refuge'];
         items.push({ 
           type5r: selected5R, 
           problem: probEditors[i-1].root.innerHTML, 
@@ -1486,7 +1485,7 @@
         const card = document.getElementById(`card-${index+1}`);
         if (card) {
           const pills = card.querySelectorAll('.r5-pill'); 
-          const saved5R = item.type5r || ['Root']; 
+          const saved5R = item.type5r || ['Refuge']; 
           pills.forEach(p => { 
             if (saved5R.includes(p.innerText.trim())) { p.classList.add('active'); } 
             else { p.classList.remove('active'); } 
