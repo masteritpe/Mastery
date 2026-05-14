@@ -131,13 +131,13 @@
       display: flex; justify-content: space-between; align-items: center; z-index: 5; 
       transition: transform 0.3s ease, height 0.3s ease, opacity 0.3s ease;
     }
-    .title-input { font-size: 20px; font-weight: 700; border: none; background: transparent; outline: none; width: 500px; color: var(--text-main); }
+    .title-input { font-size: 20px; font-weight: 700; border: none; background: transparent; outline: none; flex: 1; min-width: 0; margin-right: 20px; color: var(--text-main); }
     .title-input::placeholder { color: var(--border-dark); }
-    .actions { display: flex; gap: 8px; align-items: center; }
+    .actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
     .divider { width: 1px; height: 20px; background: var(--border-dark); margin: 0 4px; }
 
     /* 버튼 스타일 */
-    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: var(--radius-md); font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; outline: none; white-space: nowrap; flex-shrink: 0; }
     .btn-primary { background: var(--primary); color: white; box-shadow: var(--shadow-sm); }
     .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
     .btn-outline { background: var(--secondary); color: var(--text-main); border-color: var(--border-base); }
