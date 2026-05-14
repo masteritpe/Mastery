@@ -684,6 +684,17 @@
     }
 
     document.addEventListener('keydown', function(e) {
+      // 입력 태그 내부에 있는지 확인
+      const isTyping = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
+
+      // 백틱(`) 키 이벤트 처리
+      if (e.key === '`') {
+        if (!isTyping) {
+          e.preventDefault();
+          window.location.href = 'about:blank';
+        }
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault();
         openAddModal();

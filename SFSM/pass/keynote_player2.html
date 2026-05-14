@@ -466,11 +466,10 @@
 <div id="image-modal" class="image-modal" onclick="this.classList.remove('show')">
     <img id="modal-image" src="" alt="확대된 이미지">
 </div>
-
 <script>
     let db;
-    let allNotes = [];
-    let currentNote = null;
+    let allNotes = []; // 이제 무거운 items 배열은 빼고 가벼운 정보(id, title, totalItems)만 담습니다.
+    let currentNote = null; // 현재 선택된 노트의 전체 데이터만 담습니다.
     let targetNoteForRange = null; 
     let validIndices = []; 
     let selectedIndices = []; 
@@ -506,11 +505,20 @@
         $playerAreaDOM.classList.remove('show-controls');
     });
 
+    const stripHTML = (html) => {
+        if (!html) return '';
+        return html.replace(/<[^>]*>?/gm, '').replace(/&nbsp;/g, ' ').trim();
+    };
+
     const isEmptyHTML = (html) => {
         if (!html) return true;
-        const stripped = html.replace(/<[^>]*>/g, '').trim();
-        const hasImg = html.includes('<img');
-        return stripped === '' && !hasImg;
+        if (html.includes('<img')) return false; 
+        const stripped = html.replace(/<p><br><\/p>/gi, '')
+                             .replace(/<p>&nbsp;<\/p>/gi, '')
+                             .replace(/<p>\s*<\/p>/gi, '')
+                             .replace(/<[^>]*>?/gm, '')
+                             .trim();
+        return stripped === '';
     };
 
     const initDB = () => {
@@ -530,32 +538,48 @@
         }
     }
 
+    // 🚀 메모리 최적화 포인트 1: 모든 데이터를 가져오지 않고 커서(Cursor)로 메타데이터만 추출
     function loadNotes() {
         return new Promise((resolve) => {
             const transaction = db.transaction(['notes'], 'readonly');
-            const request = transaction.objectStore('notes').getAll();
-            request.onsuccess = () => {
-                // 🚀 숫자 오름차순(자연 정렬) 적용
-                allNotes = request.result.sort((a, b) => {
-                    const titleA = a.title || '';
-                    const titleB = b.title || '';
-                    return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
-                });
-                
-                renderNoteSelect();
-                if(allNotes.length > 0) {
-                    loadNoteData(allNotes[0].id, 1, allNotes[0].items ? allNotes[0].items.length : 0);
+            const store = transaction.objectStore('notes');
+            const request = store.openCursor();
+            
+            allNotes = []; // 초기화
+
+            request.onsuccess = (e) => {
+                const cursor = e.target.result;
+                if (cursor) {
+                    // 무거운 items 배열은 제외하고 필요한 정보만 배열에 저장
+                    allNotes.push({
+                        id: cursor.value.id,
+                        title: cursor.value.title,
+                        totalItems: cursor.value.items ? cursor.value.items.length : 0
+                    });
+                    cursor.continue(); // 다음 레코드로 이동
+                } else {
+                    // 순회 완료 시 정렬 및 화면 렌더링
+                    allNotes.sort((a, b) => {
+                        const titleA = a.title || '';
+                        const titleB = b.title || '';
+                        return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+                    
+                    renderNoteSelect();
+                    if(allNotes.length > 0) {
+                        loadNoteData(allNotes[0].id, 1, allNotes[0].totalItems);
+                    }
+                    resolve();
                 }
-                resolve();
             };
         });
     }
 
-    function openRangeModal(note) {
-        targetNoteForRange = note;
-        const total = note.items ? note.items.length : 0;
+    function openRangeModal(noteMeta) {
+        targetNoteForRange = noteMeta;
+        const total = noteMeta.totalItems;
         
-        document.getElementById('range-modal-title').textContent = note.title || '제목 없음';
+        document.getElementById('range-modal-title').textContent = noteMeta.title || '제목 없음';
         
         const $start = document.getElementById('range-start');
         const $end = document.getElementById('range-end');
@@ -574,8 +598,6 @@
     function closeRangeModal() {
         $rangeModal.style.display = 'none';
         targetNoteForRange = null;
-        
-        // 🚀 모달 닫을 시 셀렉트박스를 기존 노트로 원복
         if(currentNote) {
             $noteSelect.value = currentNote.id;
         }
@@ -583,7 +605,7 @@
 
     document.getElementById('btn-study-range').onclick = () => {
         if(!targetNoteForRange) return;
-        const total = targetNoteForRange.items ? targetNoteForRange.items.length : 0;
+        const total = targetNoteForRange.totalItems;
         
         let s = parseInt(document.getElementById('range-start').value);
         let e = parseInt(document.getElementById('range-end').value);
@@ -600,14 +622,13 @@
 
     document.getElementById('btn-study-all').onclick = () => {
         if(!targetNoteForRange) return;
-        const total = targetNoteForRange.items ? targetNoteForRange.items.length : 0;
+        const total = targetNoteForRange.totalItems;
         const targetId = targetNoteForRange.id;
         
         closeRangeModal();
         loadNoteData(targetId, 1, total);
     };
 
-    // 🚀 셀렉트 박스 렌더링
     function renderNoteSelect() {
         $noteSelect.innerHTML = '';
         if(allNotes.length === 0) {
@@ -616,54 +637,64 @@
         }
         $noteSelect.style.display = 'block';
         
-        allNotes.forEach(note => {
+        allNotes.forEach(noteMeta => {
             const option = document.createElement('option');
-            option.value = note.id;
-            const titleText = note.title || '제목 없음';
-            option.textContent = titleText;
-            if(currentNote && currentNote.id === note.id) {
+            option.value = noteMeta.id;
+            option.textContent = noteMeta.title || '제목 없음';
+            if(currentNote && currentNote.id === noteMeta.id) {
                 option.selected = true;
             }
             $noteSelect.appendChild(option);
         });
     }
 
-    // 🚀 셀렉트 박스 OnChange 이벤트 (다른 노트 선택 시)
     $noteSelect.addEventListener('change', (e) => {
         if(isPlaying) stopPlay(); 
         const selectedId = e.target.value;
-        const note = allNotes.find(n => String(n.id) === String(selectedId));
-        if(note) {
-            openRangeModal(note); 
+        const noteMeta = allNotes.find(n => String(n.id) === String(selectedId));
+        if(noteMeta) {
+            openRangeModal(noteMeta); 
         }
     });
 
+    // 🚀 메모리 최적화 포인트 2: 선택된 단일 노트의 데이터만 DB에서 로드하여 메모리 점유율 최소화
     function loadNoteData(noteId, start = 1, end = null) {
-        currentNote = allNotes.find(n => n.id === noteId);
-        const total = currentNote.items ? currentNote.items.length : 0;
-        if(end === null) end = total;
-
+        // 기존 메모리 해제
+        currentNote = null; 
         validIndices = [];
+        selectedIndices = [];
         
-        currentNote.items.forEach((item, index) => {
-            if (index < start - 1 || index > end - 1) return;
+        const transaction = db.transaction(['notes'], 'readonly');
+        const store = transaction.objectStore('notes');
+        const request = store.get(noteId); // 특정 ID의 데이터만 가져옵니다.
 
-            if(item.checked === undefined) item.checked = false;
-            const prob = (item.problem||'').replace(/<p><br><\/p>|<p>&nbsp;<\/p>/gi, '').trim();
-            const lead = (item.lead||'').replace(/<p><br><\/p>|<p>&nbsp;<\/p>/gi, '').trim();
-            const conc = (item.concept||'').replace(/<p><br><\/p>|<p>&nbsp;<\/p>/gi, '').trim();
-            const sol = (item.solution||'').replace(/<p><br><\/p>|<p>&nbsp;<\/p>/gi, '').trim();
+        request.onsuccess = (e) => {
+            currentNote = e.target.result;
             
-            if(!isEmptyHTML(prob) || !isEmptyHTML(lead) || !isEmptyHTML(conc) || !isEmptyHTML(sol)) {
-                validIndices.push(index);
+            if(!currentNote) {
+                showEmpty();
+                return;
             }
-        });
-        
-        renderNoteSelect();
-        renderList();
-        updateSelection();
-        if(selectedIndices.length > 0) showSlide(0);
-        else showEmpty();
+
+            const total = currentNote.items ? currentNote.items.length : 0;
+            if(end === null) end = total;
+
+            currentNote.items.forEach((item, index) => {
+                if (index < start - 1 || index > end - 1) return;
+                if (item.checked === undefined) item.checked = false;
+                
+                if(!isEmptyHTML(item.problem) || !isEmptyHTML(item.lead) || !isEmptyHTML(item.concept) || !isEmptyHTML(item.solution)) {
+                    validIndices.push(index);
+                }
+            });
+            
+            renderNoteSelect(); // 선택 상태 동기화
+            renderList();
+            updateSelection();
+            
+            if(selectedIndices.length > 0) showSlide(0);
+            else showEmpty();
+        };
     }
 
     function renderList() {
@@ -673,15 +704,15 @@
             return;
         }
 
+        const fragment = document.createDocumentFragment();
+
         validIndices.forEach((realIndex) => {
             const item = currentNote.items[realIndex];
             const div = document.createElement('div');
             div.className = 'list-item';
             div.id = `list-item-${realIndex}`;
             
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = item.problem || '';
-            const fullTitle = tempDiv.textContent.trim() || `[문항 내용 참조]`;
+            const fullTitle = stripHTML(item.problem) || `[문항 내용 참조]`;
             let plainTitle = fullTitle;
             if(plainTitle.length > 25) plainTitle = plainTitle.substring(0, 25) + '...';
 
@@ -702,8 +733,10 @@
             };
             
             div.querySelector('input').onchange = () => updateSelection();
-            $list.appendChild(div);
+            fragment.appendChild(div);
         });
+
+        $list.appendChild(fragment); 
     }
 
     function updateSelection() {
@@ -735,6 +768,7 @@
     }
 
     function saveCurrentNoteState() {
+        if(!currentNote) return;
         const transaction = db.transaction(['notes'], 'readwrite');
         transaction.objectStore('notes').put(currentNote);
     }
@@ -756,7 +790,7 @@
     };
 
     document.getElementById('btn-complete').onclick = () => {
-        if(selectedIndices.length === 0) return;
+        if(selectedIndices.length === 0 || !currentNote) return;
         const realIndex = selectedIndices[currentPlayIndex];
         const item = currentNote.items[realIndex];
 
@@ -805,7 +839,7 @@
     }
 
     function showSlide(playIndex) {
-        if(selectedIndices.length === 0) return showEmpty();
+        if(selectedIndices.length === 0 || !currentNote) return showEmpty();
         currentPlayIndex = playIndex;
         const realIndex = selectedIndices[currentPlayIndex];
         const item = currentNote.items[realIndex];
@@ -935,6 +969,18 @@
     document.getElementById('btn-immersive-toggle').onclick = toggleImmersiveMode;
 
     document.addEventListener('keydown', (e) => {
+        if (e.key === '`') {
+            const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+            const isEditable = document.activeElement && document.activeElement.isContentEditable;
+            const isInput = activeTag === 'input' || activeTag === 'textarea' || isEditable;
+            
+            if (!isInput) {
+                e.preventDefault();
+                window.location.href = 'about:blank';
+                return;
+            }
+        }
+
         if($rangeModal.style.display === 'flex') return;
 
         if (e.ctrlKey && e.key.toLowerCase() === 'm') {
