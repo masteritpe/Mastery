@@ -308,7 +308,7 @@
       
       .print-ui p { margin-top: 0; margin-bottom: 0.3em; display: block; }
       .print-ui p:last-child { margin-bottom: 0; }
-      .print-sol ul, .print-sol ol { padding-left: 20px; margin-bottom: 0.8em; margin-top: 0.4em; }
+      .print-sol ul, .print-sol 시 ol { padding-left: 20px; margin-bottom: 0.8em; margin-top: 0.4em; }
       .print-sol li { margin-bottom: 0.2em; }
       .ql-editor.print-sol { padding: 0 !important; overflow: visible !important; min-height: auto !important; white-space: normal !important; }
       .ql-editor img.img-highlight { outline: 3px solid #FDBA74 !important; outline-offset: 1px !important; }
@@ -438,6 +438,7 @@
             <li><b>문서 검색:</b> Ctrl + E</li>
             <li><b>몰입 모드(UI 숨기기):</b> Ctrl + H</li>
             <li><b style="color:var(--primary);">카드 모드(1문항씩 보기):</b> Ctrl + M (좌/우 방향키로 이동)</li>
+            <li><b>페이지 닫기:</b> ` (백틱, 입력 중이 아닐 때)</li>
             <li><b>편집 취소(보기 모드):</b> <span style="background: #e5e7eb; padding: 2px 4px; border-radius: 4px;">ESC</span></li>
             <li><b>화면 스크롤:</b> 화살표 위/아래 (입력 중이 아닐 때)</li>
             <li><b>글자 확대/축소:</b> Ctrl + ➕ / ➖</li>
@@ -799,6 +800,22 @@
     }
 
     document.addEventListener('keydown', function(e) {
+      // [수정된 부분] 현재 포커스된 요소가 입력창(에디터, 검색창 등)인지 확인
+      const activeEl = document.activeElement;
+      const isEditing = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable || activeEl.closest('.ql-editor'));
+
+      // 입력 중이 아닐 때 백틱(`) 키 누를 시 창 닫기 시도 또는 빈 페이지로 전환
+      if (!isEditing && e.key === '`') {
+        e.preventDefault();
+        window.close(); // 브라우저 보안 정책상 무시될 수 있음
+        
+        // 창이 닫히지 않았다면 내용을 빈 페이지로 날려버림 (Alt+F4 대체 효과)
+        if (!window.closed) {
+          window.location.href = 'about:blank';
+        }
+        return;
+      }
+
       const isCtrl = e.ctrlKey || e.metaKey; 
       const isAlt = e.altKey;
 
