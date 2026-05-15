@@ -113,7 +113,7 @@
         .child-wrapper:first-child:last-child::before { display: none; }
         .child-wrapper::after { content: ''; position: absolute; left: 0; top: 50%; width: 50px; height: 2px; background-color: var(--line-color); }
 
-        /* 🎯 노드 박스 디자인 (글자 크기가 커졌으므로 최대 너비 조정) */
+        /* 🎯 노드 박스 디자인 */
         .node-box {
             position: relative; background: #FFFFFF; border: 1.5px solid #D1D5DB; border-radius: 16px;
             padding: 18px 24px; min-width: 280px; max-width: 420px; box-shadow: var(--node-shadow); z-index: 2;
@@ -124,8 +124,9 @@
 
         .node-header { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
         .node-icon { font-size: 20px; line-height: 1.4; user-select: none; }
-        .node-title { flex: 1; outline: none; font-size: 18px; font-weight: 600; line-height: 1.4; cursor: text; word-break: keep-all; }
         
+        /* 폰트 및 단어 넘침(Overflow) 해결 적용 */
+        .node-title { flex: 1; outline: none; font-size: 18px; font-weight: 600; line-height: 1.4; cursor: text; word-break: keep-all; overflow-wrap: break-word; }
         .node-title:empty::before { content: attr(data-placeholder); color: var(--text-placeholder); pointer-events: none; }
         
         .btn-toggle {
@@ -136,15 +137,76 @@
         .node-box.collapsed .btn-toggle { transform: rotate(-90deg); }
         .collapsed-children { display: none !important; }
 
-        .node-memo { outline: none; font-size: 16px; color: var(--text-muted); line-height: 1.6; min-height: 24px; }
+        /* 폰트 및 단어 넘침(Overflow) 해결 적용 */
+        .node-memo { outline: none; font-size: 16px; color: var(--text-muted); line-height: 1.6; min-height: 24px; word-break: keep-all; overflow-wrap: break-word; }
         .node-memo:empty::before { content: "인사이트나 내용을 메모하세요..."; color: var(--text-placeholder); pointer-events: none; }
         .node-memo img { max-width: 100%; border-radius: 8px; margin-top: 8px; cursor: zoom-in; transition: transform 0.2s; }
         .node-memo img:hover { transform: scale(1.02); outline: 2px solid var(--text-link); outline-offset: 2px;}
 
-        .node-tags { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-        .node-tag-input { font-size: 13px; font-weight: 600; background: var(--tag-bg); padding: 6px 10px; border-radius: 6px; outline: none; min-width: 60px;}
+        /* 링크 스타일링 (자동 변환된 링크) */
+        a.node-link {
+            color: var(--text-link);
+            text-decoration: underline;
+            cursor: pointer;
+            word-break: break-all;
+            transition: color 0.2s;
+        }
+        a.node-link:hover {
+            color: #1D4ED8;
+        }
+
+        /* 여러 태그를 위한 스타일 추가 (수직 정렬 수정) */
+        .node-tags { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+        .node-tag-input { font-size: 13px; font-weight: 600; background: var(--tag-bg); padding: 6px 10px; border-radius: 6px; outline: none; min-width: 60px; line-height: 1;}
         .node-tag-input:empty::before { content: "+ 태그"; color: #9CA3AF; pointer-events: none; }
         
+        /* tag-item 내부 요소들의 높이를 강제로 맞춤 */
+        .tag-item { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
+            background: var(--tag-bg); 
+            padding: 6px 10px; 
+            border-radius: 6px; 
+            font-size: 13px; 
+            font-weight: 600; 
+            color: var(--tag-text); 
+            line-height: 1; /* 줄 높이 초기화 */
+        }
+        
+        .tag-item span { 
+            display: inline-flex; 
+            align-items: center; 
+            margin-top: 1px; /* 폰트 특성상 미세 조정 */
+        }
+
+        .btn-tag-action { 
+            cursor: pointer; 
+            border: none; 
+            background: none; 
+            padding: 0; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center;
+            line-height: 1;
+        }
+        
+        .btn-tag-link { 
+            color: var(--text-link); 
+            font-weight: 600; 
+            font-size: 12px;
+            margin-top: 1px; /* 폰트 특성상 미세 조정 */
+        }
+        
+        .btn-tag-del { 
+            color: #9CA3AF; 
+            margin-left: 2px; 
+            font-size: 14px; 
+            display: flex;
+            align-items: center;
+        }
+        .btn-tag-del:hover { color: #EF4444; }
+
         .action-buttons { 
             position: absolute; top: -14px; right: -14px; display: flex; gap: 6px; z-index: 10; opacity: 0;
             transition: all 0.2s ease; transform: translateY(5px); pointer-events: none;
@@ -262,6 +324,42 @@
             setTimeout(() => toast.classList.remove('show'), 1000);
         }
 
+        // --- URL을 클릭 가능한 링크로 변환하는 헬퍼 함수 ---
+        function linkifyHTML(html) {
+            if (!html || !html.includes('http')) return html;
+            
+            const temp = document.createElement('div');
+            temp.innerHTML = html;
+            
+            const walker = document.createTreeWalker(temp, NodeFilter.SHOW_TEXT, null, false);
+            const nodesToReplace = [];
+            
+            let node;
+            while (node = walker.nextNode()) {
+                if (node.parentNode && node.parentNode.tagName === 'A') continue;
+                if (/(https?:\/\/[^\s<>]+)/.test(node.nodeValue)) {
+                    nodesToReplace.push(node);
+                }
+            }
+            
+            nodesToReplace.forEach(n => {
+                const template = document.createElement('template');
+                template.innerHTML = n.nodeValue.replace(/(https?:\/\/[^\s<>]+)/g, '<a href="$1" class="node-link" contenteditable="false" title="클릭하여 새 창 열기">$1</a>');
+                n.parentNode.replaceChild(template.content, n);
+            });
+            
+            return temp.innerHTML;
+        }
+
+        // --- 전역 클릭 이벤트 (링크 새창 띄우기용) ---
+        document.addEventListener('click', function(e) {
+            const link = e.target.closest('a.node-link');
+            if (link) {
+                e.preventDefault();
+                window.open(link.href, '_blank');
+            }
+        });
+
         // --- DB 로직 ---
         const initDB = () => new Promise((res) => {
             const req = indexedDB.open(dbName, 1);
@@ -279,7 +377,6 @@
             tx.objectStore('trees').getAll().onsuccess = (e) => res(e.target.result);
         });
 
-        // 빈 맵(작성된 내용이 없는 기본 상태의 맵) 자동 삭제
         async function cleanupEmptyTrees() {
             const trees = await getAllTrees();
             const emptyTrees = trees.filter(t => 
@@ -366,7 +463,7 @@
 
         // --- 트리 로직 ---
         async function createNewTree() {
-            await cleanupEmptyTrees(); // 새 맵 생성 전 기존 빈 맵들을 청소
+            await cleanupEmptyTrees(); 
             const id = generateId();
             const newTree = { 
                 id, title: '새 지식 맵', updatedAt: Date.now(), 
@@ -415,8 +512,18 @@
             title.contentEditable = true;
             title.setAttribute('spellcheck', 'false');
             title.setAttribute('data-placeholder', isRoot ? '메인 주제' : (node.type === 'folder' ? '폴더명 입력...' : '제목을 입력하세요...'));
-            title.innerHTML = node.text || '';
-            title.onblur = (e) => { node.text = e.target.innerHTML; autoSave(); };
+            
+            // 링크를 자동 변환하여 로드
+            title.innerHTML = linkifyHTML(node.text || '');
+            
+            title.onblur = (e) => { 
+                const linked = linkifyHTML(e.target.innerHTML);
+                if (linked !== e.target.innerHTML) {
+                    e.target.innerHTML = linked;
+                }
+                node.text = e.target.innerHTML; 
+                autoSave(); 
+            };
             header.appendChild(title);
 
             if (hasChildren) {
@@ -437,8 +544,18 @@
             memo.className = 'node-memo';
             memo.contentEditable = true;
             memo.setAttribute('spellcheck', 'false');
-            memo.innerHTML = node.memo || '';
-            memo.onblur = (e) => { node.memo = e.target.innerHTML; autoSave(); };
+            
+            // 링크를 자동 변환하여 로드
+            memo.innerHTML = linkifyHTML(node.memo || '');
+            
+            memo.onblur = (e) => { 
+                const linked = linkifyHTML(e.target.innerHTML);
+                if (linked !== e.target.innerHTML) {
+                    e.target.innerHTML = linked;
+                }
+                node.memo = e.target.innerHTML; 
+                autoSave(); 
+            };
             
             memo.ondblclick = (e) => { 
                 if(e.target.tagName === 'IMG') {
@@ -447,26 +564,76 @@
             };
             box.appendChild(memo);
 
+            // --- 여러 태그 및 연결망 로직 시작 ---
             if (node.type !== 'root') {
                 const tagsWrap = document.createElement('div');
                 tagsWrap.className = 'node-tags';
                 
+                // 기존 문자열 데이터를 배열로 자동 마이그레이션
+                if (typeof node.tags === 'string') {
+                    node.tags = node.tags.trim() ? node.tags.split(',').map(t => t.trim()) : [];
+                } else if (!Array.isArray(node.tags)) {
+                    node.tags = [];
+                }
+
+                // 등록된 여러 개의 태그를 순회하며 개별 블록 생성
+                node.tags.forEach((tag, idx) => {
+                    const tagItem = document.createElement('div');
+                    tagItem.className = 'tag-item';
+
+                    const tagText = document.createElement('span');
+                    tagText.innerText = tag;
+
+                    const connBtn = document.createElement('button');
+                    connBtn.className = 'btn-tag-action btn-tag-link';
+                    connBtn.innerText = '연결망';
+                    connBtn.onclick = () => toggleHighlightByTag(tag);
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn-tag-action btn-tag-del';
+                    delBtn.innerHTML = '<i class="ph ph-x"></i>';
+                    delBtn.onclick = () => {
+                        node.tags.splice(idx, 1);
+                        renderTree();
+                        autoSave();
+                    };
+
+                    tagItem.appendChild(tagText);
+                    tagItem.appendChild(connBtn);
+                    tagItem.appendChild(delBtn);
+                    tagsWrap.appendChild(tagItem);
+                });
+
+                // 새 태그를 입력받는 인풋 영역
                 const tagIn = document.createElement('div');
                 tagIn.className = 'node-tag-input';
                 tagIn.contentEditable = true;
-                tagIn.setAttribute('spellcheck', 'false'); // 태그 스펠 체크 해제 반영
-                tagIn.innerHTML = node.tags || '';
-                tagIn.onblur = (e) => { node.tags = e.target.innerText; autoSave(); };
+                tagIn.setAttribute('spellcheck', 'false');
                 
-                const connBtn = document.createElement('button');
-                connBtn.style.cssText = "font-size:12px; font-weight:600; cursor:pointer; border:none; background:none; color:var(--text-link); padding:4px;";
-                connBtn.innerText = "연결망";
-                connBtn.onclick = () => toggleHighlightByTag(node.tags);
+                const saveNewTag = (e) => {
+                    const newTag = e.target.innerText.trim().replace(/,/g, '');
+                    if (newTag) {
+                        node.tags.push(newTag);
+                        renderTree();
+                        autoSave();
+                    } else {
+                        e.target.innerText = '';
+                    }
+                };
+
+                // 엔터(Enter)나 쉼표(,) 입력 시 태그 저장
+                tagIn.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                        e.preventDefault();
+                        saveNewTag(e);
+                    }
+                };
+                tagIn.onblur = saveNewTag;
                 
                 tagsWrap.appendChild(tagIn);
-                tagsWrap.appendChild(connBtn);
                 box.appendChild(tagsWrap);
             }
+            // --- 여러 태그 로직 끝 ---
 
             const actions = document.createElement('div');
             actions.className = 'action-buttons';
@@ -511,8 +678,12 @@
                 container.appendChild(childCont);
             }
 
-            if (currentHighlightTag && node.tags && node.tags.includes(currentHighlightTag)) {
-                box.classList.add('highlight-active');
+            // 배열 및 문자열 태그 하이라이트 적용 로직
+            if (currentHighlightTag && node.tags) {
+                const hasMatch = Array.isArray(node.tags) 
+                    ? node.tags.some(t => t.toLowerCase().includes(currentHighlightTag))
+                    : typeof node.tags === 'string' && node.tags.toLowerCase().includes(currentHighlightTag);
+                if (hasMatch) box.classList.add('highlight-active');
             }
 
             return container;
@@ -520,7 +691,7 @@
 
         function addChild(parent, type) {
             if (!parent.children) parent.children = [];
-            parent.children.push({ id: generateId(), type, text: '', memo: '', tags: '', children: [] });
+            parent.children.push({ id: generateId(), type, text: '', memo: '', tags: [], children: [] });
             parent.isCollapsed = false;
             renderTree();
             autoSave();
@@ -554,10 +725,22 @@
                 return;
             }
             currentHighlightTag = target;
+            
+            // 배열 및 문자열 태그 하이라이트 적용 검색 로직
             document.querySelectorAll('.node-box').forEach(box => {
                 const id = box.dataset.id;
                 const node = findNodeById(treeData, id);
-                if (node && node.tags && node.tags.toLowerCase().includes(target)) box.classList.add('highlight-active');
+                let hasTag = false;
+                
+                if (node && node.tags) {
+                    if (Array.isArray(node.tags)) {
+                        hasTag = node.tags.some(t => t.toLowerCase().includes(target));
+                    } else if (typeof node.tags === 'string') {
+                        hasTag = node.tags.toLowerCase().includes(target);
+                    }
+                }
+                
+                if (hasTag) box.classList.add('highlight-active');
                 else box.classList.remove('highlight-active');
             });
 
@@ -650,7 +833,7 @@
             html2pdf().set(opt).from(element).save();
         }
 
-        // --- ⌨️ 글로벌 및 편집 에디터 키보드 단축키 (Shortcut) ---
+        // --- ⌨️ 단축키 ---
         document.addEventListener('keydown', function(e) {
             const isCtrl = e.ctrlKey || e.metaKey;
             const isAlt = e.altKey;
@@ -718,7 +901,7 @@
                     const fonts = document.querySelectorAll('font[size="7"]');
                     
                     fonts.forEach(font => {
-                        const parentSize = parseFloat(window.getComputedStyle(font.parentNode).fontSize) || 16; // 변경된 폰트사이즈 기준 반영
+                        const parentSize = parseFloat(window.getComputedStyle(font.parentNode).fontSize) || 16;
                         const span = document.createElement('span');
                         span.style.fontSize = (parentSize + delta) + 'px';
                         span.innerHTML = font.innerHTML;
@@ -730,7 +913,6 @@
             }
         });
 
-        // 자동 생성 로직을 제거하고, 사이드바 목록과 맵 청소만 수행
         window.onload = async () => { 
             await initDB(); 
             await cleanupEmptyTrees();
