@@ -328,6 +328,7 @@
     <div class="sidebar-tabs">
       <div class="sidebar-tab active" onclick="switchSidebarTab('notes')" id="tab-notes">키노트 조회</div>
       <div class="sidebar-tab" onclick="switchSidebarTab('items')" id="tab-items">항목 조회</div>
+      <div class="sidebar-tab" onclick="switchSidebarTab('mnemonics')" id="tab-mnemonics">두음 조회</div>
     </div>
 
     <div id="view-notes" class="view-container">
@@ -357,6 +358,16 @@
       <ul id="itemList" class="note-list"></ul>
     </div>
 
+    <div id="view-mnemonics" class="view-container hidden">
+      <div class="sidebar-search" style="border-bottom: 1px solid var(--border-base); display: flex; flex-direction: column; gap: 8px; padding: 16px 20px;">
+        <select id="sidebarMnemonicSelect" class="search-box" style="width: 100%;" onchange="renderSidebarMnemonicList()">
+          <option value="all">전체 완료 키노트</option>
+        </select>
+        <input type="text" id="sidebarMnemonicSearch" class="search-box" style="width: 100%;" placeholder="두음 텍스트 또는 문제 검색..." oninput="renderSidebarMnemonicList()">
+      </div>
+      <ul id="sidebarMnemonicList" class="note-list"></ul>
+    </div>
+
     <div style="padding: 20px; border-top: 1px solid var(--border-base);">
       <button class="btn btn-outline" style="width: 100%; justify-content: center;" onclick="createNewNote()">
         <i class="ph ph-plus"></i> 새 키노트 작성
@@ -369,7 +380,6 @@
       <input type="text" id="docTitle" class="title-input" placeholder="제목을 입력하세요" spellcheck="false">
       <div class="actions">
         <button class="btn btn-outline" onclick="openTopicListModal()" title="현재 문서의 전체 문항 리스트 보기"><i class="ph ph-list-dashes"></i></button>
-        <button class="btn btn-outline" id="btnMnemonicList" onclick="openMnemonicListModal()" title="두음 강조 내역 모아보기 (Alt+I)"><i class="ph ph-highlighter"></i></button>
         <button class="btn btn-outline" onclick="openSettings()" title="환경설정"><i class="ph ph-gear"></i></button>
         <div class="divider"></div>
         <input type="file" id="importInput" accept=".json" style="display: none;" onchange="importJSON(event)">
@@ -405,23 +415,6 @@
       </div>
     </div>
 
-    <div id="mnemonicListModal" class="modal-overlay" onclick="if(event.target===this) closeMnemonicListModal()">
-      <div class="modal-content" style="width: 600px; max-width: 90%; max-height: 80vh; display: flex; flex-direction: column; padding: 0;">
-        <div class="modal-header" style="padding: 20px 24px; margin-bottom: 0;">
-          <div class="modal-title"><i class="ph-fill ph-highlighter" style="font-size: 20px; color: #0d3a9e;"></i> 두음 강조 모아보기</div>
-          <button class="btn" style="padding: 4px; border: none; background: transparent;" onclick="closeMnemonicListModal()"><i class="ph ph-x" style="font-size: 18px;"></i></button>
-        </div>
-        <div style="padding: 16px 24px; border-bottom: 1px solid var(--border-base); background: var(--bg-body); display: flex; gap: 8px;">
-          <select id="mnemonicFilterSelect" class="search-box" style="width: auto; background: var(--bg-surface); max-width: 250px;" onchange="renderMnemonicList()">
-            <option value="all">전체 완료 키노트</option>
-          </select>
-          <input type="text" id="mnemonicSearchInput" class="search-box" style="background: var(--bg-surface); flex: 1;" placeholder="두음 텍스트 또는 문제 검색..." oninput="renderMnemonicList()">
-        </div>
-        <div id="mnemonicListContainer" style="flex: 1; overflow-y: auto; padding: 0; background: var(--bg-body);">
-        </div>
-      </div>
-    </div>
-
     <div id="settingsModal" class="modal-overlay">
       <div class="modal-content">
         <div class="modal-header">
@@ -449,7 +442,7 @@
             <li><b>화면 스크롤:</b> 화살표 위/아래 (입력 중이 아닐 때)</li>
             <li><b>글자 확대/축소:</b> Ctrl + ➕ / ➖</li>
             <li><b>두음 강조(남색+흰글씨):</b> Ctrl + Alt + M</li>
-            <li><b style="color:#0d3a9e;">두음 강조 모아보기:</b> Alt + I</li>
+            <li><b style="color:#0d3a9e;">두음 조회(사이드바 탭):</b> Alt + I</li>
             <li><b>이미지 정렬 및 크기:</b> 이미지를 클릭하면 사이즈 조절 및 정렬 툴바가 표시됩니다.</li>
             <li><b>이미지 크게 보기:</b> 에디터 내 이미지 <b>더블클릭</b></li>
             <li><b>에디터 서식:</b> 취소선(Ctrl+0) | 빨강(Ctrl+Alt+R) | 파랑(Ctrl+Alt+B)</li>
@@ -560,23 +553,26 @@
     const FIVE_R_TYPES = ['Refuge', 'Root', 'Regular', 'Rule', 'Rush'];
 
     // 탭 모드 상태 제어
-    let currentSidebarTab = 'notes'; // 'notes' or 'items'
+    let currentSidebarTab = 'notes'; // 'notes', 'items', 'mnemonics'
+    let globalMnemonicData = []; // 두음 데이터를 저장할 전역 변수
 
     function switchSidebarTab(tab) {
       currentSidebarTab = tab;
       
+      // 탭 활성화 상태 변경
       document.getElementById('tab-notes').classList.remove('active');
       document.getElementById('tab-items').classList.remove('active');
+      document.getElementById('tab-mnemonics').classList.remove('active');
       document.getElementById(`tab-${tab}`).classList.add('active');
 
-      const btnMnemonic = document.getElementById('btnMnemonicList');
+      // 모든 뷰 숨김 처리 후 선택한 뷰만 노출
+      document.getElementById('view-notes').classList.add('hidden');
+      document.getElementById('view-items').classList.add('hidden');
+      document.getElementById('view-mnemonics').classList.add('hidden');
+      
+      document.getElementById(`view-${tab}`).classList.remove('hidden');
 
       if (tab === 'notes') {
-        document.getElementById('view-notes').classList.remove('hidden');
-        document.getElementById('view-items').classList.add('hidden');
-        if (btnMnemonic) btnMnemonic.style.display = 'inline-flex'; // 버튼 보이기
-        
-        // 이전 노트로 복귀하거나 새 노트 렌더링
         if (currentNoteId) {
           const tx = db.transaction(['notes'], 'readonly');
           const req = tx.objectStore('notes').get(currentNoteId);
@@ -587,11 +583,10 @@
         } else {
           createNewNote();
         }
-      } else {
-        document.getElementById('view-notes').classList.add('hidden');
-        document.getElementById('view-items').classList.remove('hidden');
-        if (btnMnemonic) btnMnemonic.style.display = 'none'; // 항목조회 시 두음 버튼 숨기기
+      } else if (tab === 'items') {
         executeItemFilter();
+      } else if (tab === 'mnemonics') {
+        fetchAllMnemonicsForSidebar();
       }
     }
 
@@ -872,11 +867,10 @@
 
       if (!isCtrl && isAlt && (e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
-        const modal = document.getElementById('mnemonicListModal');
-        if (modal.style.display === 'flex') {
-          closeMnemonicListModal();
+        if (currentSidebarTab === 'mnemonics') {
+          switchSidebarTab('notes');
         } else {
-          openMnemonicListModal();
+          switchSidebarTab('mnemonics');
         }
         return;
       }
@@ -894,7 +888,6 @@
         closeSettings(); 
         closeImageViewer(); 
         closeTopicListModal();
-        closeMnemonicListModal();
         let isImageEditing = false;
         document.querySelectorAll('.ql-container').forEach(container => {
           const overlays = Array.from(container.children).filter(el => !el.classList.length);
@@ -1042,18 +1035,7 @@
       }
     }
 
-    let globalMnemonicData = []; // 두음 데이터를 저장할 전역 변수
-
-    function openMnemonicListModal() {
-      document.getElementById('mnemonicListModal').style.display = 'flex';
-      fetchAllMnemonics();
-    }
-
-    function closeMnemonicListModal() {
-      document.getElementById('mnemonicListModal').style.display = 'none';
-    }
-
-    // HTML 문자열에서 두음 강조(남색 배경) 텍스트를 추출하는 헬퍼 함수 (RGB, HEX 모두 견고하게 호환)
+    // HTML 문자열에서 두음 강조(남색 배경) 텍스트를 추출하는 헬퍼 함수
     function extractMnemonicsArray(html) {
       if (!html) return [];
       const temp = document.createElement('div');
@@ -1099,13 +1081,13 @@
       return results;
     }
 
-    // DB 및 현재 작성 중인 문서에서 두음 데이터 추출
-    function fetchAllMnemonics() {
-      const container = document.getElementById('mnemonicListContainer');
-      container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px;">데이터를 분석하는 중...</div>';
+    // DB 및 현재 작성 중인 문서에서 두음 데이터 추출 (사이드바 전용)
+    function fetchAllMnemonicsForSidebar() {
+      const container = document.getElementById('sidebarMnemonicList');
+      container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 13px;">데이터를 분석하는 중...</div>';
 
       globalMnemonicData = [];
-      const select = document.getElementById('mnemonicFilterSelect');
+      const select = document.getElementById('sidebarMnemonicSelect');
       const currentSelection = select.value;
       select.innerHTML = '<option value="all">전체 내역 (현재 문서 포함)</option>';
 
@@ -1146,8 +1128,8 @@
           if (!displayTitle) displayTitle = '(문제 내용 없음)';
 
           globalMnemonicData.push({
-            noteId: 'current', // 현재 문서용 특수 ID
-            noteTitle: '[현재 문서] ' + currentTitle,
+            noteId: 'current',
+            noteTitle: '[현재] ' + currentTitle,
             itemIndex: i - 1,
             displayTitle: displayTitle,
             mnemonics: cardMnemonics
@@ -1158,7 +1140,7 @@
       if (currentHasMnemonic) {
         const option = document.createElement('option');
         option.value = 'current';
-        option.textContent = '[현재 문서] ' + currentTitle;
+        option.textContent = '[현재] ' + currentTitle;
         select.appendChild(option);
       }
 
@@ -1170,7 +1152,6 @@
         const cursor = e.target.result;
         if (cursor) {
           const note = cursor.value;
-          // 현재 문서는 이미 추가했으므로 중복 방지, 그리고 _COM 항목만 불러옴
           if (note.id !== currentNoteId && note.title && note.title.endsWith('_COM')) {
             const option = document.createElement('option');
             option.value = note.id;
@@ -1211,26 +1192,24 @@
           cursor.continue();
         } else {
           if (Array.from(select.options).some(opt => opt.value === currentSelection)) select.value = currentSelection;
-          
-          // 'current(현재 문서)'를 항상 맨 위에 두도록 정렬
           globalMnemonicData.sort((a, b) => {
             if (a.noteId === 'current') return -1;
             if (b.noteId === 'current') return 1;
             return a.noteTitle.localeCompare(b.noteTitle, undefined, { numeric: true, sensitivity: 'base' });
           });
           
-          renderMnemonicList();
+          renderSidebarMnemonicList();
         }
       };
     }
 
-    // 추출된 데이터를 기반으로 필터링 및 화면 출력
-    function renderMnemonicList() {
-      const container = document.getElementById('mnemonicListContainer');
+    // 추출된 데이터를 기반으로 사이드바 리스트 화면 출력
+    function renderSidebarMnemonicList() {
+      const container = document.getElementById('sidebarMnemonicList');
       container.innerHTML = '';
       
-      const filterNoteId = document.getElementById('mnemonicFilterSelect').value;
-      const searchKeyword = document.getElementById('mnemonicSearchInput').value.toLowerCase().trim();
+      const filterNoteId = document.getElementById('sidebarMnemonicSelect').value;
+      const searchKeyword = document.getElementById('sidebarMnemonicSearch').value.toLowerCase().trim();
 
       let filteredData = globalMnemonicData.filter(item => {
         if (filterNoteId !== 'all' && item.noteId !== filterNoteId) return false;
@@ -1243,34 +1222,39 @@
       });
 
       if (filteredData.length === 0) {
-        container.innerHTML = '<div style="padding: 30px; text-align: center; color: var(--text-muted); font-size: 14px; background: var(--bg-surface); height: 100%;">조건에 맞는 두음 강조 내역이 없습니다.</div>';
+        container.innerHTML = '<div style="padding: 30px 10px; text-align: center; color: var(--text-muted); font-size: 13px;">조건에 맞는 내역이 없습니다.</div>';
         return;
       }
 
       filteredData.forEach(data => {
-        const div = document.createElement('div');
-        div.className = 'topic-modal-item';
-        div.style.cssText = 'padding: 16px 20px; border-bottom: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 8px; cursor: default; background: var(--bg-surface);';
+        const li = document.createElement('li');
+        li.className = 'note-item';
+        // 패딩을 늘려 클릭 영역 확보 및 여백 시원하게 조정
+        li.style.cssText = 'padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; background: var(--bg-surface); margin-bottom: 6px; box-shadow: var(--shadow-sm);';
+        li.onclick = () => loadNoteAndScroll(data.noteId, data.itemIndex);
         
-        const titleHtml = `<div style="display: flex; flex-direction: column; gap: 6px;">
-          <div style="font-size: 11px; color: #3B82F6; font-weight: 700; margin-bottom: 2px; display: flex; align-items: center; gap: 4px;">
-            <i class="ph-fill ph-folder-open"></i> ${data.noteTitle}
+        // 폴더 타이틀 및 문항 제목 폰트 사이즈 증가 (11px -> 13px, 13px -> 15px)
+        const titleHtml = `
+          <div style="font-size: 13px; color: #3B82F6; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <i class="ph-fill ph-folder-open" style="font-size: 15px;"></i> ${data.noteTitle} (Q${data.itemIndex + 1})
           </div>
-          <div style="font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 6px;">
-            <div class="topic-modal-num clickable" onclick="closeMnemonicListModal(); loadNoteAndScroll('${data.noteId}', ${data.itemIndex});" title="${data.noteTitle}의 ${data.itemIndex + 1}번 문항으로 이동">${data.itemIndex + 1}</div>
-            문항
-          </div>
-          <div style="font-size: 13px; font-weight: 500; color: var(--text-muted); padding-left: 30px; line-height: 1.4; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+          <div style="font-size: 15px; font-weight: 600; color: var(--text-main); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px;">
             ${data.displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
           </div>
-        </div>`;
+        `;
         
-        const listHtml = `<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-left: 30px; margin-top: 2px;">
-          ${data.mnemonics.map(m => `<span style="background: #0d3a9e; color: #ffffff; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 13px; box-shadow: var(--shadow-sm);"><span style="font-size: 10px; color: #93c5fd; margin-right: 4px;">[${m.type}]</span>${m.text}</span>`).join('')}
-        </div>`;
+        // 중복 추출된 두음 텍스트 제거 (Set 활용)
+        const uniqueMnemonics = Array.from(new Set(data.mnemonics.map(m => m.text)));
+
+        // 두음 뱃지 폰트 사이즈 및 패딩 증가 (11px -> 13px)
+        const listHtml = `
+          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+            ${uniqueMnemonics.map(text => `<span style="background: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; font-weight: 600; padding: 4px 8px; border-radius: 6px; font-size: 13px;">${text}</span>`).join('')}
+          </div>
+        `;
         
-        div.innerHTML = titleHtml + listHtml;
-        container.appendChild(div);
+        li.innerHTML = titleHtml + listHtml;
+        container.appendChild(li);
       });
     }
 
@@ -1343,16 +1327,17 @@
           gatheredItems.forEach((gItem) => {
             const li = document.createElement('li');
             li.className = 'note-item';
-            li.style.padding = '12px 14px';
-            li.style.borderBottom = '1px solid var(--border-light)';
+            // 패딩 및 여백 증가, 카드 형태의 디자인으로 변경
+            li.style.cssText = 'padding: 16px 20px; border-bottom: 1px solid var(--border-light); cursor: pointer; background: var(--bg-surface); margin-bottom: 6px; box-shadow: var(--shadow-sm);';
             
             li.onclick = () => loadNoteAndScroll(gItem.noteId, gItem.itemIndex);
 
+            // 폰트 사이즈 증가 및 행간(line-height) 조절
             li.innerHTML = `
-              <div style="font-size: 11px; color: #3B82F6; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                  <i class="ph-fill ph-folder-open"></i> ${gItem.noteTitle} (Q${gItem.itemIndex + 1})
+              <div style="font-size: 13px; color: #3B82F6; font-weight: 700; margin-bottom: 8px; display: flex; align-items: center; gap: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  <i class="ph-fill ph-folder-open" style="font-size: 15px;"></i> ${gItem.noteTitle} (Q${gItem.itemIndex + 1})
               </div>
-              <div style="font-size: 13.5px; font-weight: 600; color: var(--text-main); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+              <div style="font-size: 15px; font-weight: 600; color: var(--text-main); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
                   ${gItem.displayTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;')}
               </div>
             `;
