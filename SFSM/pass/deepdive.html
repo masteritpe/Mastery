@@ -324,8 +324,9 @@
     const $ = id => document.getElementById(id);
     
     // HTML 엔티티 이스케이프 및 복원 함수 (PDF 복사 문제 해결)
+    // 수정: &nbsp; 등의 엔티티도 공백으로 치환되도록 개선 (unescapeHtml)
     const escapeHtml = str => String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-    const unescapeHtml = str => String(str).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const unescapeHtml = str => String(str).replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ');
     
     // 정규식 이중 이스케이프 오류 수정 (검색 하이라이트)
     const highlightText = (text, kw) => {
@@ -384,7 +385,6 @@
       req.onupgradeneeded = e => {
         const d = e.target.result;
         if (!d.objectStoreNames.contains('questions')) d.createObjectStore('questions', { keyPath: 'id' });
-        if (!d.objectStoreNames.contains('settings')) d.createObjectStore('settings', { keyPath: 'id' });
       };
       req.onsuccess = e => { 
         db = e.target.result; 
@@ -508,10 +508,11 @@
       let content = q.questionText || '';
       let strategy = q.strategyText || '';
       
-      if (content && !/<[a-z][\s\S]*>/i.test(content)) {
+      // 수정: 순수 HTML 태그뿐만 아니라 &nbsp; 등의 HTML 엔티티가 포함되어 있는지도 검사하여 이중 이스케이프 방지
+      if (content && !/(<[a-z\/][\s\S]*>|&[#a-z0-9]+;)/i.test(content)) {
           content = escapeHtml(content).replace(/\n/g, '<br>');
       }
-      if (strategy && !/<[a-z][\s\S]*>/i.test(strategy)) {
+      if (strategy && !/(<[a-z\/][\s\S]*>|&[#a-z0-9]+;)/i.test(strategy)) {
           strategy = escapeHtml(strategy).replace(/\n/g, '<br>');
       }
       
