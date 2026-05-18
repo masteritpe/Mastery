@@ -160,6 +160,8 @@
                 <button id="btnBulkDelete" class="btn btn-danger" onclick="deleteSelectedData()" style="display:none;">🗑️ 선택 삭제</button>
                 
                 <button class="btn" onclick="openBulkUpdateModal()">✨ 일괄 변경</button>
+                <button class="btn" onclick="openDropTableModal()" style="color:var(--danger); border-color:#ffbdad; background:#fff0ed; margin-right: 15px;">🔥 테이블 삭제</button>
+
                 <button class="btn btn-primary" onclick="openModal('add')">+ 추가</button>
                 <button class="btn btn-outline-danger" onclick="clearCurrentStore()">⚠️ 비우기</button>
                 <button class="btn" onclick="performSearch(true)">🔄 새로고침</button>
@@ -233,6 +235,25 @@
         </div>
     </div>
 
+    <div id="dropTableModal" class="modal-overlay">
+        <div class="modal-box" style="width: 420px;">
+            <div class="modal-header" style="background: #fff0ed; border-bottom-color: #ffbdad;">
+                <span style="color: var(--danger);">🔥 테이블 완전 삭제 (Drop)</span>
+                <button class="btn-sm" style="border:none; background:transparent; font-size:16px; cursor:pointer; color: var(--danger);" onclick="closeModal('dropTableModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="color: #172b4d; font-size: 14px; line-height: 1.6;">
+                    현재 선택된 <strong style="color:var(--primary); font-size: 16px;"><span id="dropTableNameDisplay"></span></strong> 테이블을 완전히 삭제하시겠습니까?<br><br>
+                    <span style="color: var(--danger); font-weight: bold;">⚠️ 주의:</span> 이 작업은 내부의 모든 데이터를 비우는 것을 넘어서, <strong style="text-decoration: underline;">테이블 구조(Schema) 자체를 DB에서 제거</strong>하므로 절대 되돌릴 수 없습니다.
+                </div>
+            </div>
+            <div class="modal-footer" style="background: #fff0ed; border-top-color: #ffbdad;">
+                <button class="btn" onclick="closeModal('dropTableModal')" style="border-color:#ffbdad;">취소</button>
+                <button class="btn btn-danger" onclick="executeDropTable()">네, 영구 삭제합니다</button>
+            </div>
+        </div>
+    </div>
+
     <div id="backupModal" class="modal-overlay">
         <div class="modal-box" style="width: 550px;">
             <div class="modal-header">
@@ -302,7 +323,6 @@
         let currentRows = []; 
         let currentRealIndexes = [];
 
-        // DB 리스트 저장용 및 스크롤 렌더링용 추가 변수
         let availableDBs = [];
         let tableDisplayRows = [];
         let tableRenderedCount = 0;
@@ -664,7 +684,6 @@
             }
         }
 
-        /* 일괄 변경(Bulk Update) 기능 추가 로직 시작 */
         function openBulkUpdateModal() {
             if(!currentStoreName) return alert("테이블을 먼저 선택해주세요.");
             if(currentCols.length === 0) return alert("변경할 컬럼 데이터가 없습니다.");
@@ -672,7 +691,6 @@
             const select = document.getElementById('bulkColumnSelect');
             select.innerHTML = '';
             
-            // 현재 수집된 컬럼들을 select 옵션에 추가
             currentCols.forEach(col => {
                 const opt = document.createElement('option');
                 opt.value = col;
@@ -680,7 +698,6 @@
                 select.appendChild(opt);
             });
             
-            // 인풋 초기화
             document.getElementById('bulkSearchText').value = '';
             document.getElementById('bulkReplaceText').value = '';
             
@@ -702,17 +719,12 @@
             const tx = currentDB.transaction(currentStoreName, 'readwrite');
             const store = tx.objectStore(currentStoreName);
             
-            // 현재 테이블의 전체 데이터(currentRows) 순회
             currentRows.forEach(row => {
-                // value가 객체 구조일 때만 대상 컬럼 값 확인 가능
                 if(row.value && typeof row.value === 'object') {
                     let val = row.value[colName];
-                    
-                    // 문자열이고 검색어가 포함되어 있을 때만 치환 (부분 일치 치환)
                     if(typeof val === 'string' && val.includes(searchText)) {
                         row.value[colName] = val.split(searchText).join(replaceText);
                         
-                        // DB에 업데이트 반영
                         if(currentKeyPath) {
                             store.put(row.value);
                         } else {
@@ -726,15 +738,71 @@
             tx.oncomplete = () => {
                 alert(`총 ${updateCount}개의 항목이 성공적으로 변경되었습니다.`);
                 closeModal('bulkUpdateModal');
-                performSearch(true); // 데이터 최신화 및 테이블 리로드
+                performSearch(true);
             };
-            
             tx.onerror = (e) => {
                 alert("일괄 변경 중 오류가 발생했습니다: " + e.target.error);
                 console.error(e);
             };
         }
-        /* 일괄 변경 기능 추가 로직 끝 */
+
+        /* 테이블 스키마 완전 삭제 (Drop Object Store) 추가 시작 */
+        function openDropTableModal() {
+            if(!currentStoreName) return alert("삭제할 테이블을 먼저 선택해주세요.");
+            document.getElementById('dropTableNameDisplay').innerText = currentStoreName;
+            document.getElementById('dropTableModal').style.display = 'flex';
+        }
+
+        function executeDropTable() {
+            if(!currentDB || !currentStoreName) return;
+            
+            const dbName = currentDB.name;
+            const newVersion = currentDB.version + 1; // 버전업을 해야 스키마 변경 가능
+            const storeToDrop = currentStoreName;
+
+            // 현재 연결을 강제로 닫아야 versionchange 트랜잭션을 발생시킬 수 있음
+            currentDB.close();
+
+            const request = indexedDB.open(dbName, newVersion);
+            
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                // 해당 스토어가 존재하면 완전히 삭제
+                if (db.objectStoreNames.contains(storeToDrop)) {
+                    db.deleteObjectStore(storeToDrop);
+                }
+            };
+
+            request.onsuccess = (e) => {
+                currentDB = e.target.result;
+                alert(`[${storeToDrop}] 테이블이 영구적으로 삭제되었습니다.`);
+                
+                // UI 초기화 작업
+                currentStoreName = "";
+                document.getElementById('currentStoreInfo').innerText = "테이블 미선택";
+                renderStoreList(currentDB.objectStoreNames);
+                clearTable();
+                
+                document.getElementById('emptyState').style.display = 'flex';
+                document.querySelector('#emptyState div:last-child').innerText = "좌측 목록에서 조회할 테이블을 선택하세요.";
+                
+                closeModal('dropTableModal');
+                
+                // 새로운 DB 버전 정보를 UI 셀렉트박스에 반영
+                loadDBList();
+            };
+
+            request.onerror = (e) => {
+                alert("테이블 완전 삭제 중 오류가 발생했습니다: " + e.target.error);
+                // 에러 발생시 현재 연결을 다시 복원 시도
+                connectDB(dbName);
+            };
+            
+            request.onblocked = (e) => {
+                alert("다른 탭에서 해당 DB를 사용중이어서 삭제할 수 없습니다. 다른 탭을 모두 닫고 다시 시도해주세요.");
+            };
+        }
+        /* 테이블 스키마 완전 삭제 (Drop Object Store) 추가 끝 */
 
         function openBackupModal() {
             if(!currentDB) return alert('DB를 먼저 연결해주세요.');
