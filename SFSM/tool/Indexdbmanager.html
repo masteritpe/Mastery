@@ -26,7 +26,6 @@
         .app-title { font-size: 16px; font-weight: 800; color: #0052cc; display: flex; align-items: center; gap: 6px; }
         .db-selector-group { display: flex; align-items: center; background: #f4f5f7; border-radius: 4px; padding: 2px; border: 1px solid #dfe1e6; }
         
-        /* 추가된 검색 필드 스타일 */
         .db-filter { border: none; background: transparent; height: 30px; font-size: 13px; padding: 0 8px; border-right: 1px solid #dfe1e6; width: 120px; outline: none; color: #172b4d; }
         .db-filter::placeholder { color: #97a0af; }
         
@@ -160,6 +159,7 @@
 
                 <button id="btnBulkDelete" class="btn btn-danger" onclick="deleteSelectedData()" style="display:none;">🗑️ 선택 삭제</button>
                 
+                <button class="btn" onclick="openBulkUpdateModal()">✨ 일괄 변경</button>
                 <button class="btn btn-primary" onclick="openModal('add')">+ 추가</button>
                 <button class="btn btn-outline-danger" onclick="clearCurrentStore()">⚠️ 비우기</button>
                 <button class="btn" onclick="performSearch(true)">🔄 새로고침</button>
@@ -195,6 +195,40 @@
             <div class="modal-footer">
                 <button class="btn" onclick="closeModal('editorModal')">취소</button>
                 <button class="btn btn-primary" onclick="saveData()">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="bulkUpdateModal" class="modal-overlay">
+        <div class="modal-box" style="width: 450px;">
+            <div class="modal-header">
+                <span>✨ 데이터 일괄 변경</span>
+                <button class="btn-sm" style="border:none; background:transparent; font-size:16px; cursor:pointer;" onclick="closeModal('bulkUpdateModal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                        <label style="font-weight:600; display:block; margin-bottom:4px; font-size:12px;">대상 컬럼 (문자열 전용)</label>
+                        <select id="bulkColumnSelect" style="width:100%; padding:8px; border:1px solid #dfe1e6; border-radius:4px; outline:none; font-family:inherit;"></select>
+                    </div>
+                    <div>
+                        <label style="font-weight:600; display:block; margin-bottom:4px; font-size:12px;">찾을 내용</label>
+                        <input type="text" id="bulkSearchText" style="width:100%; padding:8px; border:1px solid #dfe1e6; border-radius:4px; outline:none; font-family:inherit;" placeholder="예: 인공지능">
+                    </div>
+                    <div>
+                        <label style="font-weight:600; display:block; margin-bottom:4px; font-size:12px;">바꿀 내용</label>
+                        <input type="text" id="bulkReplaceText" style="width:100%; padding:8px; border:1px solid #dfe1e6; border-radius:4px; outline:none; font-family:inherit;" placeholder="예: AI">
+                    </div>
+                    <div style="font-size:12px; color:#5e6c84; background:#f4f5f7; padding:10px; border-radius:4px; line-height:1.5;">
+                        <strong style="color:#172b4d;">💡 참고사항</strong><br>
+                        선택한 컬럼 내에서 <strong>'찾을 내용'</strong>과 일치하는 모든 텍스트가 <strong>'바꿀 내용'</strong>으로 치환(Replace)됩니다.<br>
+                        (※ 텍스트 타입의 데이터에만 적용됩니다.)
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('bulkUpdateModal')">취소</button>
+                <button class="btn btn-primary" onclick="executeBulkUpdate()">일괄 변경 실행</button>
             </div>
         </div>
     </div>
@@ -273,21 +307,18 @@
         let tableDisplayRows = [];
         let tableRenderedCount = 0;
         let currentCols = [];
-        const RENDER_CHUNK_SIZE = 50; // 한 번에 보여줄 행 개수
+        const RENDER_CHUNK_SIZE = 50; 
 
         window.onload = () => {
             loadDBList();
             
-            // 무한 스크롤(Lazy Load) 이벤트 리스너 등록
             document.getElementById('tableWrapper').addEventListener('scroll', function() {
-                // 스크롤이 하단에서 50px 이내로 접근했을 때 추가 렌더링
                 if (this.scrollTop + this.clientHeight >= this.scrollHeight - 50) {
                     renderNextTableChunk();
                 }
             });
         };
 
-        // DB 목록 가져오기 로직 (변경)
         async function loadDBList() {
             if (indexedDB.databases) {
                 try {
@@ -307,11 +338,9 @@
                 opt.text = `${db.name} (v${db.version})`;
                 select.appendChild(opt);
             });
-            // 이전 선택값 유지
             if(prevValue && dbs.find(d => d.name === prevValue)) select.value = prevValue;
         }
 
-        // DB명 필터(검색) 함수
         function filterDBList(keyword) {
             const filtered = availableDBs.filter(db => db.name.toLowerCase().includes(keyword.toLowerCase()));
             renderDBSelect(filtered, document.getElementById('dbList').value);
@@ -479,7 +508,6 @@
             }
         }
 
-        // 스크롤 성능 최적화를 위해 renderTable 분리
         function renderTable(rows = null) {
             tableDisplayRows = rows || currentRows;
             const thead = document.querySelector('#dataTable thead');
@@ -489,7 +517,7 @@
             
             thead.innerHTML = ''; tbody.innerHTML = '';
             btnBulkDelete.style.display = 'none';
-            tableRenderedCount = 0; // 초기화
+            tableRenderedCount = 0; 
 
             if (tableDisplayRows.length === 0) {
                 emptyState.style.display = 'flex';
@@ -515,11 +543,9 @@
             trH += `</tr>`;
             thead.innerHTML = trH;
 
-            // 처음 일부 데이터만 렌더링
             renderNextTableChunk();
         }
 
-        // 스크롤 시 추가 렌더링을 처리하는 함수
         function renderNextTableChunk() {
             if (tableRenderedCount >= tableDisplayRows.length) return;
             
@@ -637,6 +663,79 @@
                 modal.style.display = 'flex';
             }
         }
+
+        /* 일괄 변경(Bulk Update) 기능 추가 로직 시작 */
+        function openBulkUpdateModal() {
+            if(!currentStoreName) return alert("테이블을 먼저 선택해주세요.");
+            if(currentCols.length === 0) return alert("변경할 컬럼 데이터가 없습니다.");
+            
+            const select = document.getElementById('bulkColumnSelect');
+            select.innerHTML = '';
+            
+            // 현재 수집된 컬럼들을 select 옵션에 추가
+            currentCols.forEach(col => {
+                const opt = document.createElement('option');
+                opt.value = col;
+                opt.innerText = col;
+                select.appendChild(opt);
+            });
+            
+            // 인풋 초기화
+            document.getElementById('bulkSearchText').value = '';
+            document.getElementById('bulkReplaceText').value = '';
+            
+            document.getElementById('bulkUpdateModal').style.display = 'flex';
+        }
+
+        function executeBulkUpdate() {
+            const colName = document.getElementById('bulkColumnSelect').value;
+            const searchText = document.getElementById('bulkSearchText').value;
+            const replaceText = document.getElementById('bulkReplaceText').value;
+            
+            if(!searchText) {
+                alert("찾을 내용을 입력해주세요.");
+                document.getElementById('bulkSearchText').focus();
+                return;
+            }
+            
+            let updateCount = 0;
+            const tx = currentDB.transaction(currentStoreName, 'readwrite');
+            const store = tx.objectStore(currentStoreName);
+            
+            // 현재 테이블의 전체 데이터(currentRows) 순회
+            currentRows.forEach(row => {
+                // value가 객체 구조일 때만 대상 컬럼 값 확인 가능
+                if(row.value && typeof row.value === 'object') {
+                    let val = row.value[colName];
+                    
+                    // 문자열이고 검색어가 포함되어 있을 때만 치환 (부분 일치 치환)
+                    if(typeof val === 'string' && val.includes(searchText)) {
+                        row.value[colName] = val.split(searchText).join(replaceText);
+                        
+                        // DB에 업데이트 반영
+                        if(currentKeyPath) {
+                            store.put(row.value);
+                        } else {
+                            store.put(row.value, row.realKey);
+                        }
+                        updateCount++;
+                    }
+                }
+            });
+            
+            tx.oncomplete = () => {
+                alert(`총 ${updateCount}개의 항목이 성공적으로 변경되었습니다.`);
+                closeModal('bulkUpdateModal');
+                performSearch(true); // 데이터 최신화 및 테이블 리로드
+            };
+            
+            tx.onerror = (e) => {
+                alert("일괄 변경 중 오류가 발생했습니다: " + e.target.error);
+                console.error(e);
+            };
+        }
+        /* 일괄 변경 기능 추가 로직 끝 */
+
         function openBackupModal() {
             if(!currentDB) return alert('DB를 먼저 연결해주세요.');
             document.getElementById('backupModal').style.display = 'flex';
